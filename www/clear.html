@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clearing cache...</title>
+<style>
+  body{font-family:Inter,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f0f7ff;color:#1a1a2e}
+  .spinner{width:44px;height:44px;border:3.5px solid rgba(30,144,255,.15);border-top-color:#1E90FF;border-radius:50%;animation:spin .7s linear infinite;margin-bottom:20px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  p{font-size:15px;font-weight:600;color:#1E90FF}
+</style>
+</head>
+<body>
+<div class="spinner"></div>
+<p>Clearing cache...</p>
+<script>
+async function nukeAndReload() {
+  // Unregister all service workers
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const reg of regs) await reg.unregister();
+  }
+  // Clear all caches
+  const keys = await caches.keys();
+  await Promise.all(keys.map(k => caches.delete(k)));
+  // Redirect to app with no-cache
+  window.location.replace('./?nocache=' + Date.now());
+}
+nukeAndReload();
+</script>
+</body>
+</html>

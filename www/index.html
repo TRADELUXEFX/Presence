@@ -1,0 +1,1987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>PRESENCE TRAINING</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1E90FF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Presence">
+<link rel="apple-touch-icon" href="apple-touch-icon.jpg">
+<link rel="icon" type="image/jpeg" sizes="192x192" href="icon-192x192.jpg">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%;overflow:hidden;position:fixed;top:0;left:0}
+body{font-family:'Avenir Next','Avenir',Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#f0f7ff 0%,#ffffff 100%);color:#1a1a2e}
+.app{display:flex;flex-direction:column;height:100dvh;width:100%;margin:0 auto;padding:0;overflow:hidden;position:relative}
+.screen{display:none;flex-direction:column;flex:1;height:100%;overflow-y:auto;overflow-x:hidden;padding:calc(10px + env(safe-area-inset-top)) calc(19px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(19px + env(safe-area-inset-left));-webkit-overflow-scrolling:touch}
+/* ---- NEW HEADER ---- */
+.header{margin-bottom:14px;padding-top:10px;flex-shrink:0}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.header-brand{display:flex;align-items:center;gap:10px}
+.header-logo{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 8px rgba(30,144,255,.25);overflow:hidden}
+.header-logo img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+.header-titles{display:flex;flex-direction:column;gap:0px}
+h1{font-size:18px;font-weight:900;color:#1a1a2e;letter-spacing:0.5px;line-height:1.1;margin:0}
+.subtitle{color:#94a3b8;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin:0}
+.prog-btn{background:rgba(30,144,255,.07);color:#1E90FF;padding:8px 14px;border-radius:50px;border:1.5px solid rgba(30,144,255,.2);font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;font-family:inherit;flex-shrink:0;white-space:nowrap}
+.prog-btn svg{width:13px;height:13px;stroke:#1E90FF;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.prog-btn:active{background:rgba(30,144,255,.15);transform:scale(.97)}
+.tip-box{background:linear-gradient(135deg,#1E90FF 0%,#0a6edb 100%);border-radius:16px;padding:14px 18px;margin:0 0 12px;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 16px rgba(30,144,255,.22);flex-shrink:0}
+.tip-text{font-size:14px;color:white;font-weight:600;line-height:1.4;text-align:center}
+.tip-text strong{color:white}
+@keyframes shimmer{to{background-position:200% center}}
+.prog-btn-wrap{display:none}
+
+/* ---- STREAK ROW ---- */
+.streak-row{background:#0d1526;border-radius:16px;padding:14px 18px;margin:0 0 10px;display:flex;align-items:center;gap:0;flex-shrink:0;border:1px solid rgba(255,255,255,.06)}
+.streak-item{flex:1;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.streak-item-left{display:flex;align-items:center;gap:10px}
+.streak-ic{width:20px;height:20px;flex-shrink:0}
+.streak-ic svg{width:20px;height:20px;display:block}
+.streak-item-lbl{font-size:11px;font-weight:800;color:rgba(255,255,255,.9);letter-spacing:.4px;text-transform:uppercase}
+.streak-item-sub{font-size:9px;color:rgba(255,255,255,.3);font-weight:500;margin-top:1px}
+.streak-item-val{font-size:28px;font-weight:900;color:#1E90FF;line-height:1}
+.streak-divider{width:1px;height:36px;background:rgba(255,255,255,.08);margin:0 16px}
+
+
+.today-card{background:white;border-radius:20px;padding:18px 20px;border:1.5px solid rgba(30,144,255,.12);box-shadow:0 4px 16px rgba(30,144,255,.07);margin-bottom:16px;flex-shrink:0}
+.today-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.today-title{font-size:13px;font-weight:800;color:#1a1a2e;letter-spacing:.8px;text-transform:uppercase}
+.today-count{font-size:13px;font-weight:800;color:#1E90FF}
+.today-bar-track{height:6px;background:rgba(30,144,255,.1);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.today-bar-fill{height:100%;background:linear-gradient(90deg,#1E90FF,#60a5fa);width:0%;transition:width .5s cubic-bezier(.4,0,.2,1);border-radius:3px}
+.today-dots{display:flex;gap:8px;align-items:center}
+.today-dot-item{display:flex;align-items:center;gap:5px;flex:1}
+.today-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;transition:all .3s}
+.today-dot.inactive{background:rgba(30,144,255,.2)}
+.today-dot.active{box-shadow:0 0 6px currentColor}
+.today-dot-lbl{font-size:10px;font-weight:600;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.modules-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:19px;flex:1}
+.mod-card{background:linear-gradient(145deg,#ffffff,#f0f7ff);border-radius:16px;padding:14px 16px;border:2px solid rgba(30,144,255,.2);box-shadow:0 4px 14px rgba(30,144,255,.07);cursor:pointer;position:relative;transition:transform .15s;display:flex;flex-direction:row;align-items:center;gap:14px;-webkit-user-select:none;user-select:none}
+.mod-card:active{transform:scale(.97)}
+.mod-card.blink   {border-top:3px solid #06b6d4}
+.mod-card.fidget  {border-top:3px solid #2EA043}
+.mod-card.breath  {border-top:3px solid #8b5cf6}
+.mod-card.meditate{border-top:3px solid #ec4899}
+.mod-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mod-icon svg{width:24px;height:24px;display:block}
+.mod-text{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.blink   .mod-icon{background:linear-gradient(135deg,#06b6d4,#0891b2)}
+.fidget  .mod-icon{background:linear-gradient(135deg,#2EA043,#166534)}
+.breath  .mod-icon{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+.meditate .mod-icon{background:linear-gradient(135deg,#ec4899,#be185d)}
+.mod-name{font-size:16px;font-weight:800;color:#1a1a2e}
+.mod-desc{font-size:12px;color:#64748b;font-weight:500;line-height:1.4}
+.mod-count{font-size:12px;font-weight:700;color:#94a3b8;flex-shrink:0;align-self:flex-start}
+
+.screen.active{display:flex}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:19px;padding-top:10px;flex-shrink:0}
+.back-btn{background:rgba(30,144,255,.1);border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;color:#1E90FF;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;font-family:inherit}
+.back-btn svg{width:14px;height:14px;stroke:#1E90FF;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.back-btn:active{background:rgba(30,144,255,.2)}
+.top-label{font-size:13px;font-weight:700;color:#64748b;letter-spacing:.5px}
+.cfg-panel{background:linear-gradient(145deg,#ffffff,#f0f7ff);border-radius:16px;padding:20px;margin-bottom:16px;width:100%;border:2px solid rgba(var(--cr),.2);box-shadow:0 10px 30px rgba(var(--cr),.08);display:flex;flex-direction:column;gap:20px}
+.cfg-group{display:flex;flex-direction:column;gap:12px}
+.cfg-title{font-size:15px;font-weight:700;color:#1a1a2e;padding-bottom:8px;border-bottom:1px solid rgba(var(--cr),.2)}
+.mode-sel{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mode-btn{padding:14px 6px;border-radius:12px;border:2px solid rgba(var(--cr),.2);background:white;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s;-webkit-user-select:none;user-select:none;font-family:inherit}
+.mode-btn:active{transform:scale(.97)}
+.mode-btn.sel{border-color:var(--c);background:rgba(var(--cr),.08)}
+.mode-btn-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.mode-btn-icon svg{width:24px;height:24px}
+.mode-btn-lbl{font-size:11px;font-weight:700;color:#1a1a2e;text-align:center;line-height:1.3}
+.mode-btn-diff{font-size:9px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+.mode-btn.sel .mode-btn-lbl{color:var(--c)}
+.mode-desc-box{background:rgba(var(--cr),.05);border-radius:12px;padding:12px 16px;font-size:13px;color:#475569;border:1px solid rgba(var(--cr),.15);line-height:1.5;font-weight:500;text-align:center;width:100%;display:block;box-sizing:border-box;align-self:stretch}
+.time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.time-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.time-setting{display:flex;flex-direction:column;align-items:center;gap:8px}
+.time-input{background:white;border:2px solid rgba(var(--cr),.3);border-radius:12px;color:#1a1a2e;padding:16px 12px;width:100%;text-align:center;font-weight:700;font-size:18px;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+.time-input:focus{outline:none;border-color:var(--c);box-shadow:0 0 0 3px rgba(var(--cr),.2)}
+.time-lbl{font-size:12px;color:#64748b;font-weight:600;text-align:center}
+.time-static{background:white;border:2px solid rgba(var(--cr),.15);border-radius:12px;color:#94a3b8;padding:16px 12px;width:100%;text-align:center;font-weight:600;font-size:14px}
+.preset-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.preset-btn{padding:12px 4px;border-radius:12px;border:2px solid rgba(var(--cr),.2);background:white;cursor:pointer;font-size:13px;font-weight:700;color:#1a1a2e;transition:all .15s;text-align:center;font-family:inherit}
+.preset-btn:active{transform:scale(.97)}
+.preset-btn.sel{border-color:var(--c);background:rgba(var(--cr),.08);color:var(--c)}
+.custom-row{display:flex;align-items:center;gap:10px}
+.custom-input{background:white;border:2px solid rgba(var(--cr),.3);border-radius:12px;color:#1a1a2e;padding:14px;width:100%;text-align:center;font-weight:700;font-size:18px;font-family:inherit;transition:border-color .2s,box-shadow .2s}
+.custom-input:focus{outline:none;border-color:var(--c);box-shadow:0 0 0 3px rgba(var(--cr),.2)}
+.custom-lbl{font-size:13px;font-weight:600;color:#64748b;white-space:nowrap}
+.tts-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:white;border:2px solid rgba(var(--cr),.2);border-radius:12px;cursor:pointer}
+.tts-lbl{font-size:14px;font-weight:600;color:#1a1a2e;flex:1;padding-right:12px;pointer-events:none}
+.toggle{width:52px;height:28px;background:rgba(var(--cr),.2);border-radius:14px;position:relative;transition:background .3s;flex-shrink:0;pointer-events:none}
+.toggle.on{background:var(--c)}
+.toggle-knob{width:22px;height:22px;background:white;border-radius:50%;position:absolute;top:3px;left:3px;transition:left .3s;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.toggle.on .toggle-knob{left:27px}
+.est-box{background:rgba(var(--cr),.05);border-radius:12px;padding:14px;border:2px solid rgba(var(--cr),.2);text-align:center}
+.est-box.pink{background:rgba(var(--cr),.05);border-color:rgba(var(--cr),.2)}
+.est-lbl{font-size:13px;font-weight:600;color:#64748b;margin-bottom:4px}
+.est-val{font-size:16px;font-weight:700;color:var(--c)}
+.est-val.pink{color:var(--c)}
+/* Module theme variables applied to config screen */
+#scConfig{--c:#1E90FF;--cr:30,144,255}
+#scConfig.theme-blink   {--c:#06b6d4;--cr:6,182,212}
+#scConfig.theme-fidget  {--c:#2EA043;--cr:46,160,67}
+#scConfig.theme-breath  {--c:#8b5cf6;--cr:139,92,246}
+#scConfig.theme-meditate{--c:#ec4899;--cr:236,72,153}
+.set-default-btn{width:100%;padding:12px;border-radius:12px;border:2px solid rgba(var(--cr),.25);background:rgba(var(--cr),.06);color:var(--c);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
+.btn-primary{background:linear-gradient(135deg,#1E90FF,#0066cc);color:white;width:100%;padding:18px;font-size:17px;border-radius:14px;border:none;cursor:pointer;font-weight:700;font-family:inherit;box-shadow:0 6px 16px rgba(30,144,255,.3);display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary svg{width:18px;height:18px;fill:white;flex-shrink:0}
+.btn-primary.pink  {background:linear-gradient(135deg,#ec4899,#be185d);box-shadow:0 6px 16px rgba(236,72,153,.3)}
+.btn-primary.green {background:linear-gradient(135deg,#2EA043,#166534);box-shadow:0 6px 16px rgba(46,160,67,.3)}
+.btn-primary.purple{background:linear-gradient(135deg,#8b5cf6,#6d28d9);box-shadow:0 6px 16px rgba(139,92,246,.3)}
+.btn-primary.cyan  {background:linear-gradient(135deg,#06b6d4,#0891b2);box-shadow:0 6px 16px rgba(6,182,212,.3)}
+.btn-primary.grey{background:linear-gradient(135deg,#64748b,#475569);box-shadow:0 6px 16px rgba(100,116,139,.3)}
+.btn-stop{background:linear-gradient(135deg,#ff6b6b,#ff4757);color:white;width:100%;padding:18px;font-size:17px;border-radius:14px;border:none;cursor:pointer;font-weight:800;font-family:inherit;box-shadow:0 6px 20px rgba(255,71,87,.3);display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .15s}
+.btn-stop:active{transform:scale(.97)}
+.btn-stop svg{width:18px;height:18px;fill:white;flex-shrink:0}
+.bar-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;width:100%}
+.bar-text{font-size:14px;color:#64748b;text-align:center;font-weight:600}
+.bar-track{height:8px;background:rgba(30,144,255,.1);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;background:linear-gradient(90deg,#1E90FF,#60a5fa);width:0%;transition:width .5s ease;border-radius:4px}
+.bar-fill.pink{background:linear-gradient(90deg,#ec4899,#f472b6)}
+.mode-ind{display:flex;justify-content:center;margin-bottom:12px}
+.mode-badge{padding:6px 16px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;border:2px solid rgba(30,144,255,.3);background:rgba(30,144,255,.08);color:#1E90FF}
+.mode-badge.mode-blink  {background:rgba(6,182,212,.08);color:#06b6d4;border-color:rgba(6,182,212,.3)}
+.mode-badge.mode-fidget {background:rgba(46,160,67,.08);color:#2EA043;border-color:rgba(46,160,67,.3)}
+.ring-card{background:linear-gradient(145deg,#ffffff,#f0f7ff);border-radius:16px;padding:24px 20px;border:2px solid rgba(30,144,255,.2);box-shadow:0 10px 30px rgba(30,144,255,.08);display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:16px;width:100%;box-sizing:border-box}
+.ring-card .phase-badge,.ring-card .ring-wrap{align-self:center}
+.phase-badge{padding:6px 18px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:rgba(30,144,255,.1);color:#1E90FF;border:1px solid rgba(30,144,255,.3)}
+.pb-blink{background:rgba(6,182,212,.1)!important;color:#06b6d4!important;border-color:rgba(6,182,212,.3)!important}
+.pb-g{background:rgba(46,160,67,.1)!important;color:#2EA043!important;border-color:rgba(46,160,67,.3)!important}
+.pb-o{background:rgba(245,158,11,.1)!important;color:#d97706!important;border-color:rgba(245,158,11,.3)!important}
+.pb-p{background:rgba(139,92,246,.1)!important;color:#8b5cf6!important;border-color:rgba(139,92,246,.3)!important}
+.pb-y{background:rgba(100,116,139,.1)!important;color:#64748b!important;border-color:rgba(100,116,139,.3)!important}
+.pb-k{background:rgba(236,72,153,.1)!important;color:#ec4899!important;border-color:rgba(236,72,153,.3)!important}
+
+.ring-wrap{position:relative;width:200px;height:200px;flex-shrink:0}
+.ring-svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(30,144,255,.1);stroke-width:8}
+.ring-prog{fill:none;stroke:transparent;stroke-width:8;stroke-linecap:round;stroke-dasharray:565;stroke-dashoffset:565;transition:none}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ring-num{font-size:64px;font-weight:900;color:#1a1a2e;line-height:1;letter-spacing:-2px}
+.ring-unit{font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:2px;text-transform:uppercase}
+.instr-box{background:rgba(30,144,255,.05);border-radius:12px;padding:16px;font-size:14px;color:#475569;width:100%;box-sizing:border-box;border:2px solid rgba(30,144,255,.15);line-height:1.6;font-weight:500;text-align:center !important;align-self:stretch;display:block}
+.instr-box.pink{background:rgba(236,72,153,.05);border-color:rgba(236,72,153,.15)}
+.still-meter{width:100%;display:flex;flex-direction:column;gap:6px}
+.still-head{display:flex;justify-content:space-between;align-items:center}
+.meter-lbl{font-size:12px;font-weight:600;color:#64748b}
+.meter-val{font-size:12px;font-weight:700;color:#1E90FF}
+.meter-track{height:8px;background:rgba(30,144,255,.1);border-radius:4px;overflow:hidden}
+.meter-bar{height:100%;width:0%;border-radius:4px;background:linear-gradient(90deg,#1E90FF,#3FB950);transition:width .2s,background .3s}
+.meter-bar.red{background:linear-gradient(90deg,#ef4444,#f87171)}
+
+.rep-dots{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px}
+.rep-dot{width:10px;height:10px;border-radius:50%;border:2px solid rgba(30,144,255,.3);transition:all .3s}
+.rep-dot.done{background:#1E90FF;border-color:#1E90FF;box-shadow:0 0 6px rgba(30,144,255,.5)}
+.rep-dot.active{background:#1E90FF;border-color:#1E90FF;box-shadow:0 0 8px rgba(30,144,255,.6)}
+.complete-card{background:linear-gradient(145deg,#ffffff,#f0f7ff);border-radius:16px;padding:32px 24px;border:2px solid rgba(30,144,255,.2);box-shadow:0 10px 30px rgba(30,144,255,.1);text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;margin-bottom:16px}
+.done-badge{background:linear-gradient(135deg,#1E90FF,#0066cc);color:white;padding:6px 20px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.done-title{font-size:32px;font-weight:900;color:#1a1a2e;line-height:1.2}
+.done-quote{font-size:14px;font-style:italic;color:#64748b;font-weight:500;line-height:1.7;max-width:300px}
+.done-stats{display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+.ds-item{text-align:center}
+.ds-val{font-size:32px;font-weight:800;color:#1E90FF;display:block}
+.ds-lbl{font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.logout-btn{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.2);color:#ef4444;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px;transition:background .15s}
+.logout-btn:active{background:rgba(239,68,68,.15)}
+.logout-btn svg{width:14px;height:14px;stroke:#ef4444;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);z-index:2000;display:none;justify-content:center;align-items:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:linear-gradient(145deg,#ffffff,#f0f7ff);border-radius:20px;padding:24px;width:100%;max-width:480px;border:2px solid rgba(30,144,255,.3);box-shadow:0 20px 60px rgba(30,144,255,.1);max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid rgba(30,144,255,.2)}
+.modal-title{font-size:22px;font-weight:700;color:#1E90FF}
+.close-btn{background:rgba(30,144,255,.1);color:#64748b;border:none;width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;font-family:inherit;padding:0;transition:background .15s}
+.close-btn svg{width:18px;height:18px;stroke:#64748b;fill:none;stroke-width:2.5;stroke-linecap:round}
+.close-btn:active{background:rgba(30,144,255,.2)}
+
+/* ---- PROGRESS MODAL STATS GRID ---- */
+/* All 4 drill cards display 2-per-row (no full-width override for meditation) */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.sc{background:white;border-radius:12px;padding:16px;border:2px solid rgba(30,144,255,.15);text-align:center;box-shadow:0 4px 12px rgba(30,144,255,.08)}
+.sc.full{grid-column:1/-1}
+.sc-val{font-size:26px;font-weight:800;color:#1E90FF;display:block;margin-bottom:2px}
+.sc-lbl{font-size:11px;color:#64748b;font-weight:600}
+
+.streak-msg{text-align:center;padding:14px;background:rgba(30,144,255,.05);border-radius:12px;border:2px solid rgba(30,144,255,.15);font-size:14px;color:#1E90FF;font-weight:600;line-height:1.4}
+/* History tab styles */
+.tab-row{display:flex;gap:8px;margin-bottom:16px}
+.tab-btn{flex:1;padding:10px 8px;border-radius:10px;border:2px solid rgba(30,144,255,.2);background:white;font-size:13px;font-weight:700;color:#64748b;cursor:pointer;font-family:inherit;transition:all .15s}
+.tab-btn.active{background:rgba(30,144,255,.1);border-color:#1E90FF;color:#1E90FF}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.hist-empty{text-align:center;padding:32px 16px;color:#94a3b8;font-size:14px;font-weight:500}
+/* History drill filter */
+.drill-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.drill-filter-btn{padding:7px 12px;border-radius:99px;border:2px solid rgba(30,144,255,.2);background:white;font-size:11px;font-weight:700;color:#64748b;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.drill-filter-btn:active{transform:scale(.97)}
+.drill-filter-btn.active{color:white}
+.drill-filter-btn[data-drill="all"].active{background:#1E90FF;border-color:#1E90FF}
+.drill-filter-btn[data-drill="blink"].active   {background:#06b6d4;border-color:#06b6d4}
+.drill-filter-btn[data-drill="fidget"].active  {background:#2EA043;border-color:#2EA043}
+.drill-filter-btn[data-drill="breath"].active  {background:#8b5cf6;border-color:#8b5cf6}
+.drill-filter-btn[data-drill="meditate"].active{background:#ec4899;border-color:#ec4899}
+.hist-list{display:flex;flex-direction:column;gap:10px;max-height:320px;overflow-y:auto;padding-right:2px}
+.hist-list::-webkit-scrollbar{width:4px}
+.hist-list::-webkit-scrollbar-track{background:rgba(30,144,255,.05);border-radius:2px}
+.hist-list::-webkit-scrollbar-thumb{background:rgba(30,144,255,.3);border-radius:2px}
+.hist-item{background:white;border-radius:12px;padding:12px 14px;border:2px solid rgba(30,144,255,.12);display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(30,144,255,.06)}
+.hist-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hist-dot.blink   {background:#06b6d4}
+.hist-dot.fidget  {background:#2EA043}
+.hist-dot.breath  {background:#8b5cf6}
+.hist-dot.meditate{background:#ec4899}
+.hist-info{flex:1;min-width:0}
+.hist-name{font-size:13px;font-weight:700;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist-meta{font-size:11px;color:#64748b;font-weight:500;margin-top:2px}
+.hist-right{text-align:right;flex-shrink:0}
+.hist-time{font-size:13px;font-weight:700;color:#1E90FF}
+.hist-date{font-size:10px;color:#94a3b8;font-weight:500;margin-top:2px}
+.hist-pb{display:inline-block;background:rgba(30,144,255,.1);color:#1E90FF;border-radius:4px;font-size:9px;font-weight:700;padding:2px 6px;letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+/* SVG icon helpers */
+.svg-white{stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.svg-blue{stroke:#1E90FF;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.svg-grey{stroke:#64748b;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* ---- INSTALL PROMPT ---- */
+.install-banner{position:fixed;bottom:0;left:0;right:0;z-index:3000;background:linear-gradient(135deg,#1a1a2e,#1E90FF);padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 -4px 24px rgba(30,144,255,.3);transform:translateY(100%);transition:transform .4s cubic-bezier(.175,.885,.32,1.275)}
+.install-banner.show{transform:translateY(0)}
+.install-logo{width:44px;height:44px;border-radius:12px;overflow:hidden;flex-shrink:0}
+.install-logo img{width:100%;height:100%;object-fit:cover}
+.install-text{flex:1;min-width:0}
+.install-title{font-size:14px;font-weight:800;color:white;margin-bottom:2px}
+.install-sub{font-size:11px;color:rgba(255,255,255,.7);font-weight:500}
+.install-btn{background:white;color:#1E90FF;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0;font-family:inherit;white-space:nowrap}
+.install-btn:active{transform:scale(.96)}
+.install-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1}
+/* ---- AUTH SCREEN ---- */
+#scAuth{display:none;flex-direction:column;height:100dvh;background:linear-gradient(180deg,#eef4ff 0%,#f5f9ff 50%,#ffffff 100%);position:fixed;inset:0;z-index:9999;overflow:hidden}
+.auth-header{display:flex;align-items:center;justify-content:space-between;padding:calc(10px + env(safe-area-inset-top)) 19px 0;flex-shrink:0}
+.auth-body{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 24px calc(32px + env(safe-area-inset-bottom));min-height:0}
+.auth-heading{font-size:28px;font-weight:900;color:#1a1a2e;margin-bottom:6px;letter-spacing:-.3px;text-align:center;transition:opacity .2s}
+.auth-tagline{font-size:14px;color:#94a3b8;font-weight:500;margin-bottom:28px;text-align:center;transition:opacity .2s}
+.auth-input-wrap{position:relative;margin-bottom:12px}
+.auth-input{background:white;border:1.5px solid #e8edf4;border-radius:50px;padding:17px 22px;font-size:15px;font-family:inherit;color:#1a1a2e;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.auth-input::placeholder{color:#b8c4d0}
+.auth-input:focus{border-color:#1E90FF;box-shadow:0 0 0 3px rgba(30,144,255,.1)}
+.auth-input.pw{padding-right:54px}
+.auth-pw-toggle{position:absolute;right:18px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:#94a3b8;display:flex;align-items:center}
+.auth-pw-toggle svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.auth-btn{background:linear-gradient(135deg,#2c6fe8,#1E90FF);color:white;width:100%;padding:18px;font-size:16px;border-radius:50px;border:none;cursor:pointer;font-weight:700;font-family:inherit;box-shadow:0 8px 24px rgba(30,144,255,.35);margin-top:8px;transition:transform .15s,opacity .15s;letter-spacing:.2px}
+.auth-btn:active{transform:scale(.98)}
+.auth-btn:disabled{opacity:.6;cursor:not-allowed}
+/* Fixed height containers so layout never shifts */
+.auth-error{font-size:13px;color:#ef4444;font-weight:600;text-align:center;margin-top:10px;height:18px;overflow:hidden}
+.auth-forgot{text-align:center;margin-top:16px;font-size:14px;color:#64748b;font-weight:500;height:20px;overflow:hidden}
+.auth-forgot a{color:#1E90FF;font-weight:700;text-decoration:none;cursor:pointer}
+.auth-switch{text-align:center;margin-top:12px;font-size:14px;color:#64748b;font-weight:500}
+.auth-switch a{color:#1E90FF;font-weight:700;text-decoration:none;cursor:pointer}
+/* ---- DB LOADING OVERLAY ---- */
+#dbOverlay{position:fixed;inset:0;background:rgba(240,247,255,.95);z-index:8000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+#dbOverlay.show{display:flex}
+.db-spinner{width:40px;height:40px;border:3px solid rgba(30,144,255,.15);border-top-color:#1E90FF;border-radius:50%;animation:spin .7s linear infinite}
+.db-text{font-size:13px;font-weight:700;color:#1E90FF;letter-spacing:.5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- ANIMATED EYES OVERLAY ---- */
+#eyeOverlay{position:fixed;inset:0;z-index:500;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center}
+#eyeOverlay.active{display:flex}
+.eye-scene{position:relative;width:100%;max-width:480px;height:100%;display:flex;align-items:center;justify-content:center}
+.eye-face{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;transform:translateY(-8%)}
+.eye-pair{display:flex;gap:38px;align-items:center;position:relative}
+.eye-socket{position:relative;width:110px;height:68px;display:flex;align-items:center;justify-content:center}
+.eye-white{position:absolute;inset:0;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;background:radial-gradient(ellipse at 30% 35%,#f5ede8 0%,#e8ddd6 55%,#c9bbb0 100%);box-shadow:0 0 0 2px rgba(60,30,15,.35),inset 0 2px 8px rgba(0,0,0,.18),0 4px 20px rgba(0,0,0,.6)}
+.eye-iris-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:50% 50% 50% 50% / 60% 60% 40% 40%}
+.eye-iris{width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 38% 35%,#5a9e6e 0%,#2d7a47 35%,#1a5c32 60%,#0d3d20 100%);box-shadow:0 0 0 2px #0d3d20,inset 0 2px 6px rgba(0,0,0,.4);position:relative;transition:transform .12s ease}
+.eye-pupil{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 32%,#2a2a2a 0%,#000 100%);box-shadow:inset 0 1px 3px rgba(0,0,0,.8)}
+.eye-shine{position:absolute;top:18%;left:24%;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.88);filter:blur(.5px)}
+.eye-shine2{position:absolute;top:38%;left:52%;width:3.5px;height:3.5px;border-radius:50%;background:rgba(255,255,255,.45)}
+.eye-lid-top{position:absolute;top:0;left:0;right:0;height:0;background:#000;border-radius:50% 50% 0 0 / 70% 70% 0 0;transition:height .18s cubic-bezier(.4,0,.2,1);z-index:3}
+.eye-lid-bot{position:absolute;bottom:0;left:0;right:0;height:6px;background:#000;border-radius:0 0 50% 50% / 0 0 60% 60%;z-index:3}
+.eye-lash-top{position:absolute;top:-3px;left:4px;right:4px;height:10px;background:linear-gradient(180deg,#1a0a00 0%,transparent 100%);filter:blur(2px);z-index:4;border-radius:50% 50% 0 0 / 80% 80% 0 0}
+.eye-brow{position:absolute;top:-22px;left:8px;right:8px;height:9px;background:linear-gradient(90deg,transparent 0%,#2a1800 15%,#1a0e00 50%,#2a1800 85%,transparent 100%);border-radius:50%;filter:blur(1.5px)}
+.eye-nose{width:28px;height:22px;margin-top:28px;position:relative}
+.eye-nose svg{width:100%;height:100%}
+.eye-lips{margin-top:18px;position:relative;width:70px;height:30px}
+.eye-lips svg{width:100%;height:100%}
+.eye-shadow-vignette{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,.7) 70%,#000 100%);pointer-events:none}
+@keyframes eyeGlow{0%,100%{opacity:.6}50%{opacity:1}}
+.eye-glow{position:absolute;inset:-20px;border-radius:50%;background:radial-gradient(ellipse,rgba(30,144,255,.04) 0%,transparent 70%);animation:eyeGlow 3s ease-in-out infinite;pointer-events:none}
+/* ---- CAMERA OVERLAY (Mirror mode) ---- */
+/* ---- CAMERA OVERLAY (Mirror mode) ---- */
+#cameraOverlay{position:fixed;inset:0;z-index:9999;background:#000;display:none;flex-direction:column}
+#cameraOverlay.active{display:flex}
+#cameraVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#camScrim{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,transparent 30%,transparent 55%,rgba(0,0,0,.7) 100%);pointer-events:none}
+/* top pill */
+#camTopPill{position:absolute;top:calc(18px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:50px;padding:9px 20px;color:rgba(255,255,255,.85);font-size:10px;font-weight:800;letter-spacing:1.8px;text-transform:uppercase;white-space:nowrap;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1}
+/* progress bar under pill */
+#camProgressBar{position:absolute;top:calc(58px + env(safe-area-inset-top));left:20px;right:20px;height:2px;background:rgba(255,255,255,.15);border-radius:2px;z-index:1}
+#camProgressFill{height:100%;background:#1E90FF;border-radius:2px;transition:width .4s ease;width:0%}
+/* rep card */
+#camCard{position:absolute;top:calc(76px + env(safe-area-inset-top));left:20px;right:20px;background:rgba(20,20,20,.7);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:18px 20px 16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:1;text-align:center}
+#camCardMeta{font-size:10px;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:7px}
+#camCardMeta svg{width:14px;height:14px;flex-shrink:0}
+#camCardText{font-size:18px;font-weight:700;color:#fff;line-height:1.35;text-align:center}
+/* big timer */
+#camTimerWrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;z-index:1}
+#cameraTimer{font-size:88px;font-weight:900;color:#fff;line-height:1;font-family:inherit;letter-spacing:-2px;text-shadow:0 4px 24px rgba(0,0,0,.5)}
+/* bottom toolbar */
+#camToolbar{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));left:20px;right:20px;display:flex;gap:12px;z-index:1}
+.cam-btn{flex:1;background:rgba(20,20,20,.65);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px 6px 12px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:7px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:inherit;transition:background .15s;-webkit-user-select:none;user-select:none}
+.cam-btn:active{background:rgba(50,50,50,.8)}
+.cam-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cam-btn.cam-btn-close{color:rgba(255,255,255,.7)}
+.cam-btn.cam-btn-next{background:rgba(30,144,255,.25);border-color:rgba(30,144,255,.4);color:#60b4ff}
+</style>
+</head>
+<body>
+<!-- DB LOADING OVERLAY -->
+<div id="dbOverlay">
+  <div class="db-spinner"></div>
+  <div class="db-text">Syncing your data...</div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="scAuth">
+  <div class="auth-header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <img src="icon-192x192.jpg" alt="Presence">
+      </div>
+      <div class="header-titles">
+        <h1>PRESENCE</h1>
+        <div class="subtitle">TRAINING</div>
+      </div>
+    </div>
+    <a class="prog-btn" href="mailto:socialmediaprofitautomation@gmail.com" style="text-decoration:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1E90FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contact Us
+    </a>
+  </div>
+  <div class="auth-body">
+    <div class="auth-heading" id="authHeading">Welcome Back</div>
+    <div class="auth-tagline" id="authTagline">Login to get access to training</div>
+    <div class="auth-input-wrap">
+      <input class="auth-input" id="authEmail" type="email" placeholder="Email address" autocomplete="email">
+    </div>
+    <div class="auth-input-wrap">
+      <input class="auth-input pw" id="authPassword" type="password" placeholder="Password" autocomplete="current-password">
+      <button class="auth-pw-toggle" id="pwToggle" onclick="togglePw()" tabindex="-1">
+        <svg id="pwEyeIcon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="auth-btn" id="authSubmitBtn" onclick="handleAuth()">Login</button>
+    <div class="auth-error" id="authError"></div>
+    <div class="auth-forgot" id="authForgotWrap">Forgot your password? <a onclick="showResetPage()">Reset it</a></div>
+    <div class="auth-switch" id="authSwitchWrap">Don't have an account? <a onclick="switchAuthTab('signup')">Sign up</a></div>
+  </div>
+</div>
+
+<!-- RESET PASSWORD PAGE -->
+<div id="scReset" style="display:none;position:fixed;inset:0;z-index:10000;background:linear-gradient(180deg,#eef4ff 0%,#f5f9ff 50%,#ffffff 100%);flex-direction:column;">
+  <div class="auth-header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <img src="icon-192x192.jpg" alt="Presence">
+      </div>
+      <div class="header-titles">
+        <h1>PRESENCE</h1>
+        <div class="subtitle">TRAINING</div>
+      </div>
+    </div>
+    <a class="prog-btn" href="mailto:socialmediaprofitautomation@gmail.com" style="text-decoration:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1E90FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contact Us
+    </a>
+  </div>
+  <div class="auth-body">
+    <div class="auth-heading">Reset Password</div>
+    <div class="auth-tagline">Enter your email and we'll send you a reset link</div>
+    <div class="auth-input-wrap">
+      <input class="auth-input" id="resetEmail" type="email" placeholder="Email address" autocomplete="email">
+    </div>
+    <button class="auth-btn" onclick="handleReset()">Send Reset Link</button>
+    <div class="auth-error" id="resetMsg" style="color:#2EA043"></div>
+    <div class="auth-forgot"><a onclick="hideResetPage()">← Back to Login</a></div>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none">
+
+<!-- HOME -->
+<div class="screen active" id="scHome">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-brand">
+        <div class="header-logo">
+          <img src="icon-192x192.jpg" alt="Presence">
+        </div>
+        <div class="header-titles">
+          <h1>PRESENCE</h1>
+          <div class="subtitle">TRAINING</div>
+        </div>
+      </div>
+      <button class="prog-btn" id="btnProgress">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Progress
+      </button>
+    </div>
+    <div class="tip-box">
+      <div class="tip-text">Be the most controlled version of yourself in every room</div>
+    </div>
+    <!-- Streak row -->
+    <div class="streak-row">
+      <div class="streak-item">
+        <div class="streak-item-left">
+          <div class="streak-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div>
+            <div class="streak-item-lbl">Day Streak</div>
+            <div class="streak-item-sub">days you showed up</div>
+          </div>
+        </div>
+        <div class="streak-item-val" id="hStreak">0</div>
+      </div>
+      <div class="streak-divider"></div>
+      <div class="streak-item">
+        <div class="streak-item-left">
+          <div class="streak-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4a2 2 0 0 1-2-2V5h4"/><path d="M18 9h2a2 2 0 0 0 2-2V5h-4"/><path d="M12 17v4"/><path d="M8 21h8"/><path d="M6 5h12v6a6 6 0 0 1-12 0V5z"/></svg></div>
+          <div>
+            <div class="streak-item-lbl">Full Streak</div>
+            <div class="streak-item-sub">all 4 done</div>
+          </div>
+        </div>
+        <div class="streak-item-val" id="hFullStreak">0</div>
+      </div>
+    </div>
+    <!-- Today's Training progress card -->
+    <div class="today-card">
+      <div class="today-header">
+        <span class="today-title">Today's Training</span>
+        <span class="today-count" id="todayCount">0 / 4</span>
+      </div>
+      <div class="today-bar-track"><div class="today-bar-fill" id="todayBarFill"></div></div>
+      <div class="today-dots">
+        <div class="today-dot-item">
+          <div class="today-dot inactive" id="tdot-blink" style="background:#06b6d4;opacity:.25"></div>
+          <span class="today-dot-lbl">No Blinking</span>
+        </div>
+        <div class="today-dot-item">
+          <div class="today-dot inactive" id="tdot-fidget" style="background:#2EA043;opacity:.25"></div>
+          <span class="today-dot-lbl">No Fidgeting</span>
+        </div>
+        <div class="today-dot-item">
+          <div class="today-dot inactive" id="tdot-breath" style="background:#8b5cf6;opacity:.25"></div>
+          <span class="today-dot-lbl">Breathing</span>
+        </div>
+        <div class="today-dot-item">
+          <div class="today-dot inactive" id="tdot-meditate" style="background:#ec4899;opacity:.25"></div>
+          <span class="today-dot-lbl">Meditation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modules-grid">
+    <div class="mod-card blink" id="card-blink">
+      <div class="mod-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div class="mod-text">
+        <div class="mod-name">No Blinking Drill</div>
+        <div class="mod-desc">Hold your gaze without blinking. Control your eyes.</div>
+      </div>
+      <span class="mod-count" id="mc-blink">-</span>
+    </div>
+    <div class="mod-card fidget" id="card-fidget">
+      <div class="mod-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>
+      </div>
+      <div class="mod-text">
+        <div class="mod-name">No Fidgeting Drill</div>
+        <div class="mod-desc">Zero movement. Total body stillness. Iron discipline.</div>
+      </div>
+      <span class="mod-count" id="mc-fidget">-</span>
+    </div>
+    <div class="mod-card breath" id="card-breath">
+      <div class="mod-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>
+      </div>
+      <div class="mod-text">
+        <div class="mod-name">Box Breathing</div>
+        <div class="mod-desc">4-4-4-4 box method. Reset your nervous system.</div>
+      </div>
+      <span class="mod-count" id="mc-breath">-</span>
+    </div>
+    <div class="mod-card meditate" id="card-meditate">
+      <div class="mod-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="white"><g fill="white"><path d="M14.5 4.5a2.5 2.5 0 1 1-5 0a2.5 2.5 0 0 1 5 0Z"/><path fill-rule="evenodd" d="M12.869 9.822a5.271 5.271 0 0 0-1.738 0c-2.507.423-4.38 2.624-4.38 5.198c0 .564-.317 1.085-.824 1.341L3.338 17.67a.75.75 0 0 1-.676-1.338l2.587-1.308l.001-.003c0-3.306 2.402-6.133 5.632-6.677a6.771 6.771 0 0 1 2.236 0c3.23.544 5.632 3.371 5.632 6.677v.002l2.588 1.309a.75.75 0 1 1-.676 1.338l-2.589-1.308a1.502 1.502 0 0 1-.823-1.341c0-2.574-1.873-4.775-4.381-5.198ZM9.95 15.4a.75.75 0 0 1 .15 1.05l-1.046 1.395l-.071.093a2.75 2.75 0 0 1-1.421.944l-.113.029l-.008.002l-1.485.371a1.592 1.592 0 0 0-1.206 1.545c0 .232.189.421.421.421h1.556c.617 0 .865-.001 1.103-.03a4.248 4.248 0 0 0 1.64-.546c.206-.12.405-.268.898-.638L12.55 18.4a.75.75 0 0 1 .9 1.2l-.904.678l1.257.472c.627.235.88.328 1.137.389a4.5 4.5 0 0 0 .42.076c.261.034.53.035 1.2.035h2.269a.421.421 0 0 0 .421-.421c0-.73-.497-1.368-1.206-1.545l-1.493-.373l-.112-.03a2.75 2.75 0 0 1-1.422-.943l-.07-.093L13.9 16.45a.75.75 0 1 1 1.2-.9l1.042 1.389l.052.069a1.25 1.25 0 0 0 .729.45l1.485.37a3.092 3.092 0 0 1 2.342 3c0 1.062-.86 1.922-1.921 1.922h-2.321c-.602 0-.973 0-1.342-.048a5.75 5.75 0 0 1-.568-.103c-.362-.085-.71-.215-1.273-.426l-2.204-.826c-.38.285-.631.47-.898.624a5.75 5.75 0 0 1-2.218.74c-.335.04-.676.039-1.23.039H5.172a1.921 1.921 0 0 1-1.92-1.921a3.09 3.09 0 0 1 2.341-3l1.485-.371a1.25 1.25 0 0 0 .781-.519L8.9 15.55a.75.75 0 0 1 1.05-.15Z" clip-rule="evenodd"/></g></svg>
+      </div>
+      <div class="mod-text">
+        <div class="mod-name">Meditation</div>
+        <div class="mod-desc">Sit with yourself. Still mind, still body. Choose your duration.</div>
+      </div>
+      <span class="mod-count" id="mc-meditate">-</span>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG -->
+<div class="screen" id="scConfig">
+  <div class="top-bar">
+    <button class="back-btn" id="btnCfgBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <div class="top-label" id="cfgLbl">Configure</div>
+  </div>
+  <div class="cfg-panel" id="cfgPanel"></div>
+  <button class="btn-primary" id="cfgStartBtn">
+    <svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    Start Training
+  </button>
+</div>
+
+<!-- TRAINING -->
+<div class="screen" id="scTrain">
+  <div class="top-bar">
+    <button class="back-btn" id="btnTrainBack">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Stop
+    </button>
+    <div class="top-label" id="tLbl">-</div>
+  </div>
+  <div class="bar-wrap">
+    <div class="bar-text" id="barText">Rep 1 of 1</div>
+    <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+  </div>
+  <div class="mode-ind" id="modeInd" style="display:none">
+    <div class="mode-badge" id="modeBadge">Eyes Open</div>
+  </div>
+  <div class="ring-card">
+    <div class="phase-badge" id="phaseBadge" style="display:none"></div>
+    <div class="ring-wrap">
+      <svg class="ring-svg" viewBox="0 0 200 200">
+        <circle class="ring-bg"   cx="100" cy="100" r="90"/>
+        <circle class="ring-prog" id="ringProg" cx="100" cy="100" r="90"/>
+      </svg>
+      <div class="ring-center">
+        <div id="ringNum" class="ring-num">-</div>
+        <div id="pauseIcon" style="display:none;flex-direction:column;align-items:center;justify-content:center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" style="width:64px;height:64px"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        </div>
+        <div class="ring-unit" id="ringUnit">seconds</div>
+      </div>
+    </div>
+    <div class="instr-box" id="instrBox">Get ready...</div>
+    <div id="extraEl" style="width:100%"></div>
+  </div>
+
+  <div class="rep-dots" id="repDots"></div>
+  <button id="btnOpenCamera" style="display:none;width:100%;margin-bottom:10px;padding:14px;border-radius:14px;border:2px solid rgba(6,182,212,.3);background:rgba(6,182,212,.08);color:#06b6d4;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:8px">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+    Open Camera
+  </button>
+  <button id="btnOpenEyes" style="display:none;width:100%;margin-bottom:10px;padding:14px;border-radius:14px;border:2px solid rgba(30,144,255,.3);background:rgba(30,144,255,.08);color:#1E90FF;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:8px">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Back to Animated Eyes
+  </button>
+  <button class="btn-stop" id="btnStop">
+    <svg viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+    Stop Training
+  </button>
+</div>
+
+<!-- COMPLETE -->
+<div class="screen" id="scComplete">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-brand">
+        <div class="header-logo">
+          <img src="icon-192x192.jpg" alt="Presence">
+        </div>
+        <div class="header-titles">
+          <h1>PRESENCE</h1>
+          <div class="subtitle">TRAINING</div>
+        </div>
+      </div>
+      <button class="prog-btn" onclick="openProgress()">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Progress
+      </button>
+    </div>
+  </div>
+  <div class="complete-card">
+    <div class="done-badge">&#10003; Training Complete</div>
+    <div class="done-title"  id="doneTitle">Well Done.</div>
+    <div class="done-quote"  id="doneQuote">"Control yourself before you try to control the room."</div>
+    <div class="done-stats">
+      <div class="ds-item"><span class="ds-val" id="dsA">-</span><span class="ds-lbl" id="dsAL">Reps</span></div>
+      <div class="ds-item"><span class="ds-val" id="dsB">-</span><span class="ds-lbl" id="dsBL">Time</span></div>
+      <div class="ds-item" id="dsModeItem" style="display:none"><span class="ds-val" id="dsMode">-</span><span class="ds-lbl">Mode</span></div>
+    </div>
+  </div>
+  <button class="btn-primary grey" id="btnDoneHome">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Return Home
+  </button>
+</div>
+
+</div><!-- /app -->
+
+<!-- ANIMATED EYES OVERLAY -->
+<div id="eyeOverlay">
+  <div class="eye-scene">
+    <div class="eye-shadow-vignette"></div>
+    <div class="eye-glow"></div>
+    <div class="eye-face">
+      <div class="eye-pair">
+        <!-- LEFT EYE -->
+        <div class="eye-socket" id="eyeL">
+          <div class="eye-white"></div>
+          <div class="eye-iris-wrap">
+            <div class="eye-iris" id="irisL">
+              <div class="eye-pupil"></div>
+              <div class="eye-shine"></div>
+              <div class="eye-shine2"></div>
+            </div>
+          </div>
+          <div class="eye-lid-top" id="lidTL"></div>
+          <div class="eye-lid-bot"></div>
+          <div class="eye-lash-top"></div>
+          <div class="eye-brow"></div>
+        </div>
+        <!-- RIGHT EYE -->
+        <div class="eye-socket" id="eyeR">
+          <div class="eye-white"></div>
+          <div class="eye-iris-wrap">
+            <div class="eye-iris" id="irisR">
+              <div class="eye-pupil"></div>
+              <div class="eye-shine"></div>
+              <div class="eye-shine2"></div>
+            </div>
+          </div>
+          <div class="eye-lid-top" id="lidTR"></div>
+          <div class="eye-lid-bot"></div>
+          <div class="eye-lash-top"></div>
+          <div class="eye-brow"></div>
+        </div>
+      </div>
+      <!-- NOSE -->
+      <div class="eye-nose">
+        <svg viewBox="0 0 28 22" fill="none">
+          <path d="M14 2 C14 2 10 10 7 16 C5 19 3 20 5 21 C8 22 11 20 14 20 C17 20 20 22 23 21 C25 20 23 19 21 16 C18 10 14 2 14 2Z" stroke="#3a2010" stroke-width="1.2" fill="none" opacity="0.5"/>
+          <ellipse cx="10" cy="18" rx="2.5" ry="1.5" fill="#2a1508" opacity="0.4"/>
+          <ellipse cx="18" cy="18" rx="2.5" ry="1.5" fill="#2a1508" opacity="0.4"/>
+        </svg>
+      </div>
+      <!-- LIPS -->
+      <div class="eye-lips">
+        <svg viewBox="0 0 70 30" fill="none">
+          <path d="M10 12 C18 6 28 4 35 8 C42 4 52 6 60 12 C52 10 42 10 35 12 C28 10 18 10 10 12Z" fill="#8b3a3a" opacity="0.85"/>
+          <path d="M10 12 C18 18 28 22 35 20 C42 22 52 18 60 12 C52 14 42 16 35 15 C28 16 18 14 10 12Z" fill="#c45c5c" opacity="0.9"/>
+          <path d="M25 8 C29 6 35 8 35 8 C35 8 41 6 45 8" stroke="#6b2020" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+          <path d="M18 14 C24 18 30 20 35 18 C40 20 46 18 52 14" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <button id="eyeOverlayStop" style="position:absolute;bottom:calc(32px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.25);border-radius:50px;padding:12px 28px;color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;gap:8px;white-space:nowrap;z-index:10">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    Stop Animated Eyes
+  </button>
+</div>
+
+<!-- INSTALL PROMPT BANNER -->
+<div class="install-banner" id="installBanner">
+  <div class="install-logo"><img src="icon-192x192.jpg" alt="logo"></div>
+  <div class="install-text">
+    <div class="install-title">Install Presence Training</div>
+    <div class="install-sub">Add to home screen for the full app experience</div>
+  </div>
+  <button class="install-btn" id="installBtn">Install</button>
+  <button class="install-close" id="installClose">✕</button>
+</div>
+
+<!-- PROGRESS MODAL -->
+<div class="modal-overlay" id="progressModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">Your Progress</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="logout-btn" id="btnLogout">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Log out
+        </button>
+        <button class="close-btn" id="btnCloseProgress">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabStats">Overview</button>
+      <button class="tab-btn" id="tabHistory">Session History</button>
+    </div>
+    <div class="tab-panel active" id="panelStats">
+      <div class="stats-grid">
+        <!-- Row 1: Total Sessions + Day Streak -->
+        <div class="sc"><span class="sc-val" id="pmSess">0</span><span class="sc-lbl">Total Sessions</span></div>
+        <div class="sc"><span class="sc-val" id="pmStreak">0</span><span class="sc-lbl">Day Streak</span></div>
+        <!-- Row 2: No Blinking + No Fidgeting -->
+        <div class="sc"><span class="sc-val" id="pmBlink" style="color:#1E90FF">0</span><span class="sc-lbl">No Blinking</span></div>
+        <div class="sc"><span class="sc-val" id="pmFidget" style="color:#1E90FF">0</span><span class="sc-lbl">No Fidgeting</span></div>
+        <!-- Row 3: Box Breathing + Meditation (side by side, NOT full-width) -->
+        <div class="sc"><span class="sc-val" id="pmBreath" style="color:#1E90FF">0</span><span class="sc-lbl">Box Breathing</span></div>
+        <div class="sc"><span class="sc-val" id="pmMed" style="color:#1E90FF">0</span><span class="sc-lbl">Meditation</span></div>
+        <!-- Row 4: Total Training Time (full width) -->
+        <div class="sc full"><span class="sc-val" id="pmTime">0:00</span><span class="sc-lbl">Total Training Time</span></div>
+      </div>
+
+    </div>
+    <div class="tab-panel" id="panelHistory">
+      <!-- Drill filter buttons -->
+      <div class="drill-filter">
+        <button class="drill-filter-btn active" data-drill="all">All</button>
+        <button class="drill-filter-btn" data-drill="blink">No Blinking</button>
+        <button class="drill-filter-btn" data-drill="fidget">No Fidgeting</button>
+        <button class="drill-filter-btn" data-drill="breath">Box Breathing</button>
+        <button class="drill-filter-btn" data-drill="meditate">Meditation</button>
+      </div>
+      <div id="histList" class="hist-list"></div>
+      <div id="histEmpty" class="hist-empty">No sessions yet. Start training to see your history here.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---- SVG ICON LIBRARY ---- */
+var SVG = {
+  eye:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>',
+  mirror:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><path d="M8 7l4 5-4 5"/><path d="M16 7l-4 5 4 5"/></svg>',
+  wind:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>',
+  sun:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+  anchor:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><line x1="12" y1="22" x2="12" y2="8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/></svg>',
+  check:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  arrowUp:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
+  arrowDn:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>',
+  pause:    '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  circle:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/></svg>',
+  settle:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>'
+};
+
+/* ---- SPEECH (null-guarded) ---- */
+var synth = null;
+var ttsVoice = null;
+var ttsOn = true;
+try { if (window.speechSynthesis) synth = window.speechSynthesis; } catch(e) {}
+
+function initVoices() {
+  if (!synth) return;
+  try {
+    var voices = synth.getVoices(); ttsVoice = null;
+    for (var i = 0; i < voices.length; i++) {
+      if (voices[i].lang.indexOf('en') >= 0) { ttsVoice = voices[i]; break; }
+    }
+  } catch(e) {}
+}
+try { if (synth && synth.onvoiceschanged !== undefined) synth.onvoiceschanged = initVoices; } catch(e) {}
+initVoices();
+
+function speak(text) {
+  if (!ttsOn || !synth) return;
+  try { synth.cancel(); var u = new SpeechSynthesisUtterance(text); if (ttsVoice) u.voice = ttsVoice; synth.speak(u); } catch(e) {}
+}
+function stopSpeech() { try { if (synth) synth.cancel(); } catch(e) {} }
+
+/* ---- DATA ---- */
+var SK = 'PRESENCE_v6';
+var D = { sessions:0, totalSec:0, streak:0, fullStreak:0, lastDate:null, todayDone:{}, todayDoneDate:null, todayFullCounted:false, mods:{ blink:0, fidget:0, breath:0, meditate:0 }, history:[], defaults:{} };
+
+function loadD() {
+  try {
+    var s = localStorage.getItem(SK) || localStorage.getItem('PRESENCE_v5');
+    if (s) {
+      var p = JSON.parse(s);
+      D.sessions = p.sessions||0; D.totalSec = p.totalSec||0;
+      D.streak = p.streak||0; D.fullStreak = p.fullStreak||0; D.lastDate = p.lastDate||null;
+      D.todayDone = p.todayDone||{}; D.todayDoneDate = p.todayDoneDate||null; D.todayFullCounted = p.todayFullCounted||false;
+      D.history = (p.history||[]).filter(function(e){ return e.mod !== 'voice'; });
+      if (p.mods) { D.mods.blink=p.mods.blink||0; D.mods.fidget=p.mods.fidget||0; D.mods.breath=p.mods.breath||0; D.mods.meditate=p.mods.meditate||0; }
+      if (p.defaults) D.defaults = p.defaults;
+    }
+  } catch(e) {}
+  // Always merge dedicated defaults key (more reliable than main sync)
+  try { var dd=localStorage.getItem('PRESENCE_defaults'); if(dd){ var pd=JSON.parse(dd); D.defaults=Object.assign({},pd,D.defaults); } } catch(e) {}
+  try { if (D.lastDate && Math.floor((Date.now()-new Date(D.lastDate).getTime())/86400000)>1) { D.streak=0; } } catch(e) {}
+  try { var _today=new Date().toDateString(); if (D.todayDoneDate !== _today) { D.todayDone={}; D.todayFullCounted=false; } } catch(e) {}
+}
+
+function saveD() {
+  try { localStorage.setItem(SK, JSON.stringify(D)); } catch(e) {}
+  dbSyncProfile();
+}
+
+async function dbSyncProfile() {
+  try {
+    var sess = (await supabase.auth.getSession()).data.session;
+    if (!sess) return;
+    await supabase.from('profiles').upsert({
+      id: sess.user.id,
+      sessions: D.sessions,
+      total_sec: D.totalSec,
+      streak: D.streak,
+      full_streak: D.fullStreak,
+      last_date: D.lastDate,
+      today_done: D.todayDone,
+      today_done_date: D.todayDoneDate,
+      today_full_counted: D.todayFullCounted,
+      mods: D.mods,
+      defaults: D.defaults,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) {}
+}
+
+async function dbInsertSession(mod, sec, meta) {
+  try {
+    var sess = (await supabase.auth.getSession()).data.session;
+    if (!sess) return;
+    await supabase.from('sessions').insert({
+      user_id: sess.user.id,
+      mod: mod,
+      sec: sec,
+      sets: meta&&meta.sets||null,
+      rep_sec: meta&&meta.repSec||null,
+      rest_sec: meta&&meta.restSec||null,
+      mode: meta&&meta.mode||null,
+      med_min: meta&&meta.medMin||null,
+      ts: Date.now()
+    });
+  } catch(e) {}
+}
+
+async function dbLoadProfile() {
+  try {
+    var sess = (await supabase.auth.getSession()).data.session;
+    if (!sess) return;
+    var res = await supabase.from('profiles').select('*').eq('id', sess.user.id).single();
+    if (res.data) {
+      var p = res.data;
+      D.sessions = p.sessions||0; D.totalSec = p.total_sec||0;
+      D.streak = p.streak||0; D.fullStreak = p.full_streak||0; D.lastDate = p.last_date||null;
+      D.todayDone = p.today_done||{}; D.todayDoneDate = p.today_done_date||null; D.todayFullCounted = p.today_full_counted||false;
+      if (p.mods) { D.mods.blink=p.mods.blink||0; D.mods.fidget=p.mods.fidget||0; D.mods.breath=p.mods.breath||0; D.mods.meditate=p.mods.meditate||0; }
+      if (p.defaults) D.defaults = p.defaults;
+      // Merge dedicated defaults key — takes priority over Supabase if both exist
+      try { var dd=localStorage.getItem('PRESENCE_defaults'); if(dd){ var pd=JSON.parse(dd); D.defaults=Object.assign({},D.defaults,pd); } } catch(e) {}
+      try { localStorage.setItem(SK, JSON.stringify(D)); } catch(e) {}
+    }
+    var hres = await supabase.from('sessions').select('*').eq('user_id', sess.user.id).order('ts', {ascending:false}).limit(200);
+    if (hres.data) {
+      D.history = hres.data.map(function(r){ return { mod:r.mod, sec:r.sec, ts:r.ts, sets:r.sets, repSec:r.rep_sec, restSec:r.rest_sec, mode:r.mode, medMin:r.med_min }; });
+    }
+    var _today=new Date().toDateString();
+    if (D.todayDoneDate !== _today) { D.todayDone={}; D.todayFullCounted=false; }
+    if (D.lastDate && Math.floor((Date.now()-new Date(D.lastDate).getTime())/86400000)>1) { D.streak=0; }
+    renderHome();
+  } catch(e) {}
+  var ov = document.getElementById('dbOverlay');
+  if(ov) ov.classList.remove('show');
+}
+
+function saveAsDefault() {
+  var rs=document.getElementById('inpRepSec'); if(rs){var v=parseInt(rs.value);if(!isNaN(v)&&v>0)cfgRepSec=v;}
+  var st=document.getElementById('inpSets');   if(st){var v=parseInt(st.value);if(!isNaN(v)&&v>0)cfgSets=v;}
+  var rt=document.getElementById('inpRest');   if(rt){var v=parseInt(rt.value);if(!isNaN(v)&&v>=0)cfgRestSec=v;}
+  var mm=document.getElementById('inpMed');    if(mm){var v=parseInt(mm.value);if(!isNaN(v)&&v>0)cfgMedMin=v;}
+  D.defaults[cfgKey] = { mode:cfgMode, repSec:cfgRepSec, sets:cfgSets, restSec:cfgRestSec, medMin:cfgMedMin };
+  // Save defaults to a dedicated key so they survive regardless of Supabase column support
+  try { localStorage.setItem('PRESENCE_defaults', JSON.stringify(D.defaults)); } catch(e) {}
+  saveD();
+  var btn = document.getElementById('setDefaultBtn');
+  if (btn) { btn.textContent='✓ Saved as Default'; setTimeout(function(){ btn.textContent='Set as Default'; },1500); }
+}
+
+function recordSession(mod, sec, meta) {
+  D.sessions++; D.totalSec+=sec; D.mods[mod]=(D.mods[mod]||0)+1;
+  try {
+    var today=new Date().toDateString();
+    if (D.lastDate!==today) {
+      var y=new Date(); y.setDate(y.getDate()-1);
+      D.streak=(D.lastDate===y.toDateString())?D.streak+1:1;
+      D.lastDate=today;
+      D.todayDone={};
+      D.todayDoneDate=today;
+    }
+    D.todayDone[mod]=true;
+    D.todayDoneDate=today;
+    var allMods=['blink','fidget','breath','meditate'];
+    var allDone=true; for(var i=0;i<allMods.length;i++){if(!D.todayDone[allMods[i]]){allDone=false;break;}}
+    if(allDone && !D.todayFullCounted){ D.fullStreak=(D.fullStreak||0)+1; D.todayFullCounted=true; }
+  } catch(e) {}
+  try {
+    var entry = { mod:mod, sec:sec, ts:Date.now() };
+    if (meta) { if(meta.sets) entry.sets=meta.sets; if(meta.repSec) entry.repSec=meta.repSec; if(meta.restSec) entry.restSec=meta.restSec; if(meta.mode) entry.mode=meta.mode; if(meta.medMin) entry.medMin=meta.medMin; }
+    D.history.unshift(entry);
+    if (D.history.length > 200) D.history = D.history.slice(0,200);
+  } catch(e) {}
+  saveD();
+  dbInsertSession(mod, sec, meta);
+}
+
+/* ---- CONFIG STATE ---- */
+var cfgKey=null, cfgMode='open', cfgRepSec=30, cfgSets=5, cfgMedMin=10, cfgRestSec=5;
+var animEyesOn = (function(){ try { return localStorage.getItem('PRESENCE_animEyes')==='1'; } catch(e){ return false; } })();
+var MODE_DEF = { open:{repSec:30,sets:5}, closed:{repSec:45,sets:4}, mirror:{repSec:60,sets:3} };
+var MODE_DESC = {
+  open:  'Eyes open. Fix your gaze on a point ahead. Train without blinking.',
+  closed:'Eyes closed. Focus on the darkness. Train internal stillness.',
+  mirror:'Stand before a mirror. Hold eye contact with your reflection. Hardest mode.'
+};
+
+/* ---- STATIC APP DATA ---- */
+var BREATH_PH = [
+  {l:'Inhale',d:'Breathe in slowly through your nose.',  bc:'pb-p',tc:'cp',dur:4,rc:'#8b5cf6'},
+  {l:'Hold',  d:'Lungs full. Hold completely still.',    bc:'pb-o',tc:'co',dur:4,rc:'#d97706'},
+  {l:'Exhale',d:'Release slowly through your mouth.',   bc:'pb-g',tc:'cg',dur:4,rc:'#2EA043'},
+  {l:'Hold',  d:'Lungs empty. Rest here.',               bc:'pb-y',tc:'cy',dur:4,rc:'#64748b'}
+];
+var MED_CUES = ['Breathe in slowly.','And breathe out.','Relax your shoulders.','Clear your mind.','Stay present.','Breathe in.','Breathe out.','You are calm.'];
+var QUOTES = {
+  blink:   ['The eyes reveal what the mouth conceals. Control them.','No blink. No flinch. No surrender.','Unbroken gaze is unbroken will.'],
+  fidget:  ['The mountain does not tremble for the storm.','Stillness is the loudest signal of calm.','Control your body, then you can control the room.'],
+  breath:  ['Control the breath. Control the state.','Four in. Four still. Four out. Four still.','This is the off switch for anxiety.'],
+  meditate:['The mind that is still can hear everything.','Presence is not found in the future. Only here.','You cannot pour from an empty cup. Fill yours.']
+};
+
+
+
+/* ---- SCREENS ---- */
+function show(id) {
+  var ids = ['scHome','scConfig','scTrain','scComplete'];
+  for (var i=0; i<ids.length; i++) document.getElementById(ids[i]).classList.remove('active');
+  document.getElementById(id).classList.add('active');
+  try { window.scrollTo(0,0); } catch(e) {}
+}
+function goHome() { clearAll(); stopSpeech(); show('scHome'); renderHome(); }
+
+/* ---- HOME ---- */
+function renderHome() {
+  var hMins = document.getElementById('hMins'); if(hMins) hMins.textContent = Math.floor(D.totalSec/60);
+  var hS = document.getElementById('hStreak'); if(hS) hS.textContent = D.streak||0;
+  var hF = document.getElementById('hFullStreak'); if(hF) hF.textContent = D.fullStreak||0;
+  var mks=['blink','fidget','breath','meditate'];
+  for (var i=0;i<mks.length;i++) {
+    var el=document.getElementById('mc-'+mks[i]);
+    if (el) el.textContent = D.mods[mks[i]]>0 ? D.mods[mks[i]]+'x' : '-';
+  }
+  // Today's training tracker
+  var dotColors={blink:'#06b6d4',fidget:'#2EA043',breath:'#8b5cf6',meditate:'#ec4899'};
+  var done=0;
+  for(var i=0;i<mks.length;i++){
+    var mod=mks[i];
+    var dot=document.getElementById('tdot-'+mod);
+    if(dot){
+      if(D.todayDone && D.todayDone[mod]){
+        dot.style.background=dotColors[mod]; dot.style.opacity='1';
+        dot.style.boxShadow='0 0 7px '+dotColors[mod];
+        done++;
+      } else {
+        dot.style.background=dotColors[mod]; dot.style.opacity='0.22';
+        dot.style.boxShadow='none';
+      }
+    }
+  }
+  var countEl=document.getElementById('todayCount');
+  var barEl=document.getElementById('todayBarFill');
+  if(countEl) countEl.textContent=done+' / 4';
+  if(barEl) barEl.style.width=(done/4*100)+'%';
+}
+
+/* ---- CONFIG ---- */
+function openConfig(key) {
+  cfgKey=key; cfgRestSec=5;
+  var def = D.defaults[key] || {};
+  if (key==='fidget') { cfgMode=def.mode||'closed'; cfgRepSec=def.repSec||MODE_DEF[cfgMode].repSec; cfgSets=def.sets||MODE_DEF[cfgMode].sets; cfgRestSec=def.restSec||5; }
+  else if (key==='blink') { cfgMode=def.mode||'open'; cfgRepSec=def.repSec||MODE_DEF[cfgMode].repSec; cfgSets=def.sets||MODE_DEF[cfgMode].sets; cfgRestSec=def.restSec||5; }
+  else if (key==='breath') { cfgMode='open'; cfgSets=def.sets||6; cfgRestSec=def.restSec||10; }
+  else if (key==='meditate') { cfgMode='open'; cfgMedMin=def.medMin||10; }
+  ttsOn=true;
+  var labels={blink:'NO BLINKING DRILL',fidget:'NO FIDGETING DRILL',breath:'BOX BREATHING',meditate:'MEDITATION'};
+  document.getElementById('cfgLbl').textContent=labels[key];
+  document.getElementById('cfgStartBtn').className=(key==='meditate')?'btn-primary pink':(key==='fidget')?'btn-primary green':(key==='breath')?'btn-primary purple':(key==='blink')?'btn-primary cyan':'btn-primary';
+  var cfg=document.getElementById('scConfig');
+  cfg.className='screen';
+  cfg.classList.add('theme-'+key);
+  buildPanel(key);
+  show('scConfig');
+}
+
+function buildPanel(key) {
+  var p=document.getElementById('cfgPanel');
+  var h='';
+  if (key==='blink'||key==='fidget') {
+    h += '<div class="cfg-group"><div class="cfg-title">Training Mode</div>';
+    if (key==='blink') {
+      h += '<div class="mode-sel" style="grid-template-columns:repeat(2,1fr)">';
+      h += '<div class="mode-btn sel" id="mb-open"><div class="mode-btn-icon">'+SVG.eye+'</div><div class="mode-btn-lbl">Eyes Open</div><div class="mode-btn-diff">Normal</div></div>';
+      h += '<div class="mode-btn" id="mb-mirror"><div class="mode-btn-icon">'+SVG.mirror+'</div><div class="mode-btn-lbl">Mirror</div><div class="mode-btn-diff">Advanced</div></div>';
+    } else {
+      h += '<div class="mode-sel">';
+      h += '<div class="mode-btn sel" id="mb-closed"><div class="mode-btn-icon">'+SVG.eyeOff+'</div><div class="mode-btn-lbl">Eyes Closed</div><div class="mode-btn-diff">Normal</div></div>';
+      h += '<div class="mode-btn" id="mb-open"><div class="mode-btn-icon">'+SVG.eye+'</div><div class="mode-btn-lbl">Eyes Open</div><div class="mode-btn-diff">Focused</div></div>';
+      h += '<div class="mode-btn" id="mb-mirror"><div class="mode-btn-icon">'+SVG.mirror+'</div><div class="mode-btn-lbl">Mirror</div><div class="mode-btn-diff">Advanced</div></div>';
+    }
+    h += '</div><div class="mode-desc-box" id="modeDesc" style="text-align:center">'+MODE_DESC[cfgMode]+'</div></div>';
+    h += '<div class="cfg-group"><div class="cfg-title">Duration &amp; Sets</div><div class="time-grid">';
+    h += '<div class="time-setting"><input type="number" class="time-input" id="inpRepSec" min="5" max="300" value="'+cfgRepSec+'"><div class="time-lbl">Seconds / Rep</div></div>';
+    h += '<div class="time-setting"><input type="number" class="time-input" id="inpSets" min="1" max="20" value="'+cfgSets+'"><div class="time-lbl">Sets</div></div>';
+    h += '<div class="time-setting"><input type="number" class="time-input" id="inpRest" min="1" max="60" value="'+cfgRestSec+'"><div class="time-lbl">Rest (sec)</div></div>';
+    h += '</div></div>';
+    if (key==='blink') {
+      h += '<div class="cfg-group" id="animEyesGroup" style="display:'+(cfgMode==='open'?'flex':'none')+'"><div class="cfg-title">Simulated Eye Contact</div>';
+      h += '<div class="tts-row" id="animEyesRow" style="cursor:pointer"><span class="tts-lbl" style="display:flex;flex-direction:column;gap:3px"><span style="font-weight:700;color:#1a1a2e">Animated Eyes</span><span style="font-size:11px;color:#64748b;font-weight:500">A face stares at you during training</span></span><div class="toggle'+(animEyesOn?' on':'')+'" id="animEyesT"><div class="toggle-knob"></div></div></div>';
+      h += '</div>';
+    }
+    h += '<div class="cfg-group"><div class="cfg-title">Voice Guidance</div><div class="tts-row" id="ttsRow"><span class="tts-lbl">Announce Begin, Halfway &amp; Rest</span><div class="toggle on" id="ttsT"><div class="toggle-knob"></div></div></div></div>';
+    h += '<div class="est-box"><div class="est-lbl">Estimated Training Time</div><div class="est-val" id="estV">-</div></div>';
+    h += '<button id="setDefaultBtn" onclick="saveAsDefault()" class="set-default-btn">Set as Default</button>';
+  } else if (key==='breath') {
+    h += '<div class="cfg-group"><div class="cfg-title">Number of Cycles (16s each)</div><div class="time-grid">';
+    h += '<div class="time-setting"><input type="number" class="time-input" id="inpSets" min="1" max="30" value="'+cfgSets+'"><div class="time-lbl">Cycles</div></div>';
+    h += '<div class="time-setting"><input type="number" class="time-input" id="inpRest" min="0" max="60" value="'+cfgRestSec+'"><div class="time-lbl">Rest (sec)</div></div>';
+    h += '<div class="time-setting"><div class="time-static" style="color:var(--c);font-weight:700">16s</div><div class="time-lbl">per cycle</div></div>';
+    h += '</div></div>';
+    h += '<div class="cfg-group"><div class="cfg-title">Voice Guidance</div><div class="tts-row" id="ttsRow"><span class="tts-lbl">Announce each phase name</span><div class="toggle on" id="ttsT"><div class="toggle-knob"></div></div></div></div>';
+    h += '<div class="est-box"><div class="est-lbl">Estimated Training Time</div><div class="est-val" id="estV">-</div></div>';
+    h += '<button id="setDefaultBtn" onclick="saveAsDefault()" class="set-default-btn">Set as Default</button>';
+  } else if (key==='meditate') {
+    h += '<div class="cfg-group"><div class="cfg-title">Preset Duration</div><div class="preset-grid">';
+    h += '<button class="preset-btn" id="pr5">5m</button>';
+    h += '<button class="preset-btn sel" id="pr10">10m</button>';
+    h += '<button class="preset-btn" id="pr15">15m</button>';
+    h += '<button class="preset-btn" id="pr20">20m</button>';
+    h += '<button class="preset-btn" id="pr30">30m</button>';
+    h += '</div></div>';
+    h += '<div class="cfg-group"><div class="cfg-title">Custom Duration</div><div class="custom-row"><input type="number" class="custom-input" id="inpMed" min="1" max="120" value="'+cfgMedMin+'"><span class="custom-lbl">minutes</span></div></div>';
+    h += '<div class="cfg-group"><div class="cfg-title">Guided Breathing Cues</div><div class="tts-row" id="ttsRow"><span class="tts-lbl">Gentle voice cues every 30 seconds</span><div class="toggle on" id="ttsT"><div class="toggle-knob"></div></div></div></div>';
+    h += '<div class="est-box pink"><div class="est-lbl">Session Duration</div><div class="est-val pink" id="estV">10 minutes</div></div>';
+    h += '<button id="setDefaultBtn" onclick="saveAsDefault()" class="set-default-btn">Set as Default</button>';
+  }
+  p.innerHTML = h;
+  wirePanel(key);
+  updateEst();
+}
+
+function wirePanel(key) {
+  var modes = ['open','closed','mirror'];
+  for (var i=0; i<modes.length; i++) {
+    (function(m) {
+      var b = document.getElementById('mb-'+m);
+      if (b) b.addEventListener('click', function() { selMode(m); });
+    })(modes[i]);
+  }
+  var rs = document.getElementById('inpRepSec');
+  if (rs) rs.addEventListener('input', function() { var v=parseInt(this.value); if(!isNaN(v)&&v>0) cfgRepSec=v; updateEst(); });
+  var st = document.getElementById('inpSets');
+  if (st) st.addEventListener('input', function() { var v=parseInt(this.value); if(!isNaN(v)&&v>0) cfgSets=v; updateEst(); });
+  var rt = document.getElementById('inpRest');
+  if (rt) rt.addEventListener('input', function() { var v=parseInt(this.value); if(!isNaN(v)&&v>=0) cfgRestSec=v; updateEst(); });
+  var mm = document.getElementById('inpMed');
+  if (mm) mm.addEventListener('input', function() {
+    var v=parseInt(this.value); if(!isNaN(v)&&v>0) cfgMedMin=v;
+    var ps=[5,10,15,20,30];
+    for (var i=0;i<ps.length;i++) { var b=document.getElementById('pr'+ps[i]); if(b) b.className='preset-btn'; }
+    updateEst();
+  });
+  var ps2=[5,10,15,20,30];
+  for (var j=0; j<ps2.length; j++) {
+    (function(min) {
+      var b = document.getElementById('pr'+min);
+      if (b) b.addEventListener('click', function() { selP(min); });
+    })(ps2[j]);
+  }
+  var tr = document.getElementById('ttsRow');
+  if (tr) tr.addEventListener('click', function() {
+    ttsOn = !ttsOn;
+    var t = document.getElementById('ttsT');
+    if (t) t.className = 'toggle'+(ttsOn?' on':'');
+  });
+  var animRow = document.getElementById('animEyesRow');
+  if (animRow) animRow.addEventListener('click', function() {
+    animEyesOn = !animEyesOn;
+    try { localStorage.setItem('PRESENCE_animEyes', animEyesOn ? '1' : '0'); } catch(e) {}
+    var t = document.getElementById('animEyesT');
+    if (t) t.className = 'toggle'+(animEyesOn?' on':'');
+  });
+}
+
+function selMode(mode) {
+  cfgMode=mode;
+  var ms=['open','closed','mirror'];
+  for (var i=0;i<ms.length;i++) { var b=document.getElementById('mb-'+ms[i]); if(b) b.className='mode-btn'+(ms[i]===mode?' sel':''); }
+  var dd=document.getElementById('modeDesc');  if(dd) dd.textContent=MODE_DESC[mode];
+  var ag=document.getElementById('animEyesGroup'); if(ag) ag.style.display=(mode==='open'?'flex':'none');
+  updateEst();
+}
+function selP(min) {
+  cfgMedMin=min;
+  var ps=[5,10,15,20,30];
+  for (var i=0;i<ps.length;i++) { var b=document.getElementById('pr'+ps[i]); if(b) b.className='preset-btn'+(ps[i]===min?' sel':''); }
+  var inp=document.getElementById('inpMed'); if(inp) inp.value=min;
+  updateEst();
+}
+function updateEst() {
+  var el=document.getElementById('estV'); if(!el) return;
+  if (cfgKey==='meditate') { el.textContent=cfgMedMin+' minute'+(cfgMedMin===1?'':'s'); return; }
+  var activeTime=(cfgKey==='breath'?16:cfgRepSec)*cfgSets;
+  var restTime=(cfgKey==='breath')?cfgRestSec*(cfgSets-1):cfgRestSec*(cfgSets-1);
+  var total=activeTime+restTime;
+  var m=Math.floor(total/60),s=total%60;
+  el.textContent=(m>0?(s>0?m+'m '+s+'s':m+' min'):s+'s')+(restTime>0?' (incl. '+restTime+'s rest)':'');
+}
+
+/* ---- LAUNCH ---- */
+function launch() {
+  var rs=document.getElementById('inpRepSec'); if(rs){var v=parseInt(rs.value);if(!isNaN(v)&&v>0)cfgRepSec=v;}
+  var st=document.getElementById('inpSets');   if(st){var v=parseInt(st.value);if(!isNaN(v)&&v>0)cfgSets=v;}
+  var rt=document.getElementById('inpRest');   if(rt){var v=parseInt(rt.value);if(!isNaN(v)&&v>=0)cfgRestSec=v;}
+  var mm=document.getElementById('inpMed');    if(mm){var v=parseInt(mm.value);if(!isNaN(v)&&v>0)cfgMedMin=v;}
+  startTraining();
+}
+
+/* ---- TRAINING STATE ---- */
+var AK=null,running=false,totalReps=1,curRep=0,doneReps=0;
+var repTimer=null,bTimer=null,medCueT=null,bPhase=0,motionVal=0;
+
+
+var CIRC=565;
+function setRing(rem, total, color) {
+  var el = document.getElementById('ringProg');
+  if (!el) return;
+  // offset 565 = empty, offset 0 = full circle
+  // filled = elapsed = total - rem
+  var filled = total > 0 ? (total - rem) / total : 1;
+  if (filled < 0) filled = 0;
+  if (filled > 1) filled = 1;
+  el.style.strokeDashoffset = CIRC * (1 - filled);
+  if (color) el.style.stroke = color;
+}
+function setBadge(txt,cls){ var b=document.getElementById('phaseBadge'); b.textContent=txt; b.className='phase-badge '+(cls||''); b.style.display=txt?'':'none'; }
+function showExerciseIcon() {
+  document.getElementById('ringNum').style.display='none';
+  document.getElementById('pauseIcon').style.display='flex';
+}
+function hideExerciseIcon() {
+  document.getElementById('ringNum').style.display='';
+  document.getElementById('pauseIcon').style.display='none';
+}
+
+
+function updateDots() {
+  for (var i=0;i<totalReps;i++) {
+    var d=document.getElementById('dot-'+i); if(!d) continue;
+    d.className='rep-dot'+(i<doneReps?' done':'')+(i===curRep&&running?' active':'');
+  }
+}
+function updateBar() {
+  var display = curRep >= totalReps ? totalReps+' of '+totalReps : 'Rep '+(curRep+1)+' of '+totalReps;
+  document.getElementById('barText').textContent = display;
+  document.getElementById('barFill').style.width=((doneReps/totalReps)*100)+'%';
+}
+
+
+
+function buildDots(n) {
+  var dr=document.getElementById('repDots'); dr.innerHTML='';
+  for (var i=0;i<n;i++) { var d=document.createElement('div'); d.className='rep-dot'; d.id='dot-'+i; dr.appendChild(d); }
+}
+
+/* ---- START TRAINING ---- */
+function startTraining() {
+  AK=cfgKey; running=true; curRep=0; doneReps=0;
+  var labels={blink:'NO BLINKING DRILL',fidget:'NO FIDGETING DRILL',breath:'BOX BREATHING',meditate:'MEDITATION'};
+  document.getElementById('tLbl').textContent=labels[AK];
+  document.getElementById('barFill').className='bar-fill'+(AK==='meditate'?' pink':'');
+  document.getElementById('instrBox').className='instr-box'+(AK==='meditate'?' pink':'');
+  var mi=document.getElementById('modeInd');
+  if (AK==='blink'||AK==='fidget') {
+    totalReps=cfgSets; mi.style.display='flex';
+    var ml={open:'Eyes Open',closed:'Eyes Closed',mirror:'Mirror Mode'};
+    var mb=document.getElementById('modeBadge'); mb.textContent=ml[cfgMode]; mb.className='mode-badge mode-'+AK;
+  } else { totalReps=cfgSets; mi.style.display='none'; }
+  if (AK==='meditate') totalReps=1;
+  buildDots(totalReps);
+  document.getElementById('extraEl').innerHTML='';
+  document.getElementById('ringNum').textContent='';
+  document.getElementById('ringUnit').textContent='';
+  // Set correct color immediately — no blue flash
+  var startCol = AK==='blink'?'#06b6d4':AK==='fidget'?'#2EA043':AK==='breath'?'#8b5cf6':'#ec4899';
+  setRing(1,1,startCol); setBadge('','');
+  updateBar(); updateDots();
+  // Start animated eyes overlay BEFORE showing training screen — no flash
+  if (AK==='blink' && animEyesOn && cfgMode!=='mirror') {
+    startEyeAnimation();
+  }
+  // Start front camera for Mirror mode (blink + fidget)
+  if ((AK==='blink' || AK==='fidget') && cfgMode==='mirror') {
+    startCamera();
+    document.getElementById('btnOpenCamera').style.display='flex';
+  } else {
+    document.getElementById('btnOpenCamera').style.display='none';
+  }
+  document.getElementById('btnOpenEyes').style.display='none';
+  show('scTrain');
+  setTimeout(startRep,500);
+}
+
+/* ---- REP LOOP ---- */
+function startRep() {
+  if (!running) return;
+  updateBar(); updateDots();
+  document.getElementById('extraEl').innerHTML='';
+  if (AK==='breath')   { bPhase=0; doBreath(); }
+  else if (AK==='meditate') { doMed(); }
+  else { doRep(); }
+}
+
+/* ---- SIMPLE REP ---- */
+function doRep() {
+  var dur=cfgRepSec;
+  var col=AK==='blink'?'#06b6d4':AK==='fidget'?'#2EA043':'#1E90FF';
+  hideExerciseIcon();
+  document.getElementById('ringNum').textContent=dur;
+  document.getElementById('ringUnit').textContent='seconds';
+  setRing(dur,dur,col);
+  if (AK==='blink') {
+    var im={open:'Keep your eyes fixed on a single point. Do not blink.',closed:'Close your eyes. Focus on the darkness behind your lids.',mirror:'Hold eye contact with your own reflection. Do not look away.'};
+    setBadge('Hold Gaze','pb-blink'); document.getElementById('instrBox').textContent=im[cfgMode]; speak("Don't blink");
+    if (cfgMode==='mirror') { if(typeof _updateCamRepLabel==='function') _updateCamRepLabel(); }
+  } else if (AK==='fidget') {
+    var im2={open:'Eyes open. Body completely still. Zero movement.',closed:'Eyes closed. Feel your body. Release every tension.',mirror:'Eyes on your reflection. Observe without moving.'};
+    setBadge('Be Still','pb-g'); document.getElementById('instrBox').textContent=im2[cfgMode];
+    motionVal=0;
+    document.getElementById('extraEl').innerHTML='<div class="still-meter"><div class="still-head"><span class="meter-lbl">Motion Detected</span><span class="meter-val" id="mval">Still</span></div><div class="meter-track"><div class="meter-bar" id="mbar"></div></div></div>';
+    speak("Don't move");
+  }
+  var halfDone=false, startTs=Date.now();
+  repTimer=setInterval(function() {
+    if (!running) { clearInterval(repTimer); repTimer=null; return; }
+    var elapsed=Math.floor((Date.now()-startTs)/1000);
+    var rem=dur-elapsed;
+    if (rem<0) rem=0;
+    document.getElementById('ringNum').textContent=rem;
+    setRing(rem,dur,col);
+    if ((AK==='blink' || AK==='fidget') && cfgMode==='mirror') { updateCameraTimer(rem); }
+    if (!halfDone&&elapsed>=Math.floor(dur/2)) { halfDone=true; speak('Halfway'); }
+    if (AK==='fidget') { motionDecay(); }
+    if (elapsed>=dur) {
+      clearInterval(repTimer); repTimer=null;
+      document.getElementById('ringNum').textContent=0;
+      setRing(0,dur,col);
+      if (curRep+1 < totalReps) speak('Rest');
+      setTimeout(function(){ if(running) repDone(); }, 1000);
+    }
+  },100);
+}
+
+/* ---- BREATH ---- */
+function doBreath() {
+  if (!running) return;
+  var ph=BREATH_PH[bPhase], dur=ph.dur, rc=ph.rc||'#8b5cf6';
+  hideExerciseIcon();
+  setBadge(ph.l,ph.bc);
+  document.getElementById('instrBox').textContent=ph.d;
+  document.getElementById('ringNum').textContent=dur;
+  document.getElementById('ringUnit').textContent='counts';
+  setRing(dur,dur,rc);
+  speak(ph.l);
+  var bStartTs=Date.now();
+  bTimer=setInterval(function() {
+    if (!running) { clearInterval(bTimer); bTimer=null; return; }
+    var elapsed=Math.floor((Date.now()-bStartTs)/1000);
+    var rem=dur-elapsed;
+    if (rem<0) rem=0;
+    document.getElementById('ringNum').textContent=rem;
+    setRing(rem,dur,rc);
+    if (elapsed>=dur) {
+      clearInterval(bTimer); bTimer=null;
+      // Show 0 with full ring for 1 second, then next phase
+      document.getElementById('ringNum').textContent=0;
+      setRing(0,dur,rc);
+      bPhase++;
+      setTimeout(function(){
+        if (!running) return;
+        if (bPhase>=4) {
+          if (curRep+1 < totalReps) speak('Rest');
+          repDone();
+        } else { doBreath(); }
+      }, 1000);
+    }
+  },100);
+}
+
+/* ---- MEDITATION ---- */
+function doMed() {
+  if (!running) return;
+  hideExerciseIcon();
+  var totalSec=cfgMedMin*60, cueIdx=0, halfDone=false;
+  document.getElementById('ringUnit').textContent='remaining';
+  setRing(totalSec,totalSec,'#ec4899'); setBadge('Meditating','pb-k');
+  document.getElementById('instrBox').textContent='Sit still. Breathe naturally. Let thoughts pass like clouds.';
+  function fmt(s) { var m=Math.floor(s/60),sec=s%60; return m+':'+(sec<10?'0':'')+sec; }
+  document.getElementById('ringNum').textContent=fmt(totalSec);
+  speak('Begin your meditation. Breathe slowly and relax.');
+  if (ttsOn&&synth) medCueT=setInterval(function() { speak(MED_CUES[cueIdx++%MED_CUES.length]); },30000);
+  var medStartTs=Date.now();
+  repTimer=setInterval(function() {
+    if (!running) { clearInterval(repTimer); repTimer=null; return; }
+    var elapsed=Math.floor((Date.now()-medStartTs)/1000);
+    var rem=totalSec-elapsed;
+    if (rem<0) rem=0;
+    document.getElementById('ringNum').textContent=fmt(rem);
+    setRing(rem,totalSec,'#ec4899');
+    if (!halfDone&&elapsed>=Math.floor(totalSec/2)) { halfDone=true; speak('Halfway through your meditation. Keep going.'); }
+    if (elapsed>=totalSec) {
+      clearInterval(repTimer); repTimer=null;
+      if (medCueT) { clearInterval(medCueT); medCueT=null; }
+      document.getElementById('ringNum').textContent=fmt(0);
+      setRing(0,totalSec,'#ec4899');
+      speak('Training complete. Great job.');
+      setTimeout(function(){ if(running) repDone(); }, 1000);
+    }
+  },100);
+}
+
+/* ---- MOTION ---- */
+function motionDecay() {
+  motionVal=Math.max(0,motionVal-2);
+  var b=document.getElementById('mbar'),v=document.getElementById('mval');
+  if(b){b.style.width=motionVal+'%';b.className='meter-bar'+(motionVal>35?' red':'');}
+  if(v) v.textContent=motionVal<5?'Still':Math.round(motionVal)+'%';
+}
+
+/* ---- REP DONE ---- */
+function repDone() {
+  if (!running) return;
+  doneReps++;
+  var d=document.getElementById('dot-'+curRep); if(d) d.className='rep-dot done';
+  curRep++;
+  if (curRep>=totalReps) { finishSession(); return; }
+  // Rest period
+  var restCol=AK==='blink'?'#06b6d4':AK==='fidget'?'#2EA043':AK==='breath'?'#8b5cf6':'#ec4899';
+  updateBar(); updateDots();
+  setBadge('',''); // hide badge during rest
+  document.getElementById('instrBox').textContent='Rest. Breathe. Prepare for next rep.';
+  document.getElementById('ringNum').textContent='';
+  document.getElementById('ringUnit').textContent='';
+  document.getElementById('extraEl').innerHTML='';
+  if ((AK==='blink' || AK==='fidget') && cfgMode==='mirror') { updateCameraTimer(0); }
+  setRing(1,1,restCol); // empty ring in module color
+  showExerciseIcon();
+  var restStartTs=Date.now();
+  var restT=setInterval(function(){
+    if (!running) { clearInterval(restT); return; }
+    var restEl=Math.floor((Date.now()-restStartTs)/1000);
+    if (restEl>=cfgRestSec) { clearInterval(restT); startRep(); }
+  },100);
+}
+
+/* ---- FINISH ---- */
+function finishSession() {
+  clearAll(); running=false;
+  var totalSec=AK==='meditate'?cfgMedMin*60:(AK==='breath'?16*cfgSets:cfgRepSec*cfgSets);
+  var meta = {};
+  if (AK==='meditate') { meta.medMin=cfgMedMin; }
+  else if (AK==='breath') { meta.sets=cfgSets; meta.restSec=cfgRestSec; }
+  else { meta.sets=cfgSets; meta.repSec=cfgRepSec; meta.restSec=cfgRestSec; meta.mode=cfgMode; }
+  recordSession(AK,totalSec,meta);
+  var titles={blink:'Eyes Locked.',fidget:'Body Held.',breath:'Mind Reset.',meditate:'Mind Still.'};
+  document.getElementById('doneTitle').textContent=titles[AK]||'Well Done.';
+  var qs=QUOTES[AK]||['Control yourself before you try to control the room.'];
+  document.getElementById('doneQuote').textContent='"'+qs[Math.floor(Math.random()*qs.length)]+'"';
+  if (AK==='meditate') {
+    document.getElementById('dsA').textContent=cfgMedMin+'m'; document.getElementById('dsAL').textContent='Duration';
+    document.getElementById('dsB').textContent=totalSec+'s'; document.getElementById('dsBL').textContent='Total';
+    document.getElementById('dsModeItem').style.display='none';
+  } else {
+    document.getElementById('dsA').textContent=cfgSets; document.getElementById('dsAL').textContent=AK==='breath'?'Cycles':'Reps';
+    document.getElementById('dsB').textContent=totalSec+'s'; document.getElementById('dsBL').textContent='Total Time';
+    if (AK==='blink'||AK==='fidget') { var ml={open:'Eyes Open',closed:'Eyes Closed',mirror:'Mirror'}; document.getElementById('dsMode').textContent=ml[cfgMode]; document.getElementById('dsModeItem').style.display='block'; }
+    else document.getElementById('dsModeItem').style.display='none';
+  }
+  show('scComplete');
+  if (AK !== 'meditate') { speak('Training complete. Great job.'); }
+}
+
+/* ---- UTILS ---- */
+function clearAll() {
+  if(repTimer){clearInterval(repTimer);repTimer=null;}
+  if(bTimer){clearInterval(bTimer);bTimer=null;}
+  if(medCueT){clearInterval(medCueT);medCueT=null;}
+  running=false;
+  stopEyeAnimation();
+}
+
+/* ---- PROGRESS MODAL ---- */
+var MOD_LABELS = {blink:'No Blinking',fidget:'No Fidgeting',breath:'Box Breathing',meditate:'Meditation'};
+var activeHistFilter = 'all';
+
+function fmtSec(s) { var m=Math.floor(s/60),sec=s%60; return m>0?(sec>0?m+'m '+sec+'s':m+'m'):sec+'s'; }
+function fmtDate(ts) {
+  try {
+    var d=new Date(ts), now=new Date();
+    var diff=Math.floor((now-d)/86400000);
+    if(diff===0) return 'Today';
+    if(diff===1) return 'Yesterday';
+    if(diff<7) return diff+'d ago';
+    return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  } catch(e){ return ''; }
+}
+
+function renderHistory() {
+  var list=document.getElementById('histList');
+  var empty=document.getElementById('histEmpty');
+  var filtered = D.history.filter(function(e){ return activeHistFilter==='all' || e.mod===activeHistFilter; });
+  if (!filtered||filtered.length===0) {
+    list.innerHTML=''; list.style.display='none';
+    empty.style.display='block';
+    empty.textContent = activeHistFilter==='all'
+      ? 'No sessions yet. Start training to see your history here.'
+      : 'No '+MOD_LABELS[activeHistFilter]+' sessions yet.';
+    return;
+  }
+  list.style.display='flex'; empty.style.display='none';
+  var bests={};
+  for(var i=0;i<D.history.length;i++){var e=D.history[i];if(!bests[e.mod]||e.sec>bests[e.mod])bests[e.mod]=e.sec;}
+  var html='';
+  for(var i=0;i<filtered.length;i++){
+    var e=filtered[i];
+    var name=MOD_LABELS[e.mod]||e.mod;
+    var metaParts=[];
+    if(e.mod==='meditate'){ metaParts.push(e.medMin?e.medMin+'min session':'Session'); }
+    else if(e.mod==='breath'){ metaParts.push(e.sets?(e.sets+' cycles'):'Session'); }
+    else { if(e.sets) metaParts.push(e.sets+' sets'); if(e.repSec) metaParts.push(e.repSec+'s/rep'); if(e.restSec!=null) metaParts.push(e.restSec+'s rest'); if(e.mode&&e.mode!=='open'){var ml={closed:'Eyes Closed',mirror:'Mirror'};metaParts.push(ml[e.mode]||e.mode);} }
+    var modHistory = D.history.filter(function(x){return x.mod===e.mod;});
+    var isPB = (e.sec===bests[e.mod] && modHistory.indexOf(e)===0 && modHistory.length>1);
+    html+='<div class="hist-item">';
+    html+='<div class="hist-dot '+e.mod+'"></div>';
+    html+='<div class="hist-info"><div class="hist-name">'+name+'</div>';
+    html+='<div class="hist-meta">'+metaParts.join(' · ')+'</div>';
+    if(isPB) html+='<span class="hist-pb">Best</span>';
+    html+='</div>';
+    html+='<div class="hist-right"><div class="hist-time">'+fmtSec(e.sec)+'</div><div class="hist-date">'+fmtDate(e.ts)+'</div></div>';
+    html+='</div>';
+  }
+  list.innerHTML=html;
+}
+
+function openProgress() {
+  document.getElementById('pmSess').textContent   = D.sessions;
+  document.getElementById('pmStreak').textContent = D.streak;
+  document.getElementById('pmBlink').textContent  = D.mods.blink||0;
+  document.getElementById('pmFidget').textContent = D.mods.fidget||0;
+  document.getElementById('pmBreath').textContent = D.mods.breath||0;
+  document.getElementById('pmMed').textContent    = D.mods.meditate||0;
+  var m=Math.floor(D.totalSec/60),s=D.totalSec%60;
+  document.getElementById('pmTime').textContent   = m+':'+(s<10?'0':'')+s;
+  try { var today=new Date().toDateString(); document.getElementById('pmMsg').textContent=D.lastDate===today?'Great job! You trained today.':D.streak>0?'Current streak: '+D.streak+' days. Keep going!':'Practice today to start your streak!'; } catch(e){}
+  document.getElementById('tabStats').classList.add('active');
+  document.getElementById('tabHistory').classList.remove('active');
+  document.getElementById('panelStats').classList.add('active');
+  document.getElementById('panelHistory').classList.remove('active');
+  activeHistFilter='all';
+  document.querySelectorAll('.drill-filter-btn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-drill')==='all'); });
+  renderHistory();
+  document.getElementById('progressModal').classList.add('open');
+}
+function closeProgress() { document.getElementById('progressModal').classList.remove('open'); }
+
+/* ---- WIRE EVENTS ---- */
+document.getElementById('btnProgress').addEventListener('click', openProgress);
+document.getElementById('card-blink').addEventListener('click',    function() { openConfig('blink'); });
+document.getElementById('card-fidget').addEventListener('click',   function() { openConfig('fidget'); });
+document.getElementById('card-breath').addEventListener('click',   function() { openConfig('breath'); });
+document.getElementById('card-meditate').addEventListener('click', function() { openConfig('meditate'); });
+document.getElementById('btnCfgBack').addEventListener('click',    goHome);
+document.getElementById('cfgStartBtn').addEventListener('click',   launch);
+document.getElementById('btnTrainBack').addEventListener('click', function() { clearAll(); stopSpeech(); show('scConfig'); });
+document.getElementById('btnStop').addEventListener('click', function() { clearAll(); stopSpeech(); show('scConfig'); });
+
+// Open Camera button — reopen mirror overlay during blink mirror training
+document.getElementById('btnOpenCamera').addEventListener('click', function() {
+  if (running && (AK==='blink' || AK==='fidget') && cfgMode==='mirror') { startCamera(); }
+});
+
+// Eye overlay stop button — dismiss animated eyes, show back button
+document.getElementById('eyeOverlayStop').addEventListener('click', function() {
+  stopEyeAnimation();
+  document.getElementById('btnOpenEyes').style.display='flex';
+});
+
+// Back to Animated Eyes button
+document.getElementById('btnOpenEyes').addEventListener('click', function() {
+  if (running && AK==='blink' && animEyesOn) {
+    startEyeAnimation();
+    document.getElementById('btnOpenEyes').style.display='none';
+  }
+});
+document.getElementById('btnDoneHome').addEventListener('click',   goHome);
+document.getElementById('btnCloseProgress').addEventListener('click', closeProgress);
+document.getElementById('btnLogout').addEventListener('click', async function() {
+  await supabase.auth.signOut();
+  closeProgress();
+  showAuth();
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
+  document.getElementById('authError').textContent = '';
+});
+document.getElementById('progressModal').addEventListener('click', function(e) { if(e.target===this) closeProgress(); });
+document.getElementById('tabStats').addEventListener('click', function() {
+  document.getElementById('tabStats').classList.add('active'); document.getElementById('tabHistory').classList.remove('active');
+  document.getElementById('panelStats').classList.add('active'); document.getElementById('panelHistory').classList.remove('active');
+});
+document.getElementById('tabHistory').addEventListener('click', function() {
+  document.getElementById('tabHistory').classList.add('active'); document.getElementById('tabStats').classList.remove('active');
+  document.getElementById('panelHistory').classList.add('active'); document.getElementById('panelStats').classList.remove('active');
+  renderHistory();
+});
+
+document.querySelectorAll('.drill-filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    activeHistFilter = this.getAttribute('data-drill');
+    document.querySelectorAll('.drill-filter-btn').forEach(function(b){ b.classList.remove('active'); });
+    this.classList.add('active');
+    renderHistory();
+  });
+});
+
+document.addEventListener('touchstart', function() {
+  if (AK==='fidget'&&running) { motionVal=Math.min(100,motionVal+30); motionDecay(); }
+}, {passive:true});
+
+/* ---- SUPABASE AUTH ---- */
+var SUPA_URL = 'https://chdnbthhmqituvrelrjg.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoZG5idGhobXFpdHV2cmVscmpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDc1MDUsImV4cCI6MjA4ODQ4MzUwNX0.tKp1_FbquRNiilyjajlGnUGhK8dnpZff9EsBTYS1c6o';
+var supabase = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+var authMode = 'login';
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  document.getElementById('authError').textContent = '';
+  if (mode === 'login') {
+    document.getElementById('authHeading').textContent = 'Welcome Back';
+    document.getElementById('authTagline').textContent = 'Login to get access to training';
+    document.getElementById('authSubmitBtn').textContent = 'Login';
+    document.getElementById('authForgotWrap').innerHTML = 'Forgot your password? <a onclick="showResetPage()">Reset it</a>';
+    document.getElementById('authSwitchWrap').innerHTML = "Don't have an account? <a onclick=\"switchAuthTab('signup')\">Sign up</a>";
+    document.getElementById('authPassword').autocomplete = 'current-password';
+  } else {
+    document.getElementById('authHeading').textContent = 'Create Account';
+    document.getElementById('authTagline').textContent = 'Start your presence training journey';
+    document.getElementById('authSubmitBtn').textContent = 'Sign Up';
+    document.getElementById('authForgotWrap').innerHTML = "Already have an account? <a onclick=\"switchAuthTab('login')\">Sign in</a>";
+    document.getElementById('authSwitchWrap').innerHTML = '\u00a0';
+    document.getElementById('authPassword').autocomplete = 'new-password';
+  }
+}
+
+function togglePw() {
+  var inp = document.getElementById('authPassword');
+  var icon = document.getElementById('pwEyeIcon');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    inp.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+function showResetPage() {
+  var p = document.getElementById('scReset');
+  p.style.display = 'flex';
+  document.getElementById('resetEmail').value = document.getElementById('authEmail').value || '';
+  document.getElementById('resetMsg').textContent = '';
+}
+function hideResetPage() {
+  document.getElementById('scReset').style.display = 'none';
+}
+async function handleReset() {
+  var email = document.getElementById('resetEmail').value.trim();
+  var msg = document.getElementById('resetMsg');
+  if (!email) { msg.style.color='#ef4444'; msg.textContent='Please enter your email.'; return; }
+  var result = await supabase.auth.resetPasswordForEmail(email);
+  if (result.error) { msg.style.color='#ef4444'; msg.textContent=result.error.message; }
+  else { msg.style.color='#2EA043'; msg.textContent='Reset link sent! Check your email.'; }
+}
+
+async function handleAuth() {
+  var email = document.getElementById('authEmail').value.trim();
+  var password = document.getElementById('authPassword').value;
+  var errEl = document.getElementById('authError');
+  var btn = document.getElementById('authSubmitBtn');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.style.color='#ef4444'; errEl.textContent = 'Please fill in all fields.'; return; }
+  btn.disabled = true;
+  btn.textContent = authMode === 'login' ? 'Signing in...' : 'Creating account...';
+  try {
+    var result;
+    if (authMode === 'login') {
+      result = await supabase.auth.signInWithPassword({ email, password });
+    } else {
+      result = await supabase.auth.signUp({ email, password });
+    }
+    if (result.error) {
+      errEl.style.color='#ef4444'; errEl.textContent = result.error.message;
+      btn.disabled = false;
+      btn.textContent = authMode === 'login' ? 'Login' : 'Sign Up';
+    } else if (authMode === 'signup' && !result.data.session) {
+      errEl.style.color='#2EA043'; errEl.textContent = 'Check your email to confirm your account.';
+      btn.disabled = false;
+      btn.textContent = 'Sign Up';
+    } else {
+      // Show DB overlay immediately, hide auth, load data, then show app
+      document.getElementById('dbOverlay').classList.add('show');
+      document.getElementById('scAuth').style.display = 'none';
+      loadD();
+      await dbLoadProfile();
+      document.getElementById('mainApp').style.display = 'flex';
+      renderHome();
+      show('scHome');
+      history.pushState({page:'app'}, '');
+    }
+  } catch(e) {
+    errEl.style.color='#ef4444'; errEl.textContent = 'Something went wrong. Try again.';
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Login' : 'Sign Up';
+  }
+}
+
+function showApp() {
+  document.getElementById('scAuth').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'flex';
+  loadD();
+  renderHome();
+  show('scHome');
+  history.pushState({page:'app'}, '');
+  dbLoadProfile();
+}
+
+function showAuth() {
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('scAuth').style.display = 'flex';
+}
+
+// Back button — always stays within app, never exits to browser
+window.addEventListener('popstate', function(e) {
+  var screens = ['scHome','scConfig','scTrain','scComplete'];
+  var active = null;
+  for (var i = 0; i < screens.length; i++) {
+    var el = document.getElementById(screens[i]);
+    if (el && el.classList.contains('active')) { active = screens[i]; break; }
+  }
+  if (active === 'scTrain') {
+    clearAll(); stopSpeech(); show('scConfig');
+  } else if (active === 'scConfig' || active === 'scComplete') {
+    goHome();
+  } else {
+    goHome();
+  }
+  history.pushState({page:'app'}, '');
+});
+
+// On load — silently check session, no splash, no overlay
+supabase.auth.getSession().then(function(res) {
+  if (res.data && res.data.session) {
+    showApp();
+  } else {
+    showAuth();
+  }
+});
+
+// Allow Enter key to submit
+document.getElementById('authEmail').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('authPassword').focus(); });
+document.getElementById('authPassword').addEventListener('keydown', function(e){ if(e.key==='Enter') handleAuth(); });
+
+/* ---- INSTALL PROMPT ---- */
+var deferredPrompt = null;
+var installBanner = document.getElementById('installBanner');
+var installBtn = document.getElementById('installBtn');
+var installClose = document.getElementById('installClose');
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show banner after 2 seconds
+  setTimeout(function() {
+    installBanner.classList.add('show');
+  }, 2000);
+});
+
+installBtn.addEventListener('click', function() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function() {
+    deferredPrompt = null;
+    installBanner.classList.remove('show');
+  });
+});
+
+installClose.addEventListener('click', function() {
+  installBanner.classList.remove('show');
+});
+
+// iOS Safari - show manual instructions since beforeinstallprompt doesn't fire
+var isIos = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+var isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if (isIos && !isInStandaloneMode) {
+  setTimeout(function() {
+    document.querySelector('.install-sub').textContent = 'Tap the Share button then "Add to Home Screen"';
+    installBtn.style.display = 'none';
+    installBanner.classList.add('show');
+  }, 2000);
+}
+
+/* ---- ANIMATED EYES ---- */
+var eyeAnimFrame = null;
+var eyeTarget = {x:0, y:0};
+var eyeCurrent = {x:0, y:0};
+var eyeNextMove = 0;
+var eyeMoveDuration = 0;
+var eyeMoveStart = 0;
+var eyeMoveFrom = {x:0, y:0};
+var eyeMoveTo = {x:0, y:0};
+
+function startEyeAnimation() {
+  var overlay = document.getElementById('eyeOverlay');
+  if (!overlay) return;
+  overlay.classList.add('active');
+  eyeCurrent = {x:0, y:0};
+  eyeTarget = {x:0, y:0};
+  scheduleNextEyeMove(600);
+  eyeAnimFrame = requestAnimationFrame(tickEyes);
+}
+
+function stopEyeAnimation() {
+  var overlay = document.getElementById('eyeOverlay');
+  if (overlay) overlay.classList.remove('active');
+  if (eyeAnimFrame) { cancelAnimationFrame(eyeAnimFrame); eyeAnimFrame = null; }
+}
+
+function scheduleNextEyeMove(delay) {
+  eyeNextMove = performance.now() + (delay || 0);
+  // Pick a random target position — subtle, natural range
+  eyeMoveTo = {
+    x: (Math.random() - 0.5) * 16,  // -8 to +8 px
+    y: (Math.random() - 0.5) * 8    // -4 to +4 px
+  };
+  eyeMoveFrom = {x: eyeCurrent.x, y: eyeCurrent.y};
+  eyeMoveDuration = 300 + Math.random() * 500;
+  eyeMoveStart = eyeNextMove;
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+}
+
+function tickEyes(now) {
+  // Move iris
+  if (now >= eyeNextMove) {
+    var elapsed = now - eyeMoveStart;
+    var t = Math.min(elapsed / eyeMoveDuration, 1);
+    var e = easeInOut(t);
+    eyeCurrent.x = eyeMoveFrom.x + (eyeMoveTo.x - eyeMoveFrom.x) * e;
+    eyeCurrent.y = eyeMoveFrom.y + (eyeMoveFrom.y - eyeMoveTo.y) * -e;
+    if (t >= 1) {
+      // Pause 0.8s–3s then move again
+      scheduleNextEyeMove(800 + Math.random() * 2200);
+    }
+  } else {
+    // Lerp toward target smoothly before scheduled move
+    eyeCurrent.x += (eyeMoveTo.x - eyeCurrent.x) * 0.04;
+    eyeCurrent.y += (eyeMoveTo.y - eyeCurrent.y) * 0.04;
+  }
+
+  // Apply iris translation
+  var maxX = 14, maxY = 7;
+  var cx = Math.max(-maxX, Math.min(maxX, eyeCurrent.x));
+  var cy = Math.max(-maxY, Math.min(maxY, eyeCurrent.y));
+  var iL = document.getElementById('irisL');
+  var iR = document.getElementById('irisR');
+  if (iL) iL.style.transform = 'translate('+cx+'px,'+cy+'px)';
+  if (iR) iR.style.transform = 'translate('+cx+'px,'+cy+'px)';
+
+  eyeAnimFrame = requestAnimationFrame(tickEyes);
+}
+
+/* ---- SERVICE WORKER ---- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function() {});
+  });
+}
+</script>
+
+<!-- CAMERA OVERLAY (Mirror Mode - No Blinking) -->
+<div id="cameraOverlay">
+  <video id="cameraVideo" autoplay playsinline muted></video>
+  <div id="camScrim"></div>
+
+  <!-- Top pill label -->
+  <div id="camTopPill"></div>
+
+  <!-- Progress bar -->
+  <div id="camProgressBar"><div id="camProgressFill"></div></div>
+
+  <!-- Rep info card -->
+  <div id="camCard">
+    <div id="camCardMeta">
+      <span id="camRepLabel">REP 1 OF 5</span>
+    </div>
+    <div id="camCardText"></div>
+  </div>
+
+  <!-- Big countdown -->
+  <div id="camTimerWrap">
+    <div id="cameraTimer">0</div>
+  </div>
+
+  <!-- Bottom toolbar -->
+  <div id="camToolbar">
+    <button class="cam-btn" id="camBtnEyes">
+      <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      Eyes
+    </button>
+    <button class="cam-btn" id="camBtnFlip">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      Flip
+    </button>
+    <button class="cam-btn cam-btn-close" id="camBtnClose">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Close
+    </button>
+    <button class="cam-btn cam-btn-next" id="camBtnNext">
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      Next
+    </button>
+  </div>
+</div>
+
+<script>
+/* ---- CAMERA / MIRROR MODE ---- */
+var camStream = null;
+var camFacingMode = 'user'; // 'user' = front, 'environment' = rear
+var camEyesVisible = true;
+
+function startCamera() {
+  var overlay = document.getElementById('cameraOverlay');
+  overlay.classList.add('active');
+  var pill = document.getElementById('camTopPill');
+  if (pill) pill.textContent = AK==='fidget' ? 'NO FIDGETING DRILL' : 'NO BLINKING DRILL';
+  var cardText = document.getElementById('camCardText');
+  if (cardText) {
+    cardText.textContent = AK==='fidget'
+      ? 'Watch your reflection & Stay completely still.'
+      : 'Hold eye contact with your reflection & Do not blink.';
+  }
+  camFacingMode = 'user';
+  camEyesVisible = true;
+  _openCamStream();
+  _updateCamRepLabel();
+}
+
+function _openCamStream() {
+  var constraints = { video: { facingMode: camFacingMode }, audio: false };
+  // Stop any existing tracks first
+  if (camStream) { camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(function(stream) {
+      camStream = stream;
+      var vid = document.getElementById('cameraVideo');
+      vid.srcObject = stream;
+      // Mirror effect only for front cam
+      vid.style.transform = camFacingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+    })
+    .catch(function(err) {
+      document.getElementById('cameraOverlay').classList.remove('active');
+      console.warn('Camera access denied:', err);
+    });
+}
+
+function stopCamera() {
+  document.getElementById('cameraOverlay').classList.remove('active');
+  if (camStream) { camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+  var vid = document.getElementById('cameraVideo');
+  if (vid) { vid.srcObject = null; }
+  document.getElementById('cameraTimer').textContent = '0';
+}
+
+// Update big timer number
+function updateCameraTimer(secs) {
+  var el = document.getElementById('cameraTimer');
+  if (el) el.textContent = (secs > 0 ? secs : 0) + 's';
+  var fill = document.getElementById('camProgressFill');
+  if (fill && cfgRepSec) { fill.style.width = (((cfgRepSec - secs) / cfgRepSec) * 100) + '%'; }
+}
+
+// Update rep label in card
+function _updateCamRepLabel() {
+  var lbl = document.getElementById('camRepLabel');
+  if (lbl) lbl.textContent = 'REP ' + (curRep + 1) + ' OF ' + totalReps;
+}
+
+// Flip camera
+document.getElementById('camBtnFlip').addEventListener('click', function() {
+  camFacingMode = camFacingMode === 'user' ? 'environment' : 'user';
+  _openCamStream();
+});
+
+// Eyes toggle — show/hide the video (dark screen practice)
+document.getElementById('camBtnEyes').addEventListener('click', function() {
+  camEyesVisible = !camEyesVisible;
+  var vid = document.getElementById('cameraVideo');
+  if (vid) vid.style.opacity = camEyesVisible ? '1' : '0';
+  this.style.color = camEyesVisible ? '' : 'rgba(255,255,255,.35)';
+});
+
+// Close — hide overlay, drill keeps going in background
+document.getElementById('camBtnClose').addEventListener('click', function() {
+  stopCamera();
+});
+
+// Next — skip current rep and move to next
+document.getElementById('camBtnNext').addEventListener('click', function() {
+  if (!running) return;
+  if (repTimer) { clearInterval(repTimer); repTimer = null; }
+  repDone();
+  _updateCamRepLabel();
+  // reset progress bar
+  var fill = document.getElementById('camProgressFill');
+  if (fill) fill.style.width = '0%';
+});
+
+// Patch clearAll to also stop camera
+var _origClearAll = clearAll;
+clearAll = function() {
+  _origClearAll();
+  stopCamera();
+};
+</script>
+</body>
+</html>
