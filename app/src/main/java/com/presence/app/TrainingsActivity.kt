@@ -16,6 +16,7 @@ class TrainingsActivity : BaseActivity() {
     private lateinit var trainingsView: LinearLayout
     private lateinit var sessionsView: LinearLayout
     private var showSessions = false
+    private var group = 0   // Sessions view: 0 = all, 1 = sessions, 2 = trainings
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,29 +104,34 @@ class TrainingsActivity : BaseActivity() {
     }
 
     private fun renderTrainings() {
-        val c = this
         trainingsView.removeAllViews()
         for ((i, k) in Trainings.ALL.withIndex()) {
-            val card = Ui.card(c)
-            card.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 14))
-            val line = LinearLayout(c)
-            line.orientation = LinearLayout.HORIZONTAL
-            line.gravity = Gravity.CENTER_VERTICAL
-            val text = LinearLayout(c)
-            text.orientation = LinearLayout.VERTICAL
-            text.addView(Ui.text(c, Trainings.name(k), 15f, Ui.TEXT, Ui.BOLD))
-            text.addTo(Ui.text(c, Trainings.about(k), 12f, Ui.MUTED, Ui.REG), 3)
-            line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-            val open = Ui.pill(c, "Open", Trainings.accent(k), Ui.onColor(Trainings.accent(k)))
-            open.textSize = 14f
-            open.setOnClickListener { openTraining(k) }
-            val openLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
-            openLp.leftMargin = Ui.dp(c, 10)
-            line.addView(open, openLp)
-            card.addView(line)
-            card.setOnClickListener { openTraining(k) }
-            trainingsView.addTo(card, if (i == 0) 0 else 12)
+            trainingsView.addTo(trainingCard(k), if (i == 0) 0 else 12)
         }
+    }
+
+    /** One training as a card: name, what it is, and Open. Used on the Trainings and Sessions lists. */
+    private fun trainingCard(k: String): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 14))
+        val line = LinearLayout(c)
+        line.orientation = LinearLayout.HORIZONTAL
+        line.gravity = Gravity.CENTER_VERTICAL
+        val text = LinearLayout(c)
+        text.orientation = LinearLayout.VERTICAL
+        text.addView(Ui.text(c, Trainings.name(k), 15f, Ui.TEXT, Ui.BOLD))
+        text.addTo(Ui.text(c, Trainings.about(k), 12f, Ui.MUTED, Ui.REG), 3)
+        line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val open = Ui.pill(c, "Open", Trainings.accent(k), Ui.onColor(Trainings.accent(k)))
+        open.textSize = 14f
+        open.setOnClickListener { openTraining(k) }
+        val openLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
+        openLp.leftMargin = Ui.dp(c, 10)
+        line.addView(open, openLp)
+        card.addView(line)
+        card.setOnClickListener { openTraining(k) }
+        return card
     }
 
     private fun openTraining(key: String) {
@@ -135,14 +141,43 @@ class TrainingsActivity : BaseActivity() {
     private fun renderSessions() {
         val c = this
         sessionsView.removeAllViews()
+        // All | Sessions | Trainings: groups the list, like the History filter
+        val chips = LinearLayout(c)
+        chips.orientation = LinearLayout.HORIZONTAL
+        for ((i, label) in listOf("All", "Sessions", "Trainings").withIndex()) {
+            val sel = i == group
+            val t = Ui.text(c, label, 13f, if (sel) Ui.WHITE else Ui.TEXT, Ui.BOLD)
+            t.gravity = Gravity.CENTER
+            t.background = Ui.rounded(c, if (sel) Ui.BLUE else Ui.SOFT, 20)
+            t.setPadding(Ui.dp(c, 16), Ui.dp(c, 9), Ui.dp(c, 16), Ui.dp(c, 9))
+            t.setOnClickListener {
+                group = i
+                render()
+            }
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            if (i > 0) lp.leftMargin = Ui.dp(c, 8)
+            chips.addView(t, lp)
+        }
+        sessionsView.addTo(chips, 0)
+
         val build = Ui.pill(c, "+ Build a session", Ui.SOFT, Ui.TEXT)
         build.setOnClickListener { startActivity(Intent(c, SessionActivity::class.java)) }
-        sessionsView.addTo(build, 0)
+        sessionsView.addTo(build, 12)
+
         val all = SavedLists.all(Session.userId)
-        if (all.isEmpty()) {
-            sessionsView.addTo(Ui.note(c, "Nothing saved yet. Build a session, or save a training from its setup screen."), 14)
+        if (group != 1) {
+            for (k in Trainings.ALL) sessionsView.addTo(trainingCard(k), 12)
         }
-        for (o in all) {
+        val shown = all.filter { o ->
+            val isSession = o.optString("kind") == "session"
+            when (group) {
+                1 -> isSession
+                2 -> !isSession
+                else -> true
+            }
+        }
+        if (shown.isEmpty() && group == 1) sessionsView.addTo(Ui.note(c, "No saved sessions yet. Build one above."), 14)
+        for (o in shown) {
             val row = if (o.optString("kind") == "session") sessionRow(o) else singleRow(o)
             sessionsView.addTo(row, 12)
         }

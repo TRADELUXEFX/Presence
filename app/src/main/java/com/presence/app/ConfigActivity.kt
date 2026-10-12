@@ -251,8 +251,20 @@ class ConfigActivity : BaseActivity() {
             val now = !Session.prefs.getBoolean("vibrate", true)
             Session.prefs.edit().putBoolean("vibrate", now).apply()
             paint()
+            if (now) testBuzz()
         }
         return box
+    }
+
+    /** A short test buzz, so you can feel that vibration works when you switch it on. */
+    private fun testBuzz() {
+        val vib = getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator ?: return
+        if (!vib.hasVibrator()) return
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            vib.vibrate(android.os.VibrationEffect.createOneShot(150L, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            vib.vibrate(150L)
+        }
     }
 
     /** One row: the label, the vibrate icon, and the voice switch. Vibration and voice work separately. */
