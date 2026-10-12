@@ -20,6 +20,7 @@ class ConfigActivity : BaseActivity() {
     private lateinit var key: String
     private lateinit var cfg: Config
     private lateinit var panel: LinearLayout
+    private lateinit var startBtn: Button
     private val accentColor: Int get() = Trainings.accent(key)
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
@@ -56,23 +57,33 @@ class ConfigActivity : BaseActivity() {
 
     private fun build() {
         val c = this
-        val root = LinearLayout(c)
-        root.orientation = LinearLayout.VERTICAL
-        root.setBackgroundColor(Ui.BG)
-        root.addView(Ui.header(c, Trainings.name(key), accentColor) { finish() }, LinearLayout.LayoutParams(-1, -2))
+        val frame = LinearLayout(c)
+        frame.orientation = LinearLayout.VERTICAL
+        frame.setBackgroundColor(Ui.BG)
+        frame.addView(Ui.header(c, Trainings.name(key), accentColor) { finish() }, LinearLayout.LayoutParams(-1, -2))
 
         panel = LinearLayout(c)
         panel.orientation = LinearLayout.VERTICAL
         panel.setPadding(Ui.dp(c, 18), Ui.dp(c, 18), Ui.dp(c, 18), Ui.dp(c, 24))
         renderPanel()
-        root.addView(panel, LinearLayout.LayoutParams(-1, -2))
-        Ui.padInsets(root, bottom = true)
-
         val scroll = ScrollView(c)
         scroll.isFillViewport = true
         scroll.setBackgroundColor(Ui.BG)
-        scroll.addView(root)
-        setContentView(scroll)
+        scroll.addView(panel)
+        frame.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+
+        // Start training stays on screen like PauzFirst's bottom bar: curved top, never scrolled away
+        val bar = LinearLayout(c)
+        bar.orientation = LinearLayout.VERTICAL
+        bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
+        Ui.bottomBarBg(c, bar)
+        bar.elevation = Ui.dp(c, 8).toFloat()
+        startBtn = Ui.pill(c, "Start training", accentColor, Ui.onColor(accentColor))
+        startBtn.setOnClickListener { onStartTapped() }
+        bar.addView(startBtn, LinearLayout.LayoutParams(-1, -2))
+        Ui.padInsets(bar, bottom = true)
+        frame.addView(bar, LinearLayout.LayoutParams(-1, -2))
+        setContentView(frame)
     }
 
     /** Any change rebuilds the panel, so every control shows the current settings. */
@@ -157,9 +168,6 @@ class ConfigActivity : BaseActivity() {
         val saveBtn = Ui.pill(c, "Set as default", Ui.SOFT, Ui.TEXT)
         saveBtn.setOnClickListener { saveAsDefault(saveBtn) }
         panel.addTo(saveBtn, 16)
-        val startBtn = Ui.pill(c, "Start training", accentColor, Ui.onColor(accentColor))
-        startBtn.setOnClickListener { onStartTapped() }
-        panel.addTo(startBtn, 10)
     }
 
     private fun voiceCard(sub: String) {

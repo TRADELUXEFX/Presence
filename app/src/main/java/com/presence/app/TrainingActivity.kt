@@ -47,6 +47,9 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private var camProvider: ProcessCameraProvider? = null
     private var cameraOn = false
     private var lensFront = true
+    private lateinit var mirrorBar: View
+    private lateinit var mirrorRep: TextView
+    private lateinit var mirrorSentence: TextView
     private var showingDone = false
     private var dotCount = -1
     private var dotViews = ArrayList<View>()
@@ -130,7 +133,75 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         content.addView(doneView, FrameLayout.LayoutParams(-1, -1))
         column.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
         frame.addView(column, FrameLayout.LayoutParams(-1, -1))
+        if (cameraOn) frame.addView(buildMirrorTop(c), FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
         setContentView(frame)
+    }
+
+    /** Mirror mode top: back button, the training name, a thin progress bar, and the instruction card. Translucent, over the camera. */
+    private fun buildMirrorTop(c: Context): LinearLayout {
+        val key = Engine.config.key
+        val topBox = LinearLayout(c)
+        topBox.orientation = LinearLayout.VERTICAL
+        topBox.setPadding(Ui.dp(c, 16), Ui.dp(c, 12), Ui.dp(c, 16), Ui.dp(c, 12))
+        Ui.padInsets(topBox, top = true)
+
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val size = Ui.dp(c, 40)
+        val back = FrameLayout(c)
+        back.background = Ui.rounded(c, Color.parseColor("#66000000"), 20)
+        back.contentDescription = "Back"
+        back.setOnClickListener { confirmLeave() }
+        back.addView(FsIconView(c, "M15 18l-6-6 6-6", Color.WHITE), FrameLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22), Gravity.CENTER))
+        row.addView(back, LinearLayout.LayoutParams(size, size))
+
+        val name = Ui.text(c, Trainings.name(key).uppercase(), 13f, Color.WHITE, Ui.BOLD)
+        name.letterSpacing = 0.15f
+        name.gravity = Gravity.CENTER
+        name.maxLines = 1
+        name.background = Ui.rounded(c, Color.parseColor("#66000000"), 22, Color.parseColor("#59FFFFFF"), 1)
+        name.setPadding(Ui.dp(c, 18), Ui.dp(c, 10), Ui.dp(c, 18), Ui.dp(c, 10))
+        row.addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(View(c), LinearLayout.LayoutParams(size, size))
+        topBox.addView(row)
+
+        val track = FrameLayout(c)
+        track.background = Ui.rounded(c, Color.parseColor("#55FFFFFF"), 2)
+        mirrorBar = View(c)
+        mirrorBar.background = Ui.rounded(c, Trainings.accent(key), 2)
+        mirrorBar.pivotX = 0f
+        mirrorBar.scaleX = 0f
+        track.addView(mirrorBar, FrameLayout.LayoutParams(-1, -1))
+        val trackLp = LinearLayout.LayoutParams(-1, Ui.dp(c, 4))
+        trackLp.topMargin = Ui.dp(c, 14)
+        topBox.addView(track, trackLp)
+
+        val card = LinearLayout(c)
+        card.orientation = LinearLayout.VERTICAL
+        card.gravity = Gravity.CENTER
+        card.background = Ui.rounded(c, Color.parseColor("#B31A1A1A"), 24, Color.parseColor("#4DFFFFFF"), 1)
+        card.setPadding(Ui.dp(c, 20), Ui.dp(c, 16), Ui.dp(c, 20), Ui.dp(c, 18))
+        mirrorRep = Ui.text(c, "", 12f, Color.parseColor("#BFFFFFFF"), Ui.BOLD)
+        mirrorRep.letterSpacing = 0.15f
+        mirrorRep.gravity = Gravity.CENTER
+        card.addView(mirrorRep)
+        mirrorSentence = Ui.text(c, "", 18f, Color.WHITE, Ui.BOLD)
+        mirrorSentence.gravity = Gravity.CENTER
+        mirrorSentence.setLineSpacing(0f, 1.2f)
+        card.addTo(mirrorSentence, 6)
+        val cardLp = LinearLayout.LayoutParams(-1, -2)
+        cardLp.topMargin = Ui.dp(c, 16)
+        topBox.addView(card, cardLp)
+        return topBox
+    }
+
+    /** Mirror mode: fills the bar and the card from the engine. Only touches the overlay views. */
+    private fun renderMirror() {
+        setText(mirrorRep, Engine.progressLabel().uppercase())
+        setText(mirrorSentence, Engine.instrText)
+        val total = Math.max(1, Engine.totalReps)
+        mirrorBar.scaleX = Math.min(1f, Engine.doneReps.toFloat() / total)
     }
 
     /** Mirror mode: only the two buttons at the bottom. No ring, count, name or text, so you can see yourself. */
@@ -274,7 +345,11 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     /** Redraws the live values. Only changed text is set, so nothing flickers. */
     private fun render() {
-        if (showingDone || cameraOn) return
+        if (showingDone) return
+        if (cameraOn) {
+            renderMirror()
+            return
+        }
         val e = Engine.config
         val eng = Engine
         ring.fraction = eng.ringFraction
