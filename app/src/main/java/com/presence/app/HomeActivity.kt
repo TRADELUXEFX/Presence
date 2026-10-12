@@ -1,0 +1,276 @@
+package com.presence.app
+
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.os.Bundle
+import android.view.Gravity
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import com.presence.app.Ui.addTo
+import org.json.JSONObject
+
+/** Home: streaks, today's progress, and the four trainings. */
+class HomeActivity : BaseActivity() {
+    private lateinit var column: LinearLayout
+    private var net: NetWatch? = null
+    private var online = true
+    private var loading = false
+    private var failed = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (!Session.loggedIn()) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+            return
+        }
+        val c = this
+
+        val root = LinearLayout(c)
+        root.orientation = LinearLayout.VERTICAL
+        root.setBackgroundColor(Ui.BG)
+
+        val hero = AuthUi.HeroLayout(c)
+        hero.orientation = LinearLayout.VERTICAL
+        hero.setPadding(Ui.dp(c, 22), Ui.dp(c, 20), Ui.dp(c, 22), Ui.dp(c, 36))
+        Ui.padInsets(hero, top = true)
+        hero.addView(Ui.text(c, "Presence Training", 26f, Ui.WHITE, Ui.BOLD))
+        hero.addTo(Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG), 4)
+        root.addView(hero, LinearLayout.LayoutParams(-1, -2))
+
+        column = LinearLayout(c)
+        column.orientation = LinearLayout.VERTICAL
+        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 4), Ui.dp(c, 18), Ui.dp(c, 24))
+        root.addView(column, LinearLayout.LayoutParams(-1, -2))
+        Ui.padInsets(root, bottom = true)
+
+        val scroll = ScrollView(c)
+        scroll.isFillViewport = true
+        scroll.setBackgroundColor(Ui.BG)
+        scroll.addView(root)
+        setContentView(scroll)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!Session.loggedIn()) return
+        online = NetWatch.isOnline(this)
+        val watch = NetWatch(this) { up ->
+            online = up
+            if (up) {
+                Sync.flush()
+                loadNow()
+            } else {
+                render()
+            }
+        }
+        watch.start()
+        net = watch
+        loadNow()
+    }
+
+    override fun onPause() {
+        net?.stop()
+        net = null
+        super.onPause()
+    }
+
+    /** Shows what this phone has straight away, then refreshes from the server. */
+    private fun loadNow() {
+        val uid = Session.userId
+        if (!LocalStore.hasProfile(uid)) {
+            loading = true
+            failed = false
+        }
+        render()
+        Sync.refresh { ok ->
+            if (isFinishing) return@refresh
+            loading = false
+            failed = !ok && !LocalStore.hasProfile(Session.userId)
+            render()
+        }
+    }
+
+    private fun render() {
+        if (!::column.isInitialized) return
+        val c = this
+        column.removeAllViews()
+        if (!online) {
+            val banner = Ui.banner(c, "You're offline. Trainings are saved on this phone and sync when you're back online.")
+            banner.visibility = View.VISIBLE
+            column.addTo(banner, 14)
+        }
+        if (Engine.isActive()) column.addTo(resumeCard(), 14)
+        when {
+            loading -> column.addTo(loadingCard(), 14)
+            failed -> column.addTo(errorCard(), 14)
+            else -> {
+                val p = Profile.normalize(LocalStore.profile(Session.userId))
+                column.addTo(statRow(p), 14)
+                column.addTo(todayCard(p), 12)
+                column.addTo(Ui.sectionTitle(c, "Trainings"), 22)
+                val mods = p.optJSONObject("mods") ?: JSONObject()
+                for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 10)
+            }
+        }
+    }
+
+    private fun resumeCard(): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.addView(Ui.text(c, "Training in progress", 15f, Ui.TEXT, Ui.BOLD))
+        card.addTo(Ui.text(c, Trainings.name(Engine.config.key), 13f, Ui.MUTED, Ui.REG), 2)
+        val btn = Ui.pill(c, "Return to training")
+        btn.setOnClickListener { startActivity(Intent(this, TrainingActivity::class.java)) }
+        card.addTo(btn, 12)
+        return card
+    }
+
+    private fun loadingCard(): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.orientation = LinearLayout.HORIZONTAL
+        card.gravity = Gravity.CENTER_VERTICAL
+        card.addView(SpinnerRingView(c), LinearLayout.LayoutParams(Ui.dp(c, 30), Ui.dp(c, 30)))
+        val label = Ui.text(c, "Loading your progress…", 14f, Ui.MUTED, Ui.MED)
+        val lp = LinearLayout.LayoutParams(-2, -2)
+        lp.leftMargin = Ui.dp(c, 14)
+        card.addView(label, lp)
+        return card
+    }
+
+    private fun errorCard(): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.addView(Ui.text(c, "Couldn't load your progress", 15f, Ui.TEXT, Ui.BOLD))
+        card.addTo(Ui.text(c, "Check your connection and try again.", 13f, Ui.MUTED, Ui.REG), 4)
+        val btn = Ui.pill(c, "Try again")
+        btn.setOnClickListener { loadNow() }
+        card.addTo(btn, 14)
+        return card
+    }
+
+    private fun statRow(p: JSONObject): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.addView(
+            statCard(p.optInt("streak", 0), "Day streak", "days you showed up", true),
+            LinearLayout.LayoutParams(0, -2, 1f)
+        )
+        val lp2 = LinearLayout.LayoutParams(0, -2, 1f)
+        lp2.leftMargin = Ui.dp(c, 12)
+        row.addView(statCard(p.optInt("full_streak", 0), "Full streak", "all 4 done", false), lp2)
+        return row
+    }
+
+    private fun statCard(value: Int, label: String, sub: String, flame: Boolean): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        val head = LinearLayout(c)
+        head.orientation = LinearLayout.HORIZONTAL
+        head.gravity = Gravity.CENTER_VERTICAL
+        if (flame) {
+            val icon = FsIconView(c, Icons.FLAME, Ui.BLUE)
+            val ilp = LinearLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18))
+            ilp.rightMargin = Ui.dp(c, 6)
+            head.addView(icon, ilp)
+        }
+        head.addView(Ui.text(c, label, 13f, Ui.TEXT, Ui.MED))
+        card.addView(head)
+        card.addTo(Ui.text(c, value.toString(), 34f, Ui.BLUE, Ui.BOLD), 6)
+        card.addTo(Ui.text(c, sub, 11f, Ui.MUTED, Ui.REG), 2)
+        return card
+    }
+
+    private fun todayCard(p: JSONObject): LinearLayout {
+        val c = this
+        val doneMap = p.optJSONObject("today_done") ?: JSONObject()
+        val done = Trainings.ALL.count { doneMap.optBoolean(it, false) }
+        val card = Ui.card(c)
+
+        val head = LinearLayout(c)
+        head.orientation = LinearLayout.HORIZONTAL
+        head.gravity = Gravity.CENTER_VERTICAL
+        head.addView(Ui.sectionTitle(c, "Today"), LinearLayout.LayoutParams(0, -2, 1f))
+        head.addView(Ui.text(c, "$done / 4", 16f, Ui.BLUE, Ui.BOLD))
+        card.addView(head)
+
+        val bar = LinearLayout(c)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.background = Ui.rounded(c, Ui.SOFT, 6)
+        val fill = View(c)
+        fill.background = Ui.rounded(c, Ui.BLUE, 6)
+        bar.addView(fill, LinearLayout.LayoutParams(0, -1, done.toFloat()))
+        bar.addView(View(c), LinearLayout.LayoutParams(0, -1, (4 - done).toFloat()))
+        val barLp = LinearLayout.LayoutParams(-1, Ui.dp(c, 8))
+        barLp.topMargin = Ui.dp(c, 12)
+        card.addView(bar, barLp)
+
+        val dotsRow = LinearLayout(c)
+        dotsRow.orientation = LinearLayout.HORIZONTAL
+        for (k in Trainings.ALL) {
+            val isDone = doneMap.optBoolean(k, false)
+            val col = LinearLayout(c)
+            col.orientation = LinearLayout.VERTICAL
+            col.gravity = Gravity.CENTER_HORIZONTAL
+            val dot = View(c)
+            dot.background = circle(Trainings.accent(k))
+            dot.alpha = if (isDone) 1f else 0.25f
+            col.addView(dot, LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)))
+            col.addTo(Ui.text(c, Trainings.shortName(k), 11f, Ui.MUTED, Ui.MED), 6)
+            dotsRow.addView(col, LinearLayout.LayoutParams(0, -2, 1f))
+        }
+        card.addTo(dotsRow, 14)
+        return card
+    }
+
+    private fun trainingCard(k: String, count: Int): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.isClickable = true
+        card.setOnClickListener {
+            startActivity(Intent(this, ConfigActivity::class.java).putExtra("key", k))
+        }
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+
+        val dot = View(c)
+        dot.background = circle(Trainings.accent(k))
+        val dlp = LinearLayout.LayoutParams(Ui.dp(c, 12), Ui.dp(c, 12))
+        dlp.rightMargin = Ui.dp(c, 14)
+        row.addView(dot, dlp)
+
+        val text = LinearLayout(c)
+        text.orientation = LinearLayout.VERTICAL
+        text.addView(Ui.text(c, Trainings.name(k), 16f, Ui.TEXT, Ui.BOLD))
+        val blurb = Ui.text(c, Trainings.blurb(k), 12f, Ui.MUTED, Ui.REG)
+        blurb.setLineSpacing(0f, 1.2f)
+        val blp = LinearLayout.LayoutParams(-1, -2)
+        blp.topMargin = Ui.dp(c, 3)
+        text.addView(blurb, blp)
+        row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
+
+        row.addView(
+            Ui.chip(c, if (count > 0) "${count}x" else "-", Ui.BLUE, Ui.BLUE_SOFT),
+            LinearLayout.LayoutParams(-2, -2)
+        )
+        val chev = FsIconView(c, Icons.CHEVRON, Ui.MUTED)
+        val clp = LinearLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18))
+        clp.leftMargin = Ui.dp(c, 10)
+        row.addView(chev, clp)
+
+        card.addView(row)
+        return card
+    }
+
+    private fun circle(color: Int): GradientDrawable {
+        val g = GradientDrawable()
+        g.shape = GradientDrawable.OVAL
+        g.setColor(color)
+        return g
+    }
+}
