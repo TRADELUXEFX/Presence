@@ -1,0 +1,179 @@
+name: Deploy Presence (PWA)
+
+# Phone workflow: upload ANY zip into the "incoming" folder on github.com
+# (Add file -> Upload files -> Commit to main). This workflow unpacks it into
+# the repo, checks the JavaScript, commits, deletes the zip and publishes
+# the www/ folder to GitHub Pages. Plain pushes and manual runs just redeploy.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: presence-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract any zip(s) found in incoming/ into repo root
+        id: extract
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -e
+          shopt -s nullglob dotglob
+          zips=(incoming/*.zip)
+          if [ ${#zips[@]} -eq 0 ]; then
+            echo "No zip files in incoming/. Nothing to unpack."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          repo_lc=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+          for z in "${zips[@]}"; do
+            echo "Unpacking $z ..."
+            stage=$(mktemp -d)
+            unzip -q -o "$z" -x "__MACOSX/*" "*/.DS_Store" ".DS_Store" -d "$stage"
+            # Strip an extra wrapper folder (e.g. presence-main/www/... -> www/...)
+            for pass in 1 2 3; do
+              entries=("$stage"/*)
+              [ ${#entries[@]} -eq 1 ] && [ -d "${entries[0]}" ] || break
+              inner="${entries[0]}"
+              name=$(basename "$inner")
+              name_lc=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+              case "$name_lc" in
+                www|incoming|supabase|docs|.github) break ;;
+              esac
+              wrapper=false
+              if [ "$name_lc" = "$repo_lc" ] || [[ "$name_lc" == "$repo_lc"-* ]] || [[ "$name_lc" == *-main ]] || [[ "$name_lc" == *-master ]]; then
+                wrapper=true
+              fi
+              for marker in www incoming supabase .github README.md; do
+                [ -e "$inner/$marker" ] && wrapper=true
+              done
+              [ "$wrapper" = true ] || break
+              echo "Removing wrapper folder: $name/"
+              stage="$inner"
+            done
+            # GitHub blocks the default token from changing workflow files.
+            rm -rf "$stage/.github/workflows"
+            echo "Files being deployed:"
+            (cd "$stage" && find . -type f | sed 's|^\./||' | head -200)
+            cp -a "$stage"/. .
+            rm -f "$z"
+          done
+
+      # To delete files, put DELETE_FILES.txt at the root of the zip:
+      # one repo-relative path per line (blank lines and # comments ignored).
+      - name: Delete files listed in DELETE_FILES.txt
+        if: steps.extract.outputs.found == 'true'
+        run: |
+          set -e
+          list="DELETE_FILES.txt"
+          if [ ! -f "$list" ]; then
+            echo "No $list in the zip - nothing to delete."
+            exit 0
+          fi
+          deleted=0
+          skipped=0
+          while IFS= read -r line || [ -n "$line" ]; do
+            p=$(printf '%s' "$line" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            case "$p" in
+              ''|'#'*) continue ;;
+            esac
+            p="${p#./}"
+            case "$p" in
+              /*|*..*|.git|.git/*|.github|.github/*|incoming|incoming/*|www/index.html|www/sw.js|www/manifest.json|DELETE_FILES.txt)
+                echo "::warning::Skipped (protected or unsafe path): $p"
+                skipped=$((skipped + 1))
+                continue
+                ;;
+            esac
+            if [ -f "$p" ]; then
+              rm -f -- "$p"
+              echo "Deleted: $p"
+              deleted=$((deleted + 1))
+            elif [ -e "$p" ]; then
+              echo "::warning::Skipped (not a regular file): $p"
+              skipped=$((skipped + 1))
+            else
+              echo "Not found (already gone): $p"
+            fi
+          done < "$list"
+          rm -f "$list"
+          echo "Deleted $deleted file(s), skipped $skipped."
+
+      # Stops a broken script from ever going live: every inline <script>
+      # in every www/*.html file is syntax-checked before anything is committed.
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          cat > /tmp/check.js <<'JS'
+          const fs = require('fs'), path = require('path'), cp = require('child_process');
+          const dir = 'www';
+          let bad = 0, count = 0;
+          const files = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+          for (const f of files) {
+            const full = path.join(dir, f);
+            if (f.endsWith('.js')) {
+              try { cp.execFileSync('node', ['--check', full], { stdio: 'pipe' }); count++; }
+              catch (e) { bad++; console.log('SYNTAX ERROR in ' + full + '\n' + e.stderr); }
+            } else if (f.endsWith('.html')) {
+              const html = fs.readFileSync(full, 'utf8');
+              const re = /<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/gi;
+              let m, i = 0;
+              while ((m = re.exec(html))) {
+                if (/type\s*=\s*["'](?!module|text\/javascript)/i.test(m[1])) continue;
+                i++;
+                const tmp = '/tmp/chk_' + f.replace(/\W/g, '_') + '_' + i + (/type\s*=\s*["']module/i.test(m[1]) ? '.mjs' : '.js');
+                fs.writeFileSync(tmp, m[2]);
+                try { cp.execFileSync('node', ['--check', tmp], { stdio: 'pipe' }); count++; }
+                catch (e) { bad++; console.log('SYNTAX ERROR in ' + full + ' (script #' + i + ')\n' + e.stderr); }
+              }
+            }
+          }
+          console.log('Checked ' + count + ' script(s), ' + bad + ' with errors.');
+          process.exit(bad ? 1 : 0);
+          JS
+          node /tmp/check.js
+
+      - name: Commit unpacked files
+        if: steps.extract.outputs.found == 'true'
+        run: |
+          git config user.name "deploy-bot"
+          git config user.email "deploy-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing changed after extracting the zip."
+          else
+            git commit -m "Deploy: unpack zip(s) from incoming/"
+          fi
+          git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site (www folder)
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
