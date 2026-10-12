@@ -4,12 +4,14 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.presence.app.Ui.addTo
@@ -52,7 +54,16 @@ class ConfigActivity : BaseActivity() {
         key = if (Trainings.ALL.contains(requested)) requested else Trainings.BLINK
         val defaults = LocalStore.profile(Session.userId).optJSONObject("defaults") ?: JSONObject()
         cfg = Trainings.defaultConfig(key, defaults)
+        // opened from Saved list: use that saved training and start it straight away
+        val saved = intent.getStringExtra("listId")?.let { id ->
+            SavedLists.all(Session.userId).firstOrNull { it.optString("id") == id }
+        }
+        if (saved != null) {
+            key = saved.optString("key")
+            cfg = SavedLists.toConfig(saved)
+        }
         build()
+        if (saved != null) onStartTapped()
     }
 
     private fun build() {
@@ -60,7 +71,7 @@ class ConfigActivity : BaseActivity() {
         val frame = LinearLayout(c)
         frame.orientation = LinearLayout.VERTICAL
         frame.setBackgroundColor(Ui.BG)
-        frame.addView(Ui.header(c, Trainings.name(key), accentColor) { finish() }, LinearLayout.LayoutParams(-1, -2))
+        frame.addView(Ui.header(c, Trainings.name(key), accentColor, saveAction()) { finish() }, LinearLayout.LayoutParams(-1, -2))
 
         panel = LinearLayout(c)
         panel.orientation = LinearLayout.VERTICAL
@@ -84,6 +95,40 @@ class ConfigActivity : BaseActivity() {
         Ui.padInsets(bar, bottom = true)
         frame.addView(bar, LinearLayout.LayoutParams(-1, -2))
         setContentView(frame)
+    }
+
+    /** Save list button in the header, on the right: asks for a name, then adds this training to Saved list. */
+    private fun saveAction(): LinearLayout {
+        val c = this
+        val fg = Ui.onColor(accentColor)
+        val box = LinearLayout(c)
+        box.orientation = LinearLayout.HORIZONTAL
+        box.gravity = Gravity.CENTER_VERTICAL
+        box.background = Ui.rounded(c, Color.parseColor("#33FFFFFF"), 20)
+        box.setPadding(Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 14), Ui.dp(c, 8))
+        box.contentDescription = "Save"
+        box.addView(FsIconView(c, Icons.BOOKMARK, fg), LinearLayout.LayoutParams(Ui.dp(c, 16), Ui.dp(c, 16)))
+        val label = Ui.text(c, "Save", 13f, fg, Ui.BOLD)
+        val lp = LinearLayout.LayoutParams(-2, -2)
+        lp.leftMargin = Ui.dp(c, 6)
+        box.addView(label, lp)
+        box.setOnClickListener {
+            Dialogs.show(
+                this,
+                "Save",
+                "Save these settings as this training's default, or keep them as a named list.",
+                "Save as list",
+                "Save as default",
+                onPrimary = {
+                    SavedLists.askName(this) { name ->
+                        SavedLists.add(Session.userId, name, cfg)
+                        Toast.makeText(this, "Saved to Saved list", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                onSecondary = { saveAsDefault() }
+            )
+        }
+        return box
     }
 
     /** Any change rebuilds the panel, so every control shows the current settings. */
@@ -165,9 +210,6 @@ class ConfigActivity : BaseActivity() {
         }
 
         panel.addTo(estimateCard(), 22)
-        val saveBtn = Ui.pill(c, "Set as default", Ui.SOFT, Ui.TEXT)
-        saveBtn.setOnClickListener { saveAsDefault(saveBtn) }
-        panel.addTo(saveBtn, 16)
     }
 
     private fun voiceCard(sub: String) {
@@ -244,7 +286,7 @@ class ConfigActivity : BaseActivity() {
         return card
     }
 
-    private fun saveAsDefault(btn: Button) {
+    private fun saveAsDefault() {
         val uid = Session.userId
         val row = LocalStore.profile(uid)
         val defaults = row.optJSONObject("defaults") ?: JSONObject()
@@ -260,8 +302,7 @@ class ConfigActivity : BaseActivity() {
         row.put("defaults", defaults)
         LocalStore.saveProfile(uid, row)
         Sync.flush()
-        btn.text = "Saved as default"
-        btn.postDelayed({ btn.text = "Set as default" }, 1500L)
+        Toast.makeText(this, "Saved as default", Toast.LENGTH_SHORT).show()
     }
 
     private fun needsCamera(): Boolean =

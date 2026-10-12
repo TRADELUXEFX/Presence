@@ -47,7 +47,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private var camProvider: ProcessCameraProvider? = null
     private var cameraOn = false
     private var lensFront = true
-    private lateinit var mirrorBar: View
+    private val mirrorSegs = ArrayList<View>()
     private lateinit var mirrorRep: TextView
     private lateinit var mirrorSentence: TextView
     private var showingDone = false
@@ -160,19 +160,24 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         name.letterSpacing = 0.15f
         name.gravity = Gravity.CENTER
         name.maxLines = 1
-        name.background = Ui.rounded(c, Color.parseColor("#66000000"), 22, Color.parseColor("#59FFFFFF"), 1)
+        name.background = Ui.rounded(c, Color.parseColor("#59000000"), 20, Color.parseColor("#1FFFFFFF"), 1)
         name.setPadding(Ui.dp(c, 18), Ui.dp(c, 10), Ui.dp(c, 18), Ui.dp(c, 10))
-        row.addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        row.addView(View(c), LinearLayout.LayoutParams(size, size))
+        // back arrow on the left, the training name pushed to the right edge
+        row.addView(View(c), LinearLayout.LayoutParams(0, 1, 1f))
+        row.addView(name, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         topBox.addView(row)
 
-        val track = FrameLayout(c)
-        track.background = Ui.rounded(c, Color.parseColor("#55FFFFFF"), 2)
-        mirrorBar = View(c)
-        mirrorBar.background = Ui.rounded(c, Trainings.accent(key), 2)
-        mirrorBar.pivotX = 0f
-        mirrorBar.scaleX = 0f
-        track.addView(mirrorBar, FrameLayout.LayoutParams(-1, -1))
+        val track = LinearLayout(c)
+        track.orientation = LinearLayout.HORIZONTAL
+        mirrorSegs.clear()
+        for (i in 0 until Math.max(1, Engine.totalReps)) {
+            val seg = View(c)
+            seg.background = Ui.rounded(c, Color.parseColor("#55FFFFFF"), 2)
+            mirrorSegs.add(seg)
+            val segLp = LinearLayout.LayoutParams(0, Ui.dp(c, 4), 1f)
+            if (i > 0) segLp.leftMargin = Ui.dp(c, 4)
+            track.addView(seg, segLp)
+        }
         val trackLp = LinearLayout.LayoutParams(-1, Ui.dp(c, 4))
         trackLp.topMargin = Ui.dp(c, 14)
         topBox.addView(track, trackLp)
@@ -180,13 +185,13 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val card = LinearLayout(c)
         card.orientation = LinearLayout.VERTICAL
         card.gravity = Gravity.CENTER
-        card.background = Ui.rounded(c, Color.parseColor("#B31A1A1A"), 24, Color.parseColor("#4DFFFFFF"), 1)
+        card.background = Ui.rounded(c, Color.parseColor("#73000000"), 16, Color.parseColor("#2EFFFFFF"), 1)
         card.setPadding(Ui.dp(c, 20), Ui.dp(c, 16), Ui.dp(c, 20), Ui.dp(c, 18))
         mirrorRep = Ui.text(c, "", 12f, Color.parseColor("#BFFFFFFF"), Ui.BOLD)
         mirrorRep.letterSpacing = 0.15f
         mirrorRep.gravity = Gravity.CENTER
         card.addView(mirrorRep)
-        mirrorSentence = Ui.text(c, "", 18f, Color.WHITE, Ui.BOLD)
+        mirrorSentence = Ui.text(c, "", 20f, Color.WHITE, Ui.BOLD)
         mirrorSentence.gravity = Gravity.CENTER
         mirrorSentence.setLineSpacing(0f, 1.2f)
         card.addTo(mirrorSentence, 6)
@@ -200,8 +205,10 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private fun renderMirror() {
         setText(mirrorRep, Engine.progressLabel().uppercase())
         setText(mirrorSentence, Engine.instrText)
-        val total = Math.max(1, Engine.totalReps)
-        mirrorBar.scaleX = Math.min(1f, Engine.doneReps.toFloat() / total)
+        val accent = Trainings.accent(Engine.config.key)
+        for ((i, seg) in mirrorSegs.withIndex()) {
+            seg.background = Ui.rounded(this, if (i < Engine.doneReps) accent else Color.parseColor("#55FFFFFF"), 2)
+        }
     }
 
     /** Mirror mode: only the two buttons at the bottom. No ring, count, name or text, so you can see yourself. */
