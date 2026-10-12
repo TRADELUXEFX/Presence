@@ -87,9 +87,9 @@ class ConfigActivity : BaseActivity() {
         val bar = LinearLayout(c)
         bar.orientation = LinearLayout.VERTICAL
         bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
-        Ui.bottomBarBg(c, bar)
+        Ui.tintedBottomBar(c, bar, accentColor)
         bar.elevation = Ui.dp(c, 8).toFloat()
-        startBtn = Ui.pill(c, "Start training", accentColor, Ui.onColor(accentColor))
+        startBtn = Ui.pill(c, "Start training", Color.WHITE, Trainings.ink(key))
         startBtn.setOnClickListener { onStartTapped() }
         bar.addView(startBtn, LinearLayout.LayoutParams(-1, -2))
         Ui.padInsets(bar, bottom = true)

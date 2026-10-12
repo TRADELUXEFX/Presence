@@ -334,7 +334,7 @@ object Ui {
     }
 
     /** Blue top bar with a round arrow-only Back button and the title centered. */
-    fun header(c: Context, title: String, tint: Int = 0, action: View? = null, onBack: () -> Unit): LinearLayout {
+    fun header(c: Context, title: String, tint: Int = 0, action: View? = null, titleExtra: View? = null, onBack: () -> Unit): LinearLayout {
         val h = LinearLayout(c)
         h.orientation = LinearLayout.HORIZONTAL
         h.gravity = Gravity.CENTER_VERTICAL
@@ -369,13 +369,39 @@ object Ui {
         t.gravity = Gravity.CENTER
         t.maxLines = 1
         t.ellipsize = android.text.TextUtils.TruncateAt.END
-        h.addView(t, LinearLayout.LayoutParams(-2, -2))
+        if (titleExtra == null) {
+            h.addView(t, LinearLayout.LayoutParams(-2, -2))
+        } else {
+            // the title with its extra button (the "i") right beside it, kept in the centre
+            val titleRow = LinearLayout(c)
+            titleRow.orientation = LinearLayout.HORIZONTAL
+            titleRow.gravity = Gravity.CENTER_VERTICAL
+            titleRow.addView(t, LinearLayout.LayoutParams(-2, -2))
+            val extraLp = LinearLayout.LayoutParams(dp(c, 30), dp(c, 30))
+            extraLp.leftMargin = dp(c, 8)
+            titleRow.addView(titleExtra, extraLp)
+            h.addView(titleRow, LinearLayout.LayoutParams(-2, -2))
+        }
 
         val right = LinearLayout(c)
         right.gravity = Gravity.CENTER_VERTICAL or Gravity.END
         if (action != null) right.addView(action, LinearLayout.LayoutParams(-2, -2))
         h.addView(right, LinearLayout.LayoutParams(0, -2, 1f))
         return h
+    }
+
+    /** Round "i" button for a header: tap to read what the training is about. */
+    fun infoButton(c: Context, fg: Int, onClick: () -> Unit): View {
+        val box = FrameLayout(c)
+        val circle = GradientDrawable()
+        circle.shape = GradientDrawable.OVAL
+        circle.setColor(Color.parseColor("#33FFFFFF"))
+        box.background = circle
+        box.contentDescription = "About this training"
+        box.setOnClickListener { onClick() }
+        box.addView(FsIconView(c, "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 16v-4 M12 8h.01", fg),
+            FrameLayout.LayoutParams(dp(c, 22), dp(c, 22), Gravity.CENTER))
+        return box
     }
 
     /** Small rounded tap target used for list actions. */
@@ -425,6 +451,14 @@ object Ui {
             f.addView(dot, FrameLayout.LayoutParams(s, s, Gravity.CENTER))
         }
         return f
+    }
+
+    /** Bottom bar in a colour (the training's, or blue), with the same gradient and curved top as the header. */
+    fun tintedBottomBar(c: Context, bar: View, tint: Int) {
+        val g = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(tint, mix(tint, Color.BLACK, 0.2f)))
+        val r = dp(c, 24).toFloat()
+        g.cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+        bar.background = g
     }
 
     /** Bottom action bar with curved top corners, the mirror image of the header's curved bottom corners. */

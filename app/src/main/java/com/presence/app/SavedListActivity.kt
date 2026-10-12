@@ -53,7 +53,7 @@ class SavedListActivity : BaseActivity() {
         bar = LinearLayout(c)
         bar.orientation = LinearLayout.HORIZONTAL
         bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
-        Ui.bottomBarBg(c, bar)
+        Ui.tintedBottomBar(c, bar, Ui.BLUE)
         bar.elevation = Ui.dp(c, 8).toFloat()
         val doneBtn = Ui.pill(c, "Done", Ui.SOFT, Ui.TEXT)
         doneBtn.setOnClickListener {

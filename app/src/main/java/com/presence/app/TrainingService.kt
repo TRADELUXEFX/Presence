@@ -42,6 +42,7 @@ class TrainingService : Service() {
         shown = Engine.statusKey()
         acquireWakeLock()
         Engine.addListener(listener)
+        if (!Engine.isActive()) stopSelf()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -52,12 +53,18 @@ class TrainingService : Service() {
     override fun onDestroy() {
         Engine.removeListener(listener)
         releaseWakeLock()
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
         super.onDestroy()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun refresh() {
+        if (!Engine.isActive()) {
+            stopSelf()
+            return
+        }
         val key = Engine.statusKey()
         if (key == shown) return
         shown = key

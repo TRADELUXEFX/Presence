@@ -26,9 +26,10 @@ import com.presence.app.Ui.addTo
  * It only draws what Engine reports. Engine keeps running when this screen is closed.
  */
 class TrainingActivity : BaseActivity(), Engine.Listener {
-    private lateinit var trainingView: LinearLayout
+    private lateinit var trainingView: View
     private lateinit var doneView: ScrollView
     private lateinit var progress: TextView
+    private lateinit var popDots: PopDotsView
     private lateinit var camNote: TextView
     private lateinit var ring: RingView
     private lateinit var ringNum: TextView
@@ -123,7 +124,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
         if (!cameraOn) column.addView(
-            Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key)) { confirmLeave() },
+            Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key), null, infoAction()) { confirmLeave() },
             LinearLayout.LayoutParams(-1, -2)
         )
         val content = FrameLayout(c)
@@ -239,38 +240,49 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         return v
     }
 
-    private fun buildTraining(c: Context, fg: Int, muted: Int): LinearLayout {
+    private fun buildTraining(c: Context, fg: Int, muted: Int): View {
         if (cameraOn) return buildMirrorControls(c)
-        val v = LinearLayout(c)
-        v.orientation = LinearLayout.VERTICAL
-        v.gravity = Gravity.CENTER_HORIZONTAL
-        v.setPadding(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 24))
+        val root = FrameLayout(c)
         if (Engine.config.key == Trainings.FIDGET) {
-            v.setOnTouchListener { _, e ->
+            root.setOnTouchListener { _, e ->
                 if (e.actionMasked == MotionEvent.ACTION_DOWN) Engine.touch()
                 false
             }
         }
 
-        progress = Ui.text(c, "", 13f, muted, Ui.MED)
-        progress.gravity = Gravity.CENTER
-        v.addView(progress)
-
+        // top: the count pill and the dashes
+        val top = LinearLayout(c)
+        top.orientation = LinearLayout.VERTICAL
+        top.setPadding(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), 0)
         camNote = Ui.text(c, "Camera not available. Training continues without it.", 12f, Ui.AMBER, Ui.MED)
         camNote.gravity = Gravity.CENTER
         camNote.visibility = View.GONE
-        v.addTo(camNote, 4)
+        top.addTo(camNote, 4)
 
+        val pillRow = LinearLayout(c)
+        pillRow.orientation = LinearLayout.HORIZONTAL
+        pillRow.gravity = Gravity.CENTER_VERTICAL
         badge = Ui.chip(c, "", Trainings.ink(Engine.config.key), Trainings.soft(Engine.config.key))
         badge.visibility = View.GONE
-        v.addTo(badge, 14)
+        pillRow.addView(badge, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        // the count, e.g. 1/10, sits in its own pill beside the phase badge
+        progress = Ui.text(c, "", 16f, Trainings.ink(Engine.config.key), Ui.BOLD)
+        progress.gravity = Gravity.CENTER
+        progress.background = Ui.rounded(c, Trainings.soft(Engine.config.key), 20)
+        progress.setPadding(Ui.dp(c, 16), Ui.dp(c, 9), Ui.dp(c, 16), Ui.dp(c, 9))
+        progress.visibility = View.GONE
+        val countLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        countLp.leftMargin = Ui.dp(c, 10)
+        pillRow.addView(progress, countLp)
+        top.addTo(pillRow, 14)
+
         dots = LinearLayout(c)
         dots.orientation = LinearLayout.HORIZONTAL
-        dots.gravity = Gravity.CENTER
-        v.addTo(dots, 14)
-        // equal space above and below the ring keeps it in the middle of the screen
-        val spaceTop = View(c)
-        v.addView(spaceTop, LinearLayout.LayoutParams(-1, 0, 1f))
+        dots.gravity = Gravity.CENTER_VERTICAL
+        top.addTo(dots, 12)
+        root.addView(top, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+
+        // middle: the ring, centred on the screen
         val ringBox = FrameLayout(c)
         ring = RingView(c)
         ring.ringColor = Trainings.accent(Engine.config.key)
@@ -283,15 +295,22 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         ringUnit = Ui.text(c, "", 13f, muted, Ui.MED)
         ringUnit.gravity = Gravity.CENTER
         center.addView(ringNum)
-        center.addView(ringUnit)
         ringBox.addView(center, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
-        v.addTo(ringBox, 0)
-        val spaceBottom = View(c)
-        v.addView(spaceBottom, LinearLayout.LayoutParams(-1, 0, 1f))
+        popDots = PopDotsView(c, Ui.TEXT, 12)
+        popDots.visibility = View.GONE
+        ringBox.addView(popDots, FrameLayout.LayoutParams(-1, -1))
+        root.addView(ringBox, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
+
+        // bottom: the instruction and motion meter, then End training in its own curved bar (like Start training)
+        val bottom = LinearLayout(c)
+        bottom.orientation = LinearLayout.VERTICAL
+        val text = LinearLayout(c)
+        text.orientation = LinearLayout.VERTICAL
+        text.setPadding(Ui.dp(c, 24), 0, Ui.dp(c, 24), Ui.dp(c, 16))
         instr = Ui.text(c, "", 16f, fg, Ui.MED)
         instr.gravity = Gravity.CENTER
         instr.setLineSpacing(0f, 1.25f)
-        v.addTo(instr, 16)
+        text.addView(instr, LinearLayout.LayoutParams(-1, -2))
         // Fidget: the motion meter, raised by screen touches as on the website
         meter = LinearLayout(c)
         meter.orientation = LinearLayout.VERTICAL
@@ -312,12 +331,21 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         trackLp.topMargin = Ui.dp(c, 8)
         meter.addView(track, trackLp)
         meter.visibility = if (Engine.config.key == Trainings.FIDGET) View.VISIBLE else View.GONE
-        v.addTo(meter, 18)
+        text.addTo(meter, 0)
+        bottom.addView(text, LinearLayout.LayoutParams(-1, -2))
 
-        val stop = Ui.pill(c, "End training", Ui.SOFT, Ui.TEXT)
+        val bar = LinearLayout(c)
+        bar.orientation = LinearLayout.VERTICAL
+        bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
+        Ui.tintedBottomBar(c, bar, Trainings.accent(Engine.config.key))
+        bar.elevation = Ui.dp(c, 8).toFloat()
+        val stop = Ui.pill(c, "End training", Color.WHITE, Ui.TEXT)
         stop.setOnClickListener { endNow() }
-        v.addTo(stop, 26)
-        return v
+        bar.addView(stop, LinearLayout.LayoutParams(-1, -2))
+        Ui.padInsets(bar, bottom = true)
+        bottom.addView(bar, LinearLayout.LayoutParams(-1, -2))
+        root.addView(bottom, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+        return root
     }
 
     private fun buildDone(c: Context, fg: Int, muted: Int): ScrollView {
@@ -366,7 +394,10 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         setText(badge, eng.badgeText)
         badge.visibility = if (eng.badgeText.isEmpty()) View.GONE else View.VISIBLE
         setText(instr, eng.instrText)
-        setText(progress, eng.progressLabel())
+        val count = Regex("(\\d+) of (\\d+)").find(eng.progressLabel())
+        setText(progress, if (count != null) "${count.groupValues[1]}/${count.groupValues[2]}" else "")
+        progress.visibility = if (count != null) View.VISIBLE else View.GONE
+        popDots.visibility = if (eng.ringText.isEmpty()) View.VISIBLE else View.GONE
         if (dotCount != eng.totalReps) buildDots(eng.totalReps)
         updateDots(eng.doneReps)
         if (e.key == Trainings.FIDGET) updateMeter(eng.motionPercent, eng.motionText)
@@ -382,8 +413,9 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         dotViews = ArrayList()
         for (i in 0 until n) {
             val d = View(this)
-            val lp = LinearLayout.LayoutParams(Ui.dp(this, 10), Ui.dp(this, 10))
-            if (i > 0) lp.leftMargin = Ui.dp(this, 8)
+            // a dash per rep, sharing the full width
+            val lp = LinearLayout.LayoutParams(0, Ui.dp(this, 4), 1f)
+            if (i > 0) lp.leftMargin = Ui.dp(this, 4)
             dots.addView(d, lp)
             dotViews.add(d)
         }
@@ -394,7 +426,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             val on = i < done
             if (d.tag != on) {
                 d.tag = on
-                d.background = circle(if (on) Trainings.accent(Engine.config.key) else Ui.LINE)
+                d.background = Ui.rounded(this, if (on) Trainings.accent(Engine.config.key) else Ui.LINE, 2)
             }
         }
     }
@@ -459,22 +491,17 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     // ---------- leaving ----------
 
-    private fun confirmLeave() {
-        if (showingDone || Engine.isDone()) {
-            finishToHome()
-            return
+    /** Info button in the header: says what this training is about. */
+    private fun infoAction(): View {
+        val key = Engine.config.key
+        return Ui.infoButton(this, Ui.onColor(Trainings.accent(key))) {
+            Dialogs.show(this, Trainings.name(key), Trainings.about(key), "Got it")
         }
-        Dialogs.show(
-            this,
-            "End this training?",
-            "It won't be saved. Only finished trainings are added to your progress.",
-            "End training",
-            "Keep going",
-            onPrimary = {
-                Engine.cancel()
-                finishToHome()
-            }
-        )
+    }
+
+    /** Leaving a training never asks for confirmation; the training ends straight away. */
+    private fun confirmLeave() {
+        endNow()
     }
 
     /** End training button: stops straight away, no confirmation (the back arrow still asks). */

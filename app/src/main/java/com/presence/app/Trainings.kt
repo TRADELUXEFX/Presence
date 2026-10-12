@@ -100,6 +100,14 @@ object Trainings {
         return out
     }
 
+    /** What the training is about, shown from the info button. */
+    fun about(k: String): String = when (k) {
+        BLINK -> "No Blinking trains steady gaze. Hold your eyes on one point without blinking for each rep, then rest before the next."
+        FIDGET -> "No Fidgeting trains stillness. Sit with no movement for each rep. Touching the screen counts as movement, so keep your hands off it."
+        BREATH -> "Box Breathing follows a 4-4-4-4 pattern: breathe in, hold, breathe out, hold. Each cycle takes 16 seconds."
+        else -> "Meditation is quiet sitting for the time you choose. Keep your body still and let your thoughts pass."
+    }
+
     fun modeLabel(mode: String): String = when (mode) {
         "closed" -> "Eyes Closed"
         "mirror" -> "Mirror"
