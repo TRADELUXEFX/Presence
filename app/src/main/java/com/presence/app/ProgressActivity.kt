@@ -3,6 +3,7 @@ package com.presence.app
 import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.presence.app.Ui.addTo
@@ -101,30 +102,63 @@ class ProgressActivity : BaseActivity() {
     }
 
     private fun renderStats(p: JSONObject) {
-        val weekly = Ui.pill(this, "Weekly summary", Ui.BLUE, Ui.WHITE)
-        weekly.setOnClickListener { startActivity(Intent(this, WeeklyActivity::class.java)) }
-        column.addTo(weekly, 0)
         if (p.optInt("sessions", 0) == 0) {
-            column.addTo(Ui.note(this, "No trainings yet. Start one from Home and it will show up here."), 12)
+            column.addTo(Ui.note(this, "No trainings yet. Start one from Home and it will show up here."), 8)
         }
-        column.addTo(statCard("Trainings completed", p.optInt("sessions", 0).toString(), "all time"), 12)
-        column.addTo(statCard("Total training time", Fmt.duration(p.optLong("total_sec", 0L)), "all time"), 12)
-        column.addTo(statCard("Day streak", p.optInt("streak", 0).toString(), "days you showed up"), 12)
-        column.addTo(statCard("Full streak", p.optInt("full_streak", 0).toString(), "days with all 4 done"), 12)
         val doneToday = Trainings.ALL.count { p.optJSONObject("today_done")?.optBoolean(it, false) == true }
-        column.addTo(statCard("Today", "$doneToday / 4", "trainings done today"), 12)
         val mods = p.optJSONObject("mods") ?: JSONObject()
-        for (k in Trainings.ALL) {
-            column.addTo(statCard(Trainings.name(k), mods.optInt(k, 0).toString(), "times completed"), 12)
+        addGrid(listOf(
+            statCard("Trainings", p.optInt("sessions", 0).toString()),
+            statCard("Day streak", p.optInt("streak", 0).toString()),
+            statCard("Full streak", p.optInt("full_streak", 0).toString()),
+            statCard("Today", "$doneToday / 4")
+        ), 16)
+        column.addTo(statCard("Total training time", Fmt.duration(p.optLong("total_sec", 0L))), 12)
+        addGrid(Trainings.ALL.map { statCard(Trainings.name(it), mods.optInt(it, 0).toString()) }, 12)
+        column.addTo(weeklyCard(), 12)
+    }
+
+    private fun weeklyCard(): LinearLayout {
+        val c = this
+        val card = Ui.card(c, Ui.CARD_TINT)
+        card.isClickable = true
+        card.setOnClickListener { startActivity(Intent(c, WeeklyActivity::class.java)) }
+        card.addView(Ui.text(c, "Weekly summary", 15f, Ui.TEXT, Ui.BOLD))
+        card.addTo(Ui.text(c, "Last 7 days, with a PDF report", 12f, Ui.MUTED_TINT, Ui.REG), 3)
+        return card
+    }
+
+    /** Puts cards two to a row, with equal heights. A lone last card keeps its half width. */
+    private fun addGrid(items: List<View>, topDp: Int) {
+        val c = this
+        var i = 0
+        var first = true
+        while (i < items.size) {
+            val row = LinearLayout(c)
+            row.orientation = LinearLayout.HORIZONTAL
+            for (j in 0..1) {
+                val lp = LinearLayout.LayoutParams(0, -1, 1f)
+                if (j == 1) lp.leftMargin = Ui.dp(c, 12)
+                if (i + j < items.size) row.addView(items[i + j], lp) else row.addView(View(c), lp)
+            }
+            column.addTo(row, if (first) topDp else 12)
+            first = false
+            i += 2
         }
     }
 
-    private fun statCard(label: String, value: String, sub: String): LinearLayout {
+    /** One tinted tile: big number centred over a small label, as on PauzFirst. */
+    private fun statCard(label: String, value: String): LinearLayout {
         val c = this
-        val card = Ui.card(c)
-        card.addView(Ui.text(c, label, 13f, Ui.MUTED, Ui.MED))
-        card.addTo(Ui.text(c, value, 26f, Ui.BLUE, Ui.BOLD), 4)
-        card.addTo(Ui.text(c, sub, 11f, Ui.MUTED, Ui.REG), 2)
+        val card = Ui.card(c, Ui.CARD_TINT)
+        card.setPadding(Ui.dp(c, 10), Ui.dp(c, 16), Ui.dp(c, 10), Ui.dp(c, 16))
+        card.gravity = Gravity.CENTER
+        val v = Ui.text(c, value, 20f, Ui.TEXT, Ui.BOLD)
+        v.gravity = Gravity.CENTER
+        val l = Ui.text(c, label, 11f, Ui.MUTED_TINT, Ui.MED)
+        l.gravity = Gravity.CENTER
+        card.addView(v, LinearLayout.LayoutParams(-1, -2))
+        card.addTo(l, 3)
         return card
     }
 
@@ -143,9 +177,7 @@ class ProgressActivity : BaseActivity() {
             column.addTo(Ui.note(c, "No trainings yet. Finish a training to see it here."), 0)
             return
         }
-        for ((i, r) in rows.withIndex()) {
-            column.addTo(historyCard(r), if (i == 0) 0 else 12)
-        }
+        addGrid(rows.map { historyCard(it) }, 0)
     }
 
     private fun historyErrorCard(): LinearLayout {
@@ -162,19 +194,12 @@ class ProgressActivity : BaseActivity() {
     private fun historyCard(r: JSONObject): LinearLayout {
         val c = this
         val key = r.optString("mod")
-        val card = Ui.card(c)
-        val head = LinearLayout(c)
-        head.orientation = LinearLayout.HORIZONTAL
-        head.gravity = Gravity.CENTER_VERTICAL
-        val left = LinearLayout(c)
-        left.orientation = LinearLayout.VERTICAL
-        left.addView(Ui.text(c, Trainings.name(key), 16f, Ui.TEXT, Ui.BOLD))
+        val card = Ui.card(c, Ui.CARD_TINT)
+        card.addView(Ui.text(c, Trainings.name(key), 14f, Ui.TEXT, Ui.BOLD))
         val meta = metaText(key, r)
-        if (meta.isNotEmpty()) left.addTo(Ui.text(c, meta, 12f, Ui.MUTED, Ui.REG), 3)
-        head.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
-        head.addView(Ui.text(c, Fmt.duration(r.optLong("sec", 0L)), 15f, Ui.BLUE, Ui.BOLD))
-        card.addView(head)
-        card.addTo(Ui.text(c, timeLabel(r.optLong("ts", 0L)), 12f, Ui.MUTED, Ui.REG), 8)
+        if (meta.isNotEmpty()) card.addTo(Ui.text(c, meta, 11f, Ui.MUTED, Ui.REG), 2)
+        card.addTo(Ui.text(c, Fmt.duration(r.optLong("sec", 0L)), 16f, Ui.BLUE, Ui.BOLD), 8)
+        card.addTo(Ui.text(c, timeLabel(r.optLong("ts", 0L)), 11f, Ui.MUTED, Ui.REG), 2)
         return card
     }
 

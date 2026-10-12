@@ -6,6 +6,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.presence.app.Ui.addTo
@@ -34,15 +35,30 @@ class HomeActivity : BaseActivity() {
 
         val hero = AuthUi.HeroLayout(c)
         hero.orientation = LinearLayout.VERTICAL
-        hero.setPadding(Ui.dp(c, 22), Ui.dp(c, 20), Ui.dp(c, 22), Ui.dp(c, 36))
+        hero.setPadding(Ui.dp(c, 20), Ui.dp(c, 12), Ui.dp(c, 20), Ui.dp(c, 28))
         Ui.padInsets(hero, top = true)
-        hero.addView(Ui.text(c, "Presence Training", 26f, Ui.WHITE, Ui.BOLD))
-        hero.addTo(Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG), 4)
+
+        val top = LinearLayout(c)
+        top.orientation = LinearLayout.HORIZONTAL
+        top.gravity = Gravity.CENTER_VERTICAL
+        val titleRow = LinearLayout(c)
+        titleRow.orientation = LinearLayout.HORIZONTAL
+        titleRow.gravity = Gravity.CENTER_VERTICAL
+        val logoLp = LinearLayout.LayoutParams(Ui.dp(c, 36), Ui.dp(c, 36))
+        logoLp.rightMargin = Ui.dp(c, 10)
+        titleRow.addView(AuthUi.logo(c, 36), logoLp)
+        val title = Ui.text(c, "Presence Training", 20f, Ui.WHITE, Ui.BOLD)
+        title.maxLines = 1
+        titleRow.addView(title)
+        top.addView(titleRow, LinearLayout.LayoutParams(0, -2, 1f))
+        top.addView(themeButton(), LinearLayout.LayoutParams(Ui.dp(c, 38), Ui.dp(c, 38)))
+        hero.addView(top, LinearLayout.LayoutParams(-1, -2))
+        hero.addTo(Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG), 12)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))
 
         column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
-        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 4), Ui.dp(c, 18), Ui.dp(c, 24))
+        column.setPadding(Ui.dp(c, 20), Ui.dp(c, 6), Ui.dp(c, 20), Ui.dp(c, 32))
         root.addView(column, LinearLayout.LayoutParams(-1, -2))
         Ui.padInsets(root, bottom = true)
 
@@ -50,6 +66,7 @@ class HomeActivity : BaseActivity() {
         scroll.isFillViewport = true
         scroll.setBackgroundColor(Ui.BG)
         scroll.addView(root)
+        Ui.noClip(root, column, scroll)
         setContentView(scroll)
     }
 
@@ -98,26 +115,47 @@ class HomeActivity : BaseActivity() {
         if (!::column.isInitialized) return
         val c = this
         column.removeAllViews()
-        column.addTo(navRow(), 0)
+        column.addTo(navRow(), 4)
         StreakWidget.updateAll(c)
         if (!online) {
             val banner = Ui.banner(c, "You're offline. Trainings are saved on this phone and sync when you're back online.")
             banner.visibility = View.VISIBLE
             column.addTo(banner, 14)
         }
-        if (Engine.isActive()) column.addTo(resumeCard(), 14)
+        if (Engine.isActive()) column.addTo(resumeCard(), 16)
         when {
-            loading -> column.addTo(loadingCard(), 14)
-            failed -> column.addTo(errorCard(), 14)
+            loading -> column.addTo(loadingCard(), 16)
+            failed -> column.addTo(errorCard(), 16)
             else -> {
                 val p = Profile.normalize(LocalStore.profile(Session.userId))
-                column.addTo(statRow(p), 14)
-                column.addTo(todayCard(p), 12)
-                column.addTo(Ui.sectionTitle(c, "Trainings"), 22)
+                column.addTo(statRow(p), 16)
+                column.addTo(todayCard(p), 16)
+                column.addTo(Ui.sectionTitle(c, "Trainings"), 28)
                 val mods = p.optJSONObject("mods") ?: JSONObject()
-                for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 10)
+                for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 14)
             }
         }
+    }
+
+    /** Light/dark switch in the header. Saves the choice and restarts Home so every colour updates. */
+    private fun themeButton(): View {
+        val c = this
+        val box = FrameLayout(c)
+        val bg = GradientDrawable()
+        bg.shape = GradientDrawable.OVAL
+        bg.setColor(Color.parseColor("#33FFFFFF"))
+        box.background = bg
+        box.contentDescription = if (Ui.dark) "Switch to light mode" else "Switch to dark mode"
+        box.addView(
+            FsIconView(c, if (Ui.dark) Icons.SUN else Icons.MOON, Ui.WHITE),
+            FrameLayout.LayoutParams(Ui.dp(c, 21), Ui.dp(c, 21), Gravity.CENTER)
+        )
+        box.setOnClickListener {
+            Settings.setDark(!Ui.dark)
+            startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+            finish()
+        }
+        return box
     }
 
     private fun navRow(): LinearLayout {
@@ -227,21 +265,29 @@ class HomeActivity : BaseActivity() {
         barLp.topMargin = Ui.dp(c, 12)
         card.addView(bar, barLp)
 
-        val dotsRow = LinearLayout(c)
-        dotsRow.orientation = LinearLayout.HORIZONTAL
-        for (k in Trainings.ALL) {
-            val isDone = doneMap.optBoolean(k, false)
-            val col = LinearLayout(c)
-            col.orientation = LinearLayout.VERTICAL
-            col.gravity = Gravity.CENTER_HORIZONTAL
-            val dot = View(c)
-            dot.background = circle(Trainings.accent(k))
-            dot.alpha = if (isDone) 1f else 0.25f
-            col.addView(dot, LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)))
-            col.addTo(Ui.text(c, Trainings.shortName(k), 11f, Ui.MUTED, Ui.MED), 6)
-            dotsRow.addView(col, LinearLayout.LayoutParams(0, -2, 1f))
+        // Each dot sits beside its label on one line, as on the web app. Two rows of two.
+        val grid = LinearLayout(c)
+        grid.orientation = LinearLayout.VERTICAL
+        for ((r, pair) in Trainings.ALL.chunked(2).withIndex()) {
+            val row = LinearLayout(c)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            for (k in pair) {
+                val item = LinearLayout(c)
+                item.orientation = LinearLayout.HORIZONTAL
+                item.gravity = Gravity.CENTER_VERTICAL
+                val dot = View(c)
+                dot.background = circle(Trainings.accent(k))
+                dot.alpha = if (doneMap.optBoolean(k, false)) 1f else 0.25f
+                item.addView(dot, LinearLayout.LayoutParams(Ui.dp(c, 10), Ui.dp(c, 10)))
+                val label = LinearLayout.LayoutParams(-2, -2)
+                label.leftMargin = Ui.dp(c, 8)
+                item.addView(Ui.text(c, dotLabel(k), 13f, Ui.MUTED, Ui.MED), label)
+                row.addView(item, LinearLayout.LayoutParams(0, -2, 1f))
+            }
+            grid.addTo(row, if (r == 0) 0 else 10)
         }
-        card.addTo(dotsRow, 14)
+        card.addTo(grid, 14)
         return card
     }
 
@@ -283,6 +329,13 @@ class HomeActivity : BaseActivity() {
 
         card.addView(row)
         return card
+    }
+
+    private fun dotLabel(k: String): String = when (k) {
+        Trainings.BLINK -> "No Blinking"
+        Trainings.FIDGET -> "No Fidgeting"
+        Trainings.BREATH -> "Breathing"
+        else -> "Meditation"
     }
 
     private fun circle(color: Int): GradientDrawable {
