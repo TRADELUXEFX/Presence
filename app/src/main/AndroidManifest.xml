@@ -68,7 +68,11 @@
             android:exported="false" />
 
         <activity
-            android:name=".SettingsActivity"
+            android:name=".NotificationsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SavedListActivity"
             android:exported="false" />
 
         <receiver

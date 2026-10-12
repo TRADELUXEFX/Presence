@@ -48,7 +48,7 @@ class LoginActivity : BaseActivity() {
         name.letterSpacing = 0.1f
         name.gravity = Gravity.CENTER
         hero.addTo(name, 18)
-        val tag = Ui.text(c, "Presence Training", 13f, Color.parseColor("#CCE4FF"), Ui.REG)
+        val tag = Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG)
         tag.gravity = Gravity.CENTER
         hero.addTo(tag, 6)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))

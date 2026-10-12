@@ -73,7 +73,7 @@ object Reminders {
         val n = NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_presence)
             .setColor(Ui.BLUE)
-            .setContentTitle("Presence Training")
+            .setContentTitle("Presence")
             .setContentText("Time for your training.")
             .setContentIntent(open)
             .setAutoCancel(true)

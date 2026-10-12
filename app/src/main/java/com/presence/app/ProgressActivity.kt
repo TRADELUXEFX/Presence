@@ -1,26 +1,41 @@
 package com.presence.app
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.widget.Button
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import androidx.core.content.FileProvider
 import com.presence.app.Ui.addTo
 import org.json.JSONObject
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-/** Progress: Training Stats and Training History. Every stat and every history entry is its own card. */
+/**
+ * Progress, laid out like PauzFirst's history screen.
+ * Training Stats: tinted tiles. Training History: filters, summary tiles, full-width cards, export.
+ */
 class ProgressActivity : BaseActivity() {
     private lateinit var tabs: LinearLayout
     private lateinit var column: LinearLayout
+    private lateinit var exportBar: LinearLayout
+    private lateinit var exportBtn: Button
     private var showHistory = false
     private var history: List<JSONObject>? = null
     private var historyLoading = false
     private var historyFailed = false
+    private var filterMod: String? = null   // null = all trainings
+    private var rangeDays = 7               // 7, 30, or 0 for all time
+    private var exportable: List<JSONObject> = emptyList()
+
+    private val DAY = 24L * 60 * 60 * 1000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,21 +51,31 @@ class ProgressActivity : BaseActivity() {
         root.addView(Ui.header(c, "Progress") { finish() }, LinearLayout.LayoutParams(-1, -2))
 
         tabs = LinearLayout(c)
-        tabs.orientation = LinearLayout.HORIZONTAL
+        tabs.orientation = LinearLayout.VERTICAL
         val tabsWrap = LinearLayout(c)
-        tabsWrap.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), 0)
+        tabsWrap.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 4))
         tabsWrap.addView(tabs, LinearLayout.LayoutParams(-1, -2))
         root.addView(tabsWrap, LinearLayout.LayoutParams(-1, -2))
 
         column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
-        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 24))
+        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24))
         val scroll = ScrollView(c)
         scroll.isFillViewport = true
         scroll.setBackgroundColor(Ui.BG)
         scroll.addView(column)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        Ui.padInsets(root, bottom = true)
+
+        exportBar = LinearLayout(c)
+        exportBar.orientation = LinearLayout.VERTICAL
+        exportBar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
+        Ui.bottomBarBg(c, exportBar)
+        exportBtn = Ui.pill(c, "Export history")
+        exportBtn.setOnClickListener { exportHistory(exportable) }
+        exportBar.addView(exportBtn, LinearLayout.LayoutParams(-1, -2))
+        exportBar.visibility = View.GONE
+        root.addView(exportBar, LinearLayout.LayoutParams(-1, -2))
+        Ui.padInsets(exportBar, bottom = true)
         setContentView(root)
     }
 
@@ -82,24 +107,39 @@ class ProgressActivity : BaseActivity() {
     private fun render() {
         renderTabs()
         column.removeAllViews()
+        exportBar.visibility = if (showHistory) View.VISIBLE else View.GONE
         val p = Profile.normalize(LocalStore.profile(Session.userId))
         if (showHistory) renderHistory() else renderStats(p)
     }
 
+    /** A rounded switch with one highlighted, as on PauzFirst. */
+    private fun segment(labels: List<String>, selected: Int, onPick: (Int) -> Unit): LinearLayout {
+        val c = this
+        val box = LinearLayout(c)
+        box.orientation = LinearLayout.HORIZONTAL
+        box.background = Ui.rounded(c, Ui.SOFT, 26)
+        box.setPadding(Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4))
+        for ((i, label) in labels.withIndex()) {
+            val sel = i == selected
+            val t = Ui.text(c, label, 14f, if (sel) Ui.WHITE else Ui.MUTED, Ui.BOLD)
+            t.gravity = Gravity.CENTER
+            t.background = Ui.rounded(c, if (sel) Ui.BLUE else Color.TRANSPARENT, 22)
+            t.setPadding(Ui.dp(c, 8), Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 12))
+            t.setOnClickListener { onPick(i) }
+            box.addView(t, LinearLayout.LayoutParams(0, -2, 1f))
+        }
+        return box
+    }
+
     private fun renderTabs() {
         tabs.removeAllViews()
-        val c = this
-        val options = listOf(Pair("Training Stats", false), Pair("Training History", true))
-        for ((i, opt) in options.withIndex()) {
-            val sel = showHistory == opt.second
-            val btn = Ui.pill(c, opt.first, if (sel) Ui.BLUE else Ui.SOFT, if (sel) Ui.WHITE else Ui.TEXT)
-            btn.textSize = 14f
-            btn.setOnClickListener { setTab(opt.second) }
-            val lp = LinearLayout.LayoutParams(0, -2, 1f)
-            if (i > 0) lp.leftMargin = Ui.dp(c, 8)
-            tabs.addView(btn, lp)
-        }
+        tabs.addView(
+            segment(listOf("Training Stats", "Training History"), if (showHistory) 1 else 0) { setTab(it == 1) },
+            LinearLayout.LayoutParams(-1, -2)
+        )
     }
+
+    // ---------- Training Stats ----------
 
     private fun renderStats(p: JSONObject) {
         if (p.optInt("sessions", 0) == 0) {
@@ -128,7 +168,7 @@ class ProgressActivity : BaseActivity() {
         return card
     }
 
-    /** Puts cards two to a row, with equal heights. A lone last card keeps its half width. */
+    /** Puts tiles two to a row, with equal heights. A lone last tile keeps its half width. */
     private fun addGrid(items: List<View>, topDp: Int) {
         val c = this
         var i = 0
@@ -162,22 +202,113 @@ class ProgressActivity : BaseActivity() {
         return card
     }
 
+    // ---------- Training History ----------
+
     private fun renderHistory() {
         val c = this
         if (historyLoading) {
+            exportBtn.alpha = 0.4f
             column.addTo(Ui.note(c, "Loading your trainings…"), 0)
             return
         }
         if (historyFailed) {
+            exportBtn.alpha = 0.4f
             column.addTo(historyErrorCard(), 0)
             return
         }
-        val rows = history ?: return
-        if (rows.isEmpty()) {
-            column.addTo(Ui.note(c, "No trainings yet. Finish a training to see it here."), 0)
+        val all = history ?: return
+
+        val chips = HorizontalScrollView(c)
+        chips.isHorizontalScrollBarEnabled = false
+        chips.addView(filterRow())
+        column.addTo(chips, 0)
+
+        val rangeIndex = when (rangeDays) { 7 -> 0; 30 -> 1; else -> 2 }
+        column.addTo(
+            segment(listOf("7 days", "30 days", "All time"), rangeIndex) { i ->
+                rangeDays = when (i) { 0 -> 7; 1 -> 30; else -> 0 }
+                render()
+            },
+            14
+        )
+
+        val list = filtered(all)
+        exportable = list
+        exportBtn.alpha = if (list.isEmpty()) 0.4f else 1f
+
+        val now = System.currentTimeMillis()
+        val last7 = all.count { matchesFilter(it) && it.optLong("ts", 0L) >= now - 7 * DAY }
+        val avg = if (list.isEmpty()) 0L else list.sumOf { it.optLong("sec", 0L) } / list.size
+        val tiles = LinearLayout(c)
+        tiles.orientation = LinearLayout.HORIZONTAL
+        tiles.addView(statCard("Trainings", list.size.toString()), LinearLayout.LayoutParams(0, -2, 1f))
+        val second = LinearLayout.LayoutParams(0, -2, 1f)
+        second.leftMargin = Ui.dp(c, 10)
+        tiles.addView(statCard("Last 7 days", last7.toString()), second)
+        val third = LinearLayout.LayoutParams(0, -2, 1f)
+        third.leftMargin = Ui.dp(c, 10)
+        tiles.addView(statCard("Avg. length", Fmt.duration(avg)), third)
+        column.addTo(tiles, 14)
+
+        if (list.isEmpty()) {
+            val msg = if (all.isEmpty()) "No trainings yet. Finish a training to see it here."
+            else "No trainings in this range."
+            column.addTo(Ui.note(c, msg), 12)
             return
         }
-        addGrid(rows.map { historyCard(it) }, 0)
+        for (r in list) column.addTo(historyCard(r), 12)
+    }
+
+    private fun filterRow(): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        val options = ArrayList<Pair<String, String?>>()
+        options.add(Pair("All", null))
+        for (k in Trainings.ALL) options.add(Pair(Trainings.name(k), k))
+        for ((i, opt) in options.withIndex()) {
+            val sel = filterMod == opt.second
+            val t = Ui.text(c, opt.first, 13f, if (sel) Ui.WHITE else Ui.TEXT, Ui.BOLD)
+            t.gravity = Gravity.CENTER
+            t.background = Ui.rounded(c, if (sel) Ui.BLUE else Ui.SOFT, 20)
+            t.setPadding(Ui.dp(c, 16), Ui.dp(c, 10), Ui.dp(c, 16), Ui.dp(c, 10))
+            t.setOnClickListener {
+                filterMod = opt.second
+                render()
+            }
+            val lp = LinearLayout.LayoutParams(-2, -2)
+            if (i > 0) lp.leftMargin = Ui.dp(c, 8)
+            row.addView(t, lp)
+        }
+        return row
+    }
+
+    private fun matchesFilter(r: JSONObject): Boolean = filterMod == null || r.optString("mod") == filterMod
+
+    private fun filtered(all: List<JSONObject>): List<JSONObject> {
+        val cutoff = if (rangeDays == 0) 0L else System.currentTimeMillis() - rangeDays * DAY
+        return all.filter { matchesFilter(it) && it.optLong("ts", 0L) >= cutoff }
+    }
+
+    /** One full-width card: time and details on the left, training name on a chip on the right. */
+    private fun historyCard(r: JSONObject): LinearLayout {
+        val c = this
+        val key = r.optString("mod")
+        val card = Ui.card(c)
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val left = LinearLayout(c)
+        left.orientation = LinearLayout.VERTICAL
+        left.addView(Ui.text(c, timeLabel(r.optLong("ts", 0L)), 16f, Ui.TEXT, Ui.BOLD))
+        val meta = metaText(key, r)
+        val details = if (meta.isEmpty()) Fmt.duration(r.optLong("sec", 0L))
+        else "$meta · " + Fmt.duration(r.optLong("sec", 0L))
+        left.addTo(Ui.text(c, details, 13f, Ui.MUTED, Ui.REG), 4)
+        row.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+        row.addView(Ui.chip(c, Trainings.name(key), Ui.BLUE, Ui.BLUE_SOFT), LinearLayout.LayoutParams(-2, -2))
+        card.addView(row)
+        return card
     }
 
     private fun historyErrorCard(): LinearLayout {
@@ -186,20 +317,11 @@ class ProgressActivity : BaseActivity() {
         card.addView(Ui.text(c, "Couldn't load your trainings", 15f, Ui.TEXT, Ui.BOLD))
         card.addTo(Ui.text(c, "Check your connection and try again.", 13f, Ui.MUTED, Ui.REG), 4)
         val btn = Ui.pill(c, "Try again")
-        btn.setOnClickListener { loadHistory(); render() }
+        btn.setOnClickListener {
+            loadHistory()
+            render()
+        }
         card.addTo(btn, 14)
-        return card
-    }
-
-    private fun historyCard(r: JSONObject): LinearLayout {
-        val c = this
-        val key = r.optString("mod")
-        val card = Ui.card(c, Ui.CARD_TINT)
-        card.addView(Ui.text(c, Trainings.name(key), 14f, Ui.TEXT, Ui.BOLD))
-        val meta = metaText(key, r)
-        if (meta.isNotEmpty()) card.addTo(Ui.text(c, meta, 11f, Ui.MUTED, Ui.REG), 2)
-        card.addTo(Ui.text(c, Fmt.duration(r.optLong("sec", 0L)), 16f, Ui.BLUE, Ui.BOLD), 8)
-        card.addTo(Ui.text(c, timeLabel(r.optLong("ts", 0L)), 11f, Ui.MUTED, Ui.REG), 2)
         return card
     }
 
@@ -235,4 +357,45 @@ class ProgressActivity : BaseActivity() {
 
     private fun sameDay(a: Calendar, b: Calendar): Boolean =
         a.get(Calendar.YEAR) == b.get(Calendar.YEAR) && a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
+
+    // ---------- export ----------
+
+    private fun exportHistory(list: List<JSONObject>) {
+        if (list.isEmpty()) return
+        try {
+            val file = writeCsv(list)
+            val uri = FileProvider.getUriForFile(this, packageName + ".fileprovider", file)
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(send, "Share history"))
+        } catch (e: Exception) {
+            Dialogs.show(
+                this,
+                "Couldn't export",
+                "Something went wrong while making the file. Please try again.",
+                "OK"
+            )
+        }
+    }
+
+    private fun writeCsv(list: List<JSONObject>): File {
+        val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+        val sb = StringBuilder("date,training,duration_seconds,details\n")
+        for (r in list) {
+            val key = r.optString("mod")
+            sb.append(csv(fmt.format(Date(r.optLong("ts", 0L))))).append(',')
+            sb.append(csv(Trainings.name(key))).append(',')
+            sb.append(r.optLong("sec", 0L)).append(',')
+            sb.append(csv(metaText(key, r))).append('\n')
+        }
+        val dir = File(cacheDir, "reports").apply { mkdirs() }
+        val file = File(dir, "presence-history.csv")
+        file.writeText(sb.toString())
+        return file
+    }
+
+    private fun csv(s: String): String = "\"" + s.replace("\"", "\"\"") + "\""
 }

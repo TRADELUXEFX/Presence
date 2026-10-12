@@ -44,7 +44,7 @@ object WeeklyReport {
         val when24 = SimpleDateFormat("EEE MMM d, h:mm a", Locale.US)
         val now = System.currentTimeMillis()
         var y = 56f
-        canvas.drawText("Presence Training: weekly report", 40f, y, title)
+        canvas.drawText("Presence: weekly report", 40f, y, title)
         y += 22f
         canvas.drawText(
             "Last 7 days: ${day.format(Date(Weekly.weekStart(now)))} to ${day.format(Date(now))}",

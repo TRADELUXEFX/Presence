@@ -47,13 +47,21 @@ class HomeActivity : BaseActivity() {
         val logoLp = LinearLayout.LayoutParams(Ui.dp(c, 36), Ui.dp(c, 36))
         logoLp.rightMargin = Ui.dp(c, 10)
         titleRow.addView(AuthUi.logo(c, 36), logoLp)
-        val title = Ui.text(c, "Presence Training", 20f, Ui.WHITE, Ui.BOLD)
+        val title = Ui.text(c, "Presence", 20f, Ui.WHITE, Ui.BOLD)
         title.maxLines = 1
         titleRow.addView(title)
         top.addView(titleRow, LinearLayout.LayoutParams(0, -2, 1f))
+        val bellLp = LinearLayout.LayoutParams(Ui.dp(c, 38), Ui.dp(c, 38))
+        bellLp.rightMargin = Ui.dp(c, 8)
+        top.addView(bellButton(), bellLp)
         top.addView(themeButton(), LinearLayout.LayoutParams(Ui.dp(c, 38), Ui.dp(c, 38)))
         hero.addView(top, LinearLayout.LayoutParams(-1, -2))
-        hero.addTo(Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG), 12)
+        // Sits under the name: the logo (36dp) and its gap (10dp) are left clear.
+        val subtitle = Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG)
+        val subLp = LinearLayout.LayoutParams(-1, -2)
+        subLp.leftMargin = Ui.dp(c, 46)
+        subLp.topMargin = Ui.dp(c, 6)
+        hero.addView(subtitle, subLp)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))
 
         column = LinearLayout(c)
@@ -130,9 +138,10 @@ class HomeActivity : BaseActivity() {
                 val p = Profile.normalize(LocalStore.profile(Session.userId))
                 column.addTo(statRow(p), 16)
                 column.addTo(todayCard(p), 16)
-                column.addTo(Ui.sectionTitle(c, "Trainings"), 28)
+                column.addTo(sectionHeader(), 28)
                 val mods = p.optJSONObject("mods") ?: JSONObject()
                 for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 14)
+                column.addTo(signOutButton(), 28)
             }
         }
     }
@@ -164,13 +173,38 @@ class HomeActivity : BaseActivity() {
         row.orientation = LinearLayout.HORIZONTAL
         val progress = Ui.pill(c, "Progress", Ui.SOFT, Ui.TEXT)
         progress.setOnClickListener { startActivity(Intent(this, ProgressActivity::class.java)) }
-        val settings = Ui.pill(c, "Settings", Ui.SOFT, Ui.TEXT)
-        settings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
-        row.addView(progress, LinearLayout.LayoutParams(0, -2, 1f))
-        val lp = LinearLayout.LayoutParams(0, -2, 1f)
-        lp.leftMargin = Ui.dp(c, 12)
-        row.addView(settings, lp)
+        row.addView(progress, LinearLayout.LayoutParams(-1, -2))
         return row
+    }
+
+    /** "TRAININGS" on the left, the Saved list link on the right. */
+    private fun sectionHeader(): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        row.addView(Ui.sectionTitle(c, "Trainings"), LinearLayout.LayoutParams(0, -2, 1f))
+        val link = Ui.text(c, "Saved list  ›", 13f, Ui.BLUE, Ui.BOLD)
+        link.setOnClickListener { startActivity(Intent(this, SavedListActivity::class.java)) }
+        row.addView(link)
+        return row
+    }
+
+    /** Bell in the header: opens Notifications. */
+    private fun bellButton(): View {
+        val c = this
+        val box = FrameLayout(c)
+        val bg = GradientDrawable()
+        bg.shape = GradientDrawable.OVAL
+        bg.setColor(Color.parseColor("#33FFFFFF"))
+        box.background = bg
+        box.contentDescription = "Notifications"
+        box.addView(
+            FsIconView(c, Icons.BELL, Ui.WHITE),
+            FrameLayout.LayoutParams(Ui.dp(c, 21), Ui.dp(c, 21), Gravity.CENTER)
+        )
+        box.setOnClickListener { startActivity(Intent(this, NotificationsActivity::class.java)) }
+        return box
     }
 
     private fun resumeCard(): LinearLayout {
@@ -336,6 +370,34 @@ class HomeActivity : BaseActivity() {
         Trainings.FIDGET -> "No Fidgeting"
         Trainings.BREATH -> "Breathing"
         else -> "Meditation"
+    }
+
+    /** Sign out sits at the bottom of Home, below the trainings. */
+    private fun signOutButton(): View {
+        val c = this
+        val btn = Ui.pill(c, "Sign out", Ui.SOFT, Ui.RED)
+        btn.setOnClickListener { confirmSignOut() }
+        return btn
+    }
+
+    private fun confirmSignOut() {
+        Dialogs.show(
+            this,
+            "Sign out?",
+            "Trainings not yet saved stay on this phone and sync the next time you log in to this account.",
+            "Sign out",
+            "Cancel",
+            onPrimary = { signOut() }
+        )
+    }
+
+    private fun signOut() {
+        Reminders.cancel(this)
+        Session.clear()
+        startActivity(
+            Intent(this, LoginActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        )
     }
 
     private fun circle(color: Int): GradientDrawable {
