@@ -225,8 +225,13 @@ class ConfigActivity : BaseActivity() {
         card.orientation = LinearLayout.VERTICAL
         card.background = Ui.rounded(c, Ui.BLUE_SOFT, 22)
         card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
-        card.addView(Ui.text(c, "Training time", 12f, Ui.MUTED, Ui.MED))
-        card.addTo(Ui.text(c, Trainings.estimate(cfg), 20f, Ui.BLUE, Ui.BOLD), 4)
+        card.gravity = android.view.Gravity.CENTER_HORIZONTAL
+        val tl = Ui.text(c, "Training time", 12f, Ui.MUTED, Ui.MED)
+        tl.gravity = android.view.Gravity.CENTER
+        card.addView(tl, LinearLayout.LayoutParams(-1, -2))
+        val tv = Ui.text(c, Trainings.estimate(cfg), 20f, Ui.BLUE, Ui.BOLD)
+        tv.gravity = android.view.Gravity.CENTER
+        card.addTo(tv, 4)
         return card
     }
 

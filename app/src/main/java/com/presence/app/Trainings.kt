@@ -41,10 +41,10 @@ object Trainings {
     class BreathPhase(val label: String, val instr: String, val color: Int)
 
     val BREATH_PHASES = listOf(
-        BreathPhase("Inhale", "Breathe in slowly through your nose.", Color.parseColor("#8b5cf6")),
-        BreathPhase("Hold", "Lungs full. Hold completely still.", Color.parseColor("#d97706")),
-        BreathPhase("Exhale", "Release slowly through your mouth.", Color.parseColor("#2EA043")),
-        BreathPhase("Hold", "Lungs empty. Rest here.", Color.parseColor("#64748b"))
+        BreathPhase("Inhale", "Breathe in slowly through your nose", Color.parseColor("#8b5cf6")),
+        BreathPhase("Hold", "Lungs full, hold completely still", Color.parseColor("#d97706")),
+        BreathPhase("Exhale", "Release slowly through your mouth", Color.parseColor("#2EA043")),
+        BreathPhase("Hold", "Lungs empty, rest here", Color.parseColor("#64748b"))
     )
 
     val MED_CUES = listOf(
@@ -67,10 +67,10 @@ object Trainings {
     }
 
     fun blurb(k: String): String = when (k) {
-        BLINK -> "Hold your gaze without blinking. Control your eyes."
-        FIDGET -> "Zero movement. Total body stillness. Iron discipline."
-        BREATH -> "4-4-4-4 box method. Reset your nervous system."
-        else -> "Sit with yourself. Still mind, still body. Choose your duration."
+        BLINK -> "Hold your gaze without blinking and take control of your eyes"
+        FIDGET -> "Stay completely still with zero movement and iron discipline"
+        BREATH -> "Use the 4-4-4-4 box method to reset your nervous system"
+        else -> "Sit with yourself, with a still mind and a still body, for as long as you choose"
     }
 
     /** Colour that marks each training (ring, dot, rest). Chrome and buttons use the kit's blue. */
@@ -88,23 +88,23 @@ object Trainings {
     }
 
     fun modeDesc(mode: String): String = when (mode) {
-        "closed" -> "Eyes closed. Focus on the darkness. Train internal stillness."
-        "mirror" -> "Stand before a mirror. Hold eye contact with your reflection. Hardest mode."
-        else -> "Eyes open. Fix your gaze on a point ahead. Train without blinking."
+        "closed" -> "Close your eyes, focus on the darkness and train internal stillness"
+        "mirror" -> "Stand before a mirror and hold eye contact with your reflection, the hardest mode"
+        else -> "Keep your eyes open and fix your gaze on a point ahead to train without blinking"
     }
 
     fun instruction(key: String, mode: String): String {
         if (key == BLINK) {
             return when (mode) {
-                "closed" -> "Close your eyes. Focus on the darkness behind your lids."
-                "mirror" -> "Hold eye contact with your own reflection. Do not look away."
-                else -> "Keep your eyes fixed on a single point. Do not blink."
+                "closed" -> "Close your eyes and focus on the darkness behind your lids"
+                "mirror" -> "Hold eye contact with your own reflection and do not look away"
+                else -> "Keep your eyes fixed on a single point and do not blink"
             }
         }
         return when (mode) {
-            "closed" -> "Eyes closed. Feel your body. Release every tension."
-            "mirror" -> "Eyes on your reflection. Observe without moving."
-            else -> "Eyes open. Body completely still. Zero movement."
+            "closed" -> "Keep your eyes closed, feel your body and release every tension"
+            "mirror" -> "Keep your eyes on your reflection and observe without moving"
+            else -> "Keep your eyes open and your body completely still, with zero movement"
         }
     }
 

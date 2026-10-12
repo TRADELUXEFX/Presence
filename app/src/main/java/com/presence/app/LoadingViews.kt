@@ -111,6 +111,14 @@ object Loading {
         return col
     }
 
+    /** A small centered sweeping ring for use inside a card while its data loads. */
+    fun inline(c: Context, sizeDp: Int = 40): LinearLayout {
+        val row = LinearLayout(c)
+        row.gravity = android.view.Gravity.CENTER
+        row.addView(SpinnerRingView(c, strokeDp = 4), LinearLayout.LayoutParams(Ui.dp(c, sizeDp), Ui.dp(c, sizeDp)))
+        return row
+    }
+
     /** The loading animation while the AI is writing a list: just the sweeping ring, centered in a card. */
     fun aiCard(c: Context): LinearLayout {
         val card = Ui.card(c)

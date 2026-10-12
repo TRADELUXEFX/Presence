@@ -278,7 +278,7 @@ object Engine {
         ringText = ""
         ringUnit = ""
         badgeText = ""
-        instrText = "Rest. Breathe. Prepare for next rep."
+        instrText = "Rest and breathe to prepare for the next rep"
         ringColor = Trainings.accent(config.key)
     }
 
@@ -329,7 +329,7 @@ object Engine {
         ringUnit = "remaining"
         ringColor = Trainings.accent(Trainings.MEDITATE)
         badgeText = "Meditating"
-        instrText = "Sit still. Breathe naturally. Let thoughts pass like clouds."
+        instrText = "Sit still, breathe naturally and let thoughts pass like clouds"
     }
 
     private fun mmss(s: Int): String = "${s / 60}:${(s % 60).toString().padStart(2, '0')}"

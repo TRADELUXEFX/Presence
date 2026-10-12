@@ -169,6 +169,7 @@ class LoginActivity : BaseActivity() {
     private fun doSubmit() {
         val e = email.text.toString().trim()
         val p = password.text.toString()
+        if (!submit.isEnabled) return   // already working (keyboard Done pressed twice)
         if (e.isEmpty() || p.isEmpty()) {
             showMsg("Please fill in all fields.", false)
             return
@@ -181,12 +182,20 @@ class LoginActivity : BaseActivity() {
             val loggedIn = r.ok && Session.loggedIn()
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
-                busy(false)
                 if (loggedIn) {
-                    goHome()
+                    // keep the spinner going inside the button until the user's data is loaded,
+                    // and only then open the app
+                    Sync.refresh {
+                        if (!isFinishing) {
+                            busy(false)
+                            goHome()
+                        }
+                    }
                 } else if (r.ok) {
+                    busy(false)
                     showMsg("Check your email to confirm your account.", true)
                 } else {
+                    busy(false)
                     showMsg(r.message(), false)
                 }
             }

@@ -55,6 +55,7 @@ object Dialogs {
         row.addView(b1, lp1)
         card.addTo(row, 20)
 
+        Ui.noClipDeep(card)
         d.setContentView(card)
         d.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         d.window?.setLayout(

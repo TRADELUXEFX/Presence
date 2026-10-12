@@ -2,6 +2,8 @@ package com.presence.app
 
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 
 /** Every screen: picks the light or dark palette for this launch and draws behind the system bars. */
@@ -11,5 +13,15 @@ abstract class BaseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Ui.edgeToEdge(this)
         window.setBackgroundDrawable(ColorDrawable(Ui.BG))
+    }
+
+    override fun setContentView(view: View?) {
+        if (view != null) Ui.noClipDeep(view)
+        super.setContentView(view)
+    }
+
+    override fun setContentView(view: View?, params: ViewGroup.LayoutParams?) {
+        if (view != null) Ui.noClipDeep(view)
+        super.setContentView(view, params)
     }
 }

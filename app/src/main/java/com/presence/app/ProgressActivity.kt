@@ -181,8 +181,11 @@ class ProgressActivity : BaseActivity() {
 
         val all = history
         if (all == null) {
-            val msg = if (historyFailed) "Couldn't load your practice. Check your connection." else "Loading your practice…"
-            card.addTo(Ui.text(c, msg, 13f, Ui.MUTED, Ui.REG), 14)
+            if (historyFailed) {
+                card.addTo(Ui.text(c, "Couldn't load your practice. Check your connection.", 13f, Ui.MUTED, Ui.REG), 14)
+            } else {
+                card.addTo(Loading.inline(c), 14)
+            }
             column.addTo(card, 0)
             return
         }
@@ -306,7 +309,7 @@ class ProgressActivity : BaseActivity() {
         val c = this
         if (historyLoading) {
             exportBtn.alpha = 0.4f
-            column.addTo(Ui.note(c, "Loading your trainings…"), 0)
+            column.addTo(Loading.page(c), 0)
             return
         }
         if (historyFailed) {
@@ -319,7 +322,12 @@ class ProgressActivity : BaseActivity() {
         val chips = HorizontalScrollView(c)
         chips.isHorizontalScrollBarEnabled = false
         chips.addView(filterRow())
-        column.addTo(chips, 0)
+        chips.clipToPadding = false
+        chips.setPadding(Ui.dp(c, 18), 0, Ui.dp(c, 18), 0)
+        val chipsLp = Ui.lp(c, 0)
+        chipsLp.leftMargin = -Ui.dp(c, 18)
+        chipsLp.rightMargin = -Ui.dp(c, 18)
+        column.addView(chips, chipsLp)
 
         val rangeIndex = when (rangeDays) { 7 -> 0; 30 -> 1; else -> 2 }
         column.addTo(

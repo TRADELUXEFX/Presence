@@ -49,6 +49,23 @@ object Ui {
     const val MED = 1
     const val BOLD = 2
 
+    /**
+     * Applies "don't clip" to a whole screen: every layout inside it, now and any added later
+     * (rows and cards are built after the screen opens). Scroll views keep their own clipping so
+     * scrolling still works. This is what keeps every curved container drawing in full.
+     */
+    fun noClipDeep(v: View) {
+        if (v is ViewGroup) {
+            v.clipChildren = false
+            if (v !is android.widget.ScrollView && v !is android.widget.HorizontalScrollView) v.clipToPadding = false
+            v.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
+                override fun onChildViewAdded(parent: View?, child: View?) { if (child != null) noClipDeep(child) }
+                override fun onChildViewRemoved(parent: View?, child: View?) {}
+            })
+            for (i in 0 until v.childCount) noClipDeep(v.getChildAt(i))
+        }
+    }
+
     /** Let card shadows draw into the padding instead of being cut off at the edges. */
     fun noClip(vararg groups: ViewGroup) {
         for (g in groups) {
