@@ -47,7 +47,7 @@ class HomeActivity : BaseActivity() {
         val logoLp = LinearLayout.LayoutParams(Ui.dp(c, 36), Ui.dp(c, 36))
         logoLp.rightMargin = Ui.dp(c, 10)
         titleRow.addView(AuthUi.logo(c, 36), logoLp)
-        val title = Ui.text(c, "Presence", 20f, Ui.WHITE, Ui.BOLD)
+        val title = Ui.text(c, "PRESENCE", 20f, Ui.WHITE, Ui.BOLD)
         title.maxLines = 1
         titleRow.addView(title)
         top.addView(titleRow, LinearLayout.LayoutParams(0, -2, 1f))
@@ -55,14 +55,17 @@ class HomeActivity : BaseActivity() {
         bellLp.rightMargin = Ui.dp(c, 8)
         top.addView(bellButton(), bellLp)
         top.addView(themeButton(), LinearLayout.LayoutParams(Ui.dp(c, 38), Ui.dp(c, 38)))
+        // Sign out: small red pill at the top right of the blue header, like PauzFirst's Logout
+        val signOut = Ui.text(c, "Sign out", 12f, Ui.WHITE, Ui.BOLD)
+        signOut.gravity = Gravity.CENTER
+        signOut.background = Ui.rounded(c, Ui.RED, 20)
+        signOut.setPadding(Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 12), Ui.dp(c, 8))
+        signOut.setOnClickListener { confirmSignOut() }
+        val signOutLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        signOutLp.leftMargin = Ui.dp(c, 8)
+        top.addView(signOut, signOutLp)
         hero.addView(top, LinearLayout.LayoutParams(-1, -2))
-        // Sits under the name: the logo (36dp) and its gap (10dp) are left clear.
-        val subtitle = Ui.text(c, "Train your presence, one drill at a time.", 13f, Color.parseColor("#CCE4FF"), Ui.REG)
-        val subLp = LinearLayout.LayoutParams(-1, -2)
-        subLp.leftMargin = Ui.dp(c, 46)
-        subLp.topMargin = Ui.dp(c, 6)
-        hero.addView(subtitle, subLp)
-        val progressBtn = Ui.pill(c, "Progress", Color.parseColor("#33FFFFFF"), Ui.WHITE)
+        val progressBtn = Ui.pill(c, "View Progress", Color.parseColor("#33FFFFFF"), Ui.WHITE)
         progressBtn.setOnClickListener { startActivity(Intent(this, ProgressActivity::class.java)) }
         val progressLp = LinearLayout.LayoutParams(-1, -2)
         progressLp.topMargin = Ui.dp(c, 16)
@@ -145,7 +148,6 @@ class HomeActivity : BaseActivity() {
                 column.addTo(sectionHeader(), 28)
                 val mods = p.optJSONObject("mods") ?: JSONObject()
                 for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 14)
-                column.addTo(signOutButton(), 28)
             }
         }
     }
@@ -368,14 +370,6 @@ class HomeActivity : BaseActivity() {
         Trainings.FIDGET -> "No Fidgeting"
         Trainings.BREATH -> "Breathing"
         else -> "Meditation"
-    }
-
-    /** Sign out sits at the bottom of Home, below the trainings. */
-    private fun signOutButton(): View {
-        val c = this
-        val btn = Ui.pill(c, "Sign out", Ui.SOFT, Ui.RED)
-        btn.setOnClickListener { confirmSignOut() }
-        return btn
     }
 
     private fun confirmSignOut() {

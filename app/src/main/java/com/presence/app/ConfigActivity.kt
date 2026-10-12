@@ -113,19 +113,15 @@ class ConfigActivity : BaseActivity() {
         lp.leftMargin = Ui.dp(c, 6)
         box.addView(label, lp)
         box.setOnClickListener {
-            Dialogs.show(
+            SavedLists.chooseSave(
                 this,
-                "Save",
-                "Save these settings as this training's default, or keep them as a named list.",
-                "Save as list",
-                "Save as default",
-                onPrimary = {
+                onDefault = { saveAsDefault() },
+                onList = {
                     SavedLists.askName(this) { name ->
                         SavedLists.add(Session.userId, name, cfg)
                         Toast.makeText(this, "Saved to Saved list", Toast.LENGTH_SHORT).show()
                     }
-                },
-                onSecondary = { saveAsDefault() }
+                }
             )
         }
         return box
@@ -195,16 +191,16 @@ class ConfigActivity : BaseActivity() {
                     cardOf(
                         Ui.stepper(c, "Minutes", { cfg.medMin }, { v -> setCfg(cfg.copy(medMin = v)) }, 1, 120, 1, fastFrom = 10, fastStep = 5, tint = accentColor, show = { v -> "$v min" })
                     ),
-                    0
+                    8
                 )
-                panel.addTo(Ui.sectionTitle(c, "Guided breathing cues"), 22)
+                // one label only: the card's own switch label, with the same gap above as the other sections
                 panel.addTo(
                     cardOf(
                         Ui.switchRow(c, "Guided breathing cues", "Gentle voice cues every 30 seconds", cfg.voice, accentColor) { on ->
                             cfg = cfg.copy(voice = on)
                         }
                     ),
-                    0
+                    22
                 )
             }
         }
@@ -213,14 +209,14 @@ class ConfigActivity : BaseActivity() {
     }
 
     private fun voiceCard(sub: String) {
-        panel.addTo(Ui.sectionTitle(this, "Voice guidance"), 22)
+        // one label only: the card's own switch label, with the same gap above as the other sections
         panel.addTo(
             cardOf(
                 Ui.switchRow(this, "Voice guidance", sub, cfg.voice, accentColor) { on ->
                     cfg = cfg.copy(voice = on)
                 }
             ),
-            8
+            22
         )
     }
 

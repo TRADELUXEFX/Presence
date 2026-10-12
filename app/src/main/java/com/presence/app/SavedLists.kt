@@ -66,6 +66,40 @@ object SavedLists {
         Sync.flush()
     }
 
+    /** Save pop-up: two full-width buttons stacked, Save as default above Save as list. */
+    fun chooseSave(a: Activity, onDefault: () -> Unit, onList: () -> Unit) {
+        if (a.isFinishing) return
+        val d = Dialog(a)
+        d.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val card = Ui.card(a)
+        card.setPadding(Ui.dp(a, 22), Ui.dp(a, 22), Ui.dp(a, 22), Ui.dp(a, 22))
+        card.addView(Ui.text(a, "Save", 18f, Ui.TEXT, Ui.BOLD))
+        val hint = Ui.text(a, "Save these settings as this training's default, or keep them as a named list.", 14f, Ui.MUTED, Ui.REG)
+        hint.setLineSpacing(0f, 1.25f)
+        card.addTo(hint, 8)
+
+        val asDefault = Ui.pill(a, "Save as default", Ui.SOFT, Ui.TEXT)
+        asDefault.setOnClickListener {
+            d.dismiss()
+            onDefault()
+        }
+        card.addTo(asDefault, 20)
+
+        val asList = Ui.pill(a, "Save as list")
+        asList.setOnClickListener {
+            d.dismiss()
+            onList()
+        }
+        card.addTo(asList, 10)
+
+        Ui.noClipDeep(card)
+        d.setContentView(card)
+        d.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        d.window?.setLayout((a.resources.displayMetrics.widthPixels * 0.9f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        d.show()
+    }
+
     /** Small pop-up: type a name, then Save. Calls [onSave] with the trimmed name. */
     fun askName(a: Activity, onSave: (String) -> Unit) {
         if (a.isFinishing) return

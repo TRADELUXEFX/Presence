@@ -285,9 +285,11 @@ object Ui {
         val plus = circleButton(c, "+", tint)
         val value = text(c, show(get()), 16f, TEXT, BOLD)
         value.gravity = Gravity.CENTER
+        value.maxLines = 1
         val size = dp(c, 38)
         row.addView(minus, LinearLayout.LayoutParams(size, size))
-        row.addView(value, LinearLayout.LayoutParams(dp(c, 52), LinearLayout.LayoutParams.WRAP_CONTENT))
+        // fixed width wide enough for "120 min", so the + button never moves when the value changes
+        row.addView(value, LinearLayout.LayoutParams(dp(c, 92), LinearLayout.LayoutParams.WRAP_CONTENT))
         row.addView(plus, LinearLayout.LayoutParams(size, size))
         minus.setOnClickListener {
             val v = Math.max(min, get() - (if (get() > fastFrom) fastStep else step))
@@ -355,17 +357,24 @@ object Ui {
         back.setOnClickListener { onBack() }
         val arrow = FsIconView(c, "M15 18l-6-6 6-6", fgHead)
         back.addView(arrow, FrameLayout.LayoutParams(dp(c, 22), dp(c, 22), Gravity.CENTER))
-        h.addView(back, LinearLayout.LayoutParams(size, size))
+
+        // Left and right sides share the leftover width equally, so the title is always in the true centre,
+        // whether the right side holds an action (Select, Save) or nothing.
+        val left = LinearLayout(c)
+        left.gravity = Gravity.CENTER_VERTICAL or Gravity.START
+        left.addView(back, LinearLayout.LayoutParams(size, size))
+        h.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
 
         val t = text(c, title, 20f, fgHead, BOLD)
         t.gravity = Gravity.CENTER
         t.maxLines = 1
         t.ellipsize = android.text.TextUtils.TruncateAt.END
-        h.addView(t, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        h.addView(t, LinearLayout.LayoutParams(-2, -2))
 
-        // right side: an optional action (Select, Save list), or an empty box the same size as the arrow
-        if (action != null) h.addView(action, LinearLayout.LayoutParams(-2, -2))
-        else h.addView(View(c), LinearLayout.LayoutParams(size, size))
+        val right = LinearLayout(c)
+        right.gravity = Gravity.CENTER_VERTICAL or Gravity.END
+        if (action != null) right.addView(action, LinearLayout.LayoutParams(-2, -2))
+        h.addView(right, LinearLayout.LayoutParams(0, -2, 1f))
         return h
     }
 

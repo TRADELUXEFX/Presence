@@ -3,6 +3,7 @@ package com.presence.app
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Outline
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -59,14 +60,24 @@ class ProgressActivity : BaseActivity() {
         val root = LinearLayout(c)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundColor(Ui.BG)
-        root.addView(Ui.header(c, "Progress") { finish() }, LinearLayout.LayoutParams(-1, -2))
+        // blue header: the Progress title, with the Training Stats | Training History switch inside it
+        val headBox = LinearLayout(c)
+        headBox.orientation = LinearLayout.VERTICAL
+        val r = Ui.dp(c, 24).toFloat()
+        val headBg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
+        headBg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
+        headBox.background = headBg
+        val titleRow = Ui.header(c, "Progress") { finish() }
+        titleRow.background = null
+        headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
 
         tabs = LinearLayout(c)
         tabs.orientation = LinearLayout.VERTICAL
         tabsWrap = LinearLayout(c)
-        tabsWrap.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 4))
+        tabsWrap.setPadding(Ui.dp(c, 18), Ui.dp(c, 4), Ui.dp(c, 18), Ui.dp(c, 18))
         tabsWrap.addView(tabs, LinearLayout.LayoutParams(-1, -2))
-        root.addView(tabsWrap, LinearLayout.LayoutParams(-1, -2))
+        headBox.addView(tabsWrap, LinearLayout.LayoutParams(-1, -2))
+        root.addView(headBox, LinearLayout.LayoutParams(-1, -2))
 
         column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
@@ -191,10 +202,29 @@ class ProgressActivity : BaseActivity() {
         return box
     }
 
+    /** The Training Stats | Training History switch, drawn inside the blue header. */
+    private fun headerSegment(labels: List<String>, selected: Int, onPick: (Int) -> Unit): LinearLayout {
+        val c = this
+        val box = LinearLayout(c)
+        box.orientation = LinearLayout.HORIZONTAL
+        box.background = Ui.rounded(c, Color.parseColor("#33FFFFFF"), 26)
+        box.setPadding(Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4), Ui.dp(c, 4))
+        for ((i, label) in labels.withIndex()) {
+            val sel = i == selected
+            val t = Ui.text(c, label, 14f, if (sel) Ui.BLUE else Ui.WHITE, Ui.BOLD)
+            t.gravity = Gravity.CENTER
+            t.background = Ui.rounded(c, if (sel) Ui.WHITE else Color.TRANSPARENT, 22)
+            t.setPadding(Ui.dp(c, 8), Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 12))
+            t.setOnClickListener { onPick(i) }
+            box.addView(t, LinearLayout.LayoutParams(0, -2, 1f))
+        }
+        return box
+    }
+
     private fun renderTabs() {
         tabs.removeAllViews()
         tabs.addView(
-            segment(listOf("Training Stats", "Training History"), if (showHistory) 1 else 0) { setTab(it == 1) },
+            headerSegment(listOf("Training Stats", "Training History"), if (showHistory) 1 else 0) { setTab(it == 1) },
             LinearLayout.LayoutParams(-1, -2)
         )
     }
@@ -467,9 +497,9 @@ class ProgressActivity : BaseActivity() {
         return "${cal.get(Calendar.YEAR)}-${cal.get(Calendar.DAY_OF_YEAR)}"
     }
 
-    /** "<1m", "5m", "1h20m", as on PauzFirst. */
+    /** "45s", "5m", "1h20m". Seconds under a minute, so no "<" sign. */
     private fun shortTime(secs: Long): String {
-        if (secs < 60L) return "<1m"
+        if (secs < 60L) return "${secs}s"
         if (secs < 3600L) return (secs / 60L).toString() + "m"
         return (secs / 3600L).toString() + "h" + ((secs % 3600L) / 60L).toString() + "m"
     }
