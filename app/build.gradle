@@ -53,6 +53,27 @@ android {
     }
 }
 
+// The web app lives in <repo>/www. MainActivity loads it from the APK at
+// assets/www/index.html, so www/ must be packed into the APK's assets.
+// Without this the WebView gets ERR_INVALID_RESPONSE (nothing to serve).
+def wwwSrc = rootProject.file('www')
+def wwwOut = layout.buildDirectory.dir('generated/www-assets').get().asFile
+
+def copyWww = tasks.register('copyWww', Copy) {
+    doFirst {
+        if (!new File(wwwSrc, 'index.html').exists()) {
+            throw new GradleException("www/index.html is missing - the app would open blank.")
+        }
+    }
+    from(wwwSrc) {
+        exclude 'sw.js', 'clear.html', '.nojekyll'
+    }
+    into new File(wwwOut, 'www')
+}
+
+android.sourceSets.main.assets.srcDir(wwwOut)
+tasks.named('preBuild') { dependsOn copyWww }
+
 dependencies {
     implementation 'androidx.core:core-ktx:1.13.1'
     implementation 'androidx.appcompat:appcompat:1.7.0'
