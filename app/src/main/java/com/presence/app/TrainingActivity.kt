@@ -134,7 +134,8 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             frame.addView(header, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
             // the count and dashes start just under the header
             header.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, _ ->
-                if (::topStack.isInitialized) topStack.setPadding(Ui.dp(c, 24), bottom + Ui.dp(c, 8), Ui.dp(c, 24), 0)
+                if (::topStack.isInitialized) topStack.setPadding(Ui.dp(c, 24), bottom + Ui.dp(c, 16), Ui.dp(c, 24), 0)
+                if (::doneView.isInitialized) doneView.setPadding(0, bottom + Ui.dp(c, 16), 0, 0)
             }
         }
         if (cameraOn) frame.addView(buildMirrorTop(c), FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
@@ -267,7 +268,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         pillRow.orientation = LinearLayout.HORIZONTAL
         pillRow.gravity = Gravity.CENTER_VERTICAL
         badge = Ui.chip(c, "", Trainings.ink(Engine.config.key), Trainings.soft(Engine.config.key))
-        badge.visibility = View.GONE
+        badge.visibility = View.INVISIBLE
         pillRow.addView(badge, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         // the count, e.g. 1/10, sits in its own pill beside the phase badge
         progress = Ui.text(c, "", 16f, Trainings.ink(Engine.config.key), Ui.BOLD)
@@ -358,7 +359,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         sv.visibility = View.GONE
         val v = LinearLayout(c)
         v.orientation = LinearLayout.VERTICAL
-        v.gravity = Gravity.CENTER_HORIZONTAL
+        v.gravity = Gravity.CENTER_HORIZONTAL or Gravity.CENTER_VERTICAL
         v.setPadding(Ui.dp(c, 22), Ui.dp(c, 28), Ui.dp(c, 22), Ui.dp(c, 28))
 
         doneTitle = Ui.text(c, "", 28f, fg, Ui.BOLD)
@@ -369,7 +370,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         doneQuote.setLineSpacing(0f, 1.3f)
         v.addTo(doneQuote, 12)
 
-        doneStats = Ui.card(c, Ui.CARD_TINT)
+        doneStats = Ui.card(c, Trainings.soft(Engine.config.key))
         v.addTo(doneStats, 24)
 
         val done = Ui.pill(c, "Done", Trainings.accent(Engine.config.key), Ui.onColor(Trainings.accent(Engine.config.key)))
@@ -396,7 +397,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         setText(ringNum, eng.ringText)
         setText(ringUnit, eng.ringUnit)
         setText(badge, eng.badgeText)
-        badge.visibility = if (eng.badgeText.isEmpty()) View.GONE else View.VISIBLE
+        badge.visibility = if (eng.badgeText.isEmpty()) View.INVISIBLE else View.VISIBLE
         setText(instr, eng.instrText)
         val count = Regex("(\\d+) of (\\d+)").find(eng.progressLabel())
         setText(progress, if (count != null) "${count.groupValues[1]}/${count.groupValues[2]}" else "")
