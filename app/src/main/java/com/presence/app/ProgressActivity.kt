@@ -13,6 +13,8 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.presence.app.Ui.addTo
 import org.json.JSONObject
 import java.io.File
@@ -41,6 +43,7 @@ class ProgressActivity : BaseActivity() {
     private var exportable: List<JSONObject> = emptyList()
     private var practiceMonth = false       // "Your practice": false = Week, true = Month
     private var practiceMonthOffset = 0     // 0 = this month, -1 = last month, ...
+    private var navBottom = 0               // height of the system navigation bar
 
     private val DAY = 24L * 60 * 60 * 1000
 
@@ -96,6 +99,20 @@ class ProgressActivity : BaseActivity() {
             }
         }
         scroll.clipToOutline = true
+
+        // Stats content sits above the system navigation bar, so the last card and the
+        // "Great job" line are not hidden behind it (as on PauzFirst).
+        ViewCompat.setOnApplyWindowInsetsListener(column) { _, insets ->
+            navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()).bottom
+            applyColumnPad()
+            insets
+        }
+        ViewCompat.requestApplyInsets(column)
+    }
+
+    private fun applyColumnPad() {
+        val c = this
+        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24) + (if (showHistory) 0 else navBottom))
     }
 
     override fun onResume() {
@@ -127,6 +144,7 @@ class ProgressActivity : BaseActivity() {
         renderTabs()
         column.removeAllViews()
         exportBar.visibility = if (showHistory) View.VISIBLE else View.GONE
+        applyColumnPad()
         if (!showHistory && history == null && !historyLoading && !historyFailed) loadHistory()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
         if (showHistory) renderHistory() else renderStats(p)
@@ -565,19 +583,25 @@ class ProgressActivity : BaseActivity() {
     private fun historyCard(r: JSONObject): LinearLayout {
         val c = this
         val key = r.optString("mod")
-        val card = Ui.card(c)
+        val card = Ui.card(c, Trainings.soft(key))
         val row = LinearLayout(c)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER_VERTICAL
         val left = LinearLayout(c)
         left.orientation = LinearLayout.VERTICAL
-        left.addView(Ui.text(c, timeLabel(r.optLong("ts", 0L)), 16f, Ui.TEXT, Ui.BOLD))
+        val whenText = Ui.text(c, timeLabel(r.optLong("ts", 0L)), 14f, Ui.TEXT, Ui.MED)
+        Ui.fit(whenText, 14)
+        left.addView(whenText)
         val meta = metaText(key, r)
         val details = if (meta.isEmpty()) Fmt.duration(r.optLong("sec", 0L))
         else "$meta · " + Fmt.duration(r.optLong("sec", 0L))
-        left.addTo(Ui.text(c, details, 13f, Ui.MUTED, Ui.REG), 4)
+        left.addTo(Ui.text(c, details, 13f, Ui.MUTED_TINT, Ui.REG), 4)
         row.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
-        row.addView(Ui.chip(c, Trainings.name(key), Ui.BLUE, Ui.BLUE_SOFT), LinearLayout.LayoutParams(-2, -2))
+        val tag = Ui.text(c, Trainings.name(key), 11f, Ui.onColor(Trainings.accent(key)), Ui.BOLD)
+        tag.gravity = Gravity.CENTER
+        tag.background = Ui.rounded(c, Trainings.accent(key), 20)
+        tag.setPadding(Ui.dp(c, 12), Ui.dp(c, 6), Ui.dp(c, 12), Ui.dp(c, 6))
+        row.addView(tag, LinearLayout.LayoutParams(-2, -2))
         card.addView(row)
         return card
     }

@@ -20,6 +20,7 @@ class ConfigActivity : BaseActivity() {
     private lateinit var key: String
     private lateinit var cfg: Config
     private lateinit var panel: LinearLayout
+    private val accentColor: Int get() = Trainings.accent(key)
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
         if (needsCamera() && !granted(Manifest.permission.CAMERA)) {
@@ -58,7 +59,7 @@ class ConfigActivity : BaseActivity() {
         val root = LinearLayout(c)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundColor(Ui.BG)
-        root.addView(Ui.header(c, Trainings.name(key)) { finish() }, LinearLayout.LayoutParams(-1, -2))
+        root.addView(Ui.header(c, Trainings.name(key), accentColor) { finish() }, LinearLayout.LayoutParams(-1, -2))
 
         panel = LinearLayout(c)
         panel.orientation = LinearLayout.VERTICAL
@@ -97,9 +98,9 @@ class ConfigActivity : BaseActivity() {
                 panel.addTo(Ui.sectionTitle(c, "Duration & sets"), 22)
                 panel.addTo(
                     cardOf(
-                        Ui.stepper(c, "Seconds per rep", { cfg.repSec }, { v -> setCfg(cfg.copy(repSec = v)) }, 5, 300, 5, show = { v -> "${v}s" }),
-                        Ui.stepper(c, "Sets", { cfg.sets }, { v -> setCfg(cfg.copy(sets = v)) }, 1, 20, 1, show = { v -> "$v" }),
-                        Ui.stepper(c, "Rest (seconds)", { cfg.restSec }, { v -> setCfg(cfg.copy(restSec = v)) }, 1, 60, 1, show = { v -> "${v}s" })
+                        Ui.stepper(c, "Seconds per rep", { cfg.repSec }, { v -> setCfg(cfg.copy(repSec = v)) }, 5, 300, 5, tint = accentColor, show = { v -> "${v}s" }),
+                        Ui.stepper(c, "Sets", { cfg.sets }, { v -> setCfg(cfg.copy(sets = v)) }, 1, 20, 1, tint = accentColor, show = { v -> "$v" }),
+                        Ui.stepper(c, "Rest (seconds)", { cfg.restSec }, { v -> setCfg(cfg.copy(restSec = v)) }, 1, 60, 1, tint = accentColor, show = { v -> "${v}s" })
                     ),
                     8
                 )
@@ -109,8 +110,8 @@ class ConfigActivity : BaseActivity() {
                 panel.addTo(Ui.sectionTitle(c, "Cycles (16s each)"), 0)
                 panel.addTo(
                     cardOf(
-                        Ui.stepper(c, "Cycles", { cfg.sets }, { v -> setCfg(cfg.copy(sets = v)) }, 1, 30, 1, show = { v -> "$v" }),
-                        Ui.stepper(c, "Rest (seconds)", { cfg.restSec }, { v -> setCfg(cfg.copy(restSec = v)) }, 0, 60, 1, show = { v -> "${v}s" })
+                        Ui.stepper(c, "Cycles", { cfg.sets }, { v -> setCfg(cfg.copy(sets = v)) }, 1, 30, 1, tint = accentColor, show = { v -> "$v" }),
+                        Ui.stepper(c, "Rest (seconds)", { cfg.restSec }, { v -> setCfg(cfg.copy(restSec = v)) }, 0, 60, 1, tint = accentColor, show = { v -> "${v}s" })
                     ),
                     8
                 )
@@ -123,9 +124,9 @@ class ConfigActivity : BaseActivity() {
                 val presets = listOf(5, 10, 15, 20, 30)
                 for (m in presets) {
                     val sel = cfg.medMin == m
-                    val chip = Ui.text(c, "${m}m", 14f, if (sel) Ui.WHITE else Ui.TEXT, Ui.BOLD)
+                    val chip = Ui.text(c, "${m}m", 14f, if (sel) Ui.onColor(accentColor) else Ui.TEXT, Ui.BOLD)
                     chip.gravity = Gravity.CENTER
-                    chip.background = Ui.rounded(c, if (sel) Ui.BLUE else Ui.SURFACE, 18, if (sel) 0 else Ui.LINE, if (sel) 0 else 1)
+                    chip.background = Ui.rounded(c, if (sel) accentColor else Ui.SURFACE, 18, if (sel) 0 else Ui.LINE, if (sel) 0 else 1)
                     chip.setPadding(0, Ui.dp(c, 12), 0, Ui.dp(c, 12))
                     chip.setOnClickListener { setCfg(cfg.copy(medMin = m)) }
                     val lp = LinearLayout.LayoutParams(0, -2, 1f)
@@ -136,14 +137,14 @@ class ConfigActivity : BaseActivity() {
                 panel.addTo(Ui.sectionTitle(c, "Custom duration"), 22)
                 panel.addTo(
                     cardOf(
-                        Ui.stepper(c, "Minutes", { cfg.medMin }, { v -> setCfg(cfg.copy(medMin = v)) }, 1, 120, 1, fastFrom = 10, fastStep = 5, show = { v -> "$v min" })
+                        Ui.stepper(c, "Minutes", { cfg.medMin }, { v -> setCfg(cfg.copy(medMin = v)) }, 1, 120, 1, fastFrom = 10, fastStep = 5, tint = accentColor, show = { v -> "$v min" })
                     ),
                     0
                 )
                 panel.addTo(Ui.sectionTitle(c, "Guided breathing cues"), 22)
                 panel.addTo(
                     cardOf(
-                        Ui.switchRow(c, "Guided breathing cues", "Gentle voice cues every 30 seconds", cfg.voice) { on ->
+                        Ui.switchRow(c, "Guided breathing cues", "Gentle voice cues every 30 seconds", cfg.voice, accentColor) { on ->
                             cfg = cfg.copy(voice = on)
                         }
                     ),
@@ -156,7 +157,7 @@ class ConfigActivity : BaseActivity() {
         val saveBtn = Ui.pill(c, "Set as default", Ui.SOFT, Ui.TEXT)
         saveBtn.setOnClickListener { saveAsDefault(saveBtn) }
         panel.addTo(saveBtn, 16)
-        val startBtn = Ui.pill(c, "Start training")
+        val startBtn = Ui.pill(c, "Start training", accentColor, Ui.onColor(accentColor))
         startBtn.setOnClickListener { onStartTapped() }
         panel.addTo(startBtn, 10)
     }
@@ -165,7 +166,7 @@ class ConfigActivity : BaseActivity() {
         panel.addTo(Ui.sectionTitle(this, "Voice guidance"), 22)
         panel.addTo(
             cardOf(
-                Ui.switchRow(this, "Voice guidance", sub, cfg.voice) { on ->
+                Ui.switchRow(this, "Voice guidance", sub, cfg.voice, accentColor) { on ->
                     cfg = cfg.copy(voice = on)
                 }
             ),
@@ -193,14 +194,14 @@ class ConfigActivity : BaseActivity() {
             tile.orientation = LinearLayout.VERTICAL
             tile.gravity = Gravity.CENTER_HORIZONTAL
             tile.setPadding(Ui.dp(c, 8), Ui.dp(c, 14), Ui.dp(c, 8), Ui.dp(c, 14))
-            tile.background = Ui.rounded(c, Ui.SURFACE, 18, if (sel) Ui.BLUE else Ui.LINE, if (sel) 2 else 1)
+            tile.background = Ui.rounded(c, Ui.SURFACE, 18, if (sel) accentColor else Ui.LINE, if (sel) 2 else 1)
             val iconPath = when (m) {
                 "closed" -> Icons.EYE_OFF
                 "mirror" -> Icons.MIRROR
                 else -> Icons.EYE
             }
             tile.addView(
-                FsIconView(c, iconPath, if (sel) Ui.BLUE else Ui.MUTED),
+                FsIconView(c, iconPath, if (sel) accentColor else Ui.MUTED),
                 LinearLayout.LayoutParams(Ui.dp(c, 26), Ui.dp(c, 26))
             )
             tile.addTo(Ui.text(c, Trainings.modeLabel(m), 13f, Ui.TEXT, Ui.MED).apply { gravity = Gravity.CENTER }, 8)
@@ -223,13 +224,13 @@ class ConfigActivity : BaseActivity() {
         val c = this
         val card = LinearLayout(c)
         card.orientation = LinearLayout.VERTICAL
-        card.background = Ui.rounded(c, Ui.BLUE_SOFT, 22)
+        card.background = Ui.rounded(c, Trainings.soft(key), 22)
         card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
         card.gravity = android.view.Gravity.CENTER_HORIZONTAL
         val tl = Ui.text(c, "Training time", 12f, Ui.MUTED, Ui.MED)
         tl.gravity = android.view.Gravity.CENTER
         card.addView(tl, LinearLayout.LayoutParams(-1, -2))
-        val tv = Ui.text(c, Trainings.estimate(cfg), 20f, Ui.BLUE, Ui.BOLD)
+        val tv = Ui.text(c, Trainings.estimate(cfg), 20f, Trainings.ink(key), Ui.BOLD)
         tv.gravity = android.view.Gravity.CENTER
         card.addTo(tv, 4)
         return card

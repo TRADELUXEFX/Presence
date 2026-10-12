@@ -117,6 +117,26 @@ object Ui {
 
     fun dp(c: Context, v: Int): Int = (v * c.resources.displayMetrics.density + 0.5f).toInt()
 
+    /** Blend two colours. t = 0 gives a, t = 1 gives b. */
+    fun mix(a: Int, b: Int, t: Float): Int {
+        val r = Color.red(a) + (Color.red(b) - Color.red(a)) * t
+        val g = Color.green(a) + (Color.green(b) - Color.green(a)) * t
+        val bl = Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t
+        return Color.rgb(r.toInt(), g.toInt(), bl.toInt())
+    }
+
+    /** Text colour that reads best on [bg]: dark ink or white, whichever has more contrast. */
+    fun onColor(bg: Int): Int {
+        fun lin(v: Int): Double {
+            val s = v / 255.0
+            return if (s <= 0.03928) s / 12.92 else Math.pow((s + 0.055) / 1.055, 2.4)
+        }
+        val l = 0.2126 * lin(Color.red(bg)) + 0.7152 * lin(Color.green(bg)) + 0.0722 * lin(Color.blue(bg))
+        val contrastWhite = 1.05 / (l + 0.05)
+        val contrastDark = (l + 0.05) / (0.0086 + 0.05)
+        return if (contrastDark > contrastWhite) Color.parseColor("#0F172A") else Color.WHITE
+    }
+
     fun rounded(c: Context, color: Int, radiusDp: Int, strokeColor: Int = 0, strokeDp: Int = 0): GradientDrawable {
         val g = GradientDrawable()
         g.setColor(color)
@@ -238,12 +258,12 @@ object Ui {
         return e
     }
 
-    private fun circleButton(c: Context, label: String): TextView {
-        val t = text(c, label, 20f, BLUE, BOLD)
+    private fun circleButton(c: Context, label: String, tint: Int = BLUE): TextView {
+        val t = text(c, label, 20f, tint, BOLD)
         t.gravity = Gravity.CENTER
         val g = GradientDrawable()
         g.shape = GradientDrawable.OVAL
-        g.setColor(BLUE_SOFT)
+        g.setColor(if (tint == BLUE) BLUE_SOFT else mix(tint, SURFACE, 0.85f))
         t.background = g
         return t
     }
@@ -253,6 +273,7 @@ object Ui {
         c: Context, label: String, get: () -> Int, set: (Int) -> Unit,
         min: Int, max: Int, step: Int,
         fastFrom: Int = Int.MAX_VALUE, fastStep: Int = step,
+        tint: Int = BLUE,
         show: (Int) -> String
     ): LinearLayout {
         val row = LinearLayout(c)
@@ -260,8 +281,8 @@ object Ui {
         row.gravity = Gravity.CENTER_VERTICAL
         val name = text(c, label, 14f, TEXT, MED)
         row.addView(name, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val minus = circleButton(c, "−")
-        val plus = circleButton(c, "+")
+        val minus = circleButton(c, "−", tint)
+        val plus = circleButton(c, "+", tint)
         val value = text(c, show(get()), 16f, TEXT, BOLD)
         value.gravity = Gravity.CENTER
         val size = dp(c, 38)
@@ -282,14 +303,15 @@ object Ui {
     }
 
     /** Switch colors that stay visible: blue knob on a light-blue track when on, grey knob on a pale track when off. */
-    fun styleSwitch(sw: SwitchCompat) {
+    fun styleSwitch(sw: SwitchCompat, tint: Int = BLUE) {
         val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
-        sw.thumbTintList = android.content.res.ColorStateList(states, intArrayOf(BLUE, c("#94A3B8", "#94A3B8")))
-        sw.trackTintList = android.content.res.ColorStateList(states, intArrayOf(c("#B3D7FF", "#2F5F9E"), c("#D5DEEA", "#3A4A63")))
+        sw.thumbTintList = android.content.res.ColorStateList(states, intArrayOf(tint, c("#94A3B8", "#94A3B8")))
+        val trackOn = if (tint == BLUE) c("#B3D7FF", "#2F5F9E") else mix(tint, SURFACE, 0.6f)
+        sw.trackTintList = android.content.res.ColorStateList(states, intArrayOf(trackOn, c("#D5DEEA", "#3A4A63")))
     }
 
     /** "Label + small description            [switch]" */
-    fun switchRow(c: Context, label: String, sub: String?, initial: Boolean, onChange: (Boolean) -> Unit): LinearLayout {
+    fun switchRow(c: Context, label: String, sub: String?, initial: Boolean, tint: Int = BLUE, onChange: (Boolean) -> Unit): LinearLayout {
         val row = LinearLayout(c)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER_VERTICAL
@@ -302,7 +324,7 @@ object Ui {
         }
         row.addView(col, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val sw = SwitchCompat(c)
-        styleSwitch(sw)
+        styleSwitch(sw, tint)
         sw.isChecked = initial
         sw.setOnCheckedChangeListener { _, checked -> onChange(checked) }
         row.addView(sw, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
@@ -310,11 +332,13 @@ object Ui {
     }
 
     /** Blue top bar with a round arrow-only Back button and the title centered. */
-    fun header(c: Context, title: String, onBack: () -> Unit): LinearLayout {
+    fun header(c: Context, title: String, tint: Int = 0, onBack: () -> Unit): LinearLayout {
         val h = LinearLayout(c)
         h.orientation = LinearLayout.HORIZONTAL
         h.gravity = Gravity.CENTER_VERTICAL
-        val bg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(BLUE, BLUE_DARK))
+        val fgHead = if (tint == 0) WHITE else onColor(tint)
+        val bg = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+            if (tint == 0) intArrayOf(BLUE, BLUE_DARK) else intArrayOf(tint, mix(tint, Color.BLACK, 0.2f)))
         val r = dp(c, 24).toFloat()
         bg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
         h.background = bg
@@ -329,11 +353,11 @@ object Ui {
         back.background = circle
         back.contentDescription = "Back"
         back.setOnClickListener { onBack() }
-        val arrow = FsIconView(c, "M15 18l-6-6 6-6", WHITE)
+        val arrow = FsIconView(c, "M15 18l-6-6 6-6", fgHead)
         back.addView(arrow, FrameLayout.LayoutParams(dp(c, 22), dp(c, 22), Gravity.CENTER))
         h.addView(back, LinearLayout.LayoutParams(size, size))
 
-        val t = text(c, title, 20f, WHITE, BOLD)
+        val t = text(c, title, 20f, fgHead, BOLD)
         t.gravity = Gravity.CENTER
         t.maxLines = 1
         t.ellipsize = android.text.TextUtils.TruncateAt.END

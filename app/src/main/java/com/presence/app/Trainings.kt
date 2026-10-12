@@ -1,6 +1,7 @@
 package com.presence.app
 
 import android.graphics.Color
+import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -79,6 +80,24 @@ object Trainings {
         FIDGET -> Color.parseColor("#2EA043")
         BREATH -> Color.parseColor("#8b5cf6")
         else -> Color.parseColor("#ec4899")
+    }
+
+    /** Pale wash of a training's colour, for card backgrounds. */
+    fun soft(k: String): Int = Ui.mix(accent(k), Ui.SURFACE, if (Ui.dark) 0.7f else 0.85f)
+
+    /** Text colour in a training's own colour (darkened on light backgrounds so it stays readable). */
+    fun ink(k: String): Int = if (Ui.dark) accent(k) else Ui.mix(accent(k), Color.BLACK, 0.35f)
+
+    /** Today's finished trainings, in the order they were finished (older ticks without an order go last, in list order). */
+    fun doneOrder(done: JSONObject): List<String> {
+        val out = ArrayList<String>()
+        val arr = done.optJSONArray("order")
+        if (arr != null) for (i in 0 until arr.length()) {
+            val k = arr.optString(i)
+            if (ALL.contains(k) && done.optBoolean(k, false) && !out.contains(k)) out.add(k)
+        }
+        for (k in ALL) if (done.optBoolean(k, false) && !out.contains(k)) out.add(k)
+        return out
     }
 
     fun modeLabel(mode: String): String = when (mode) {
@@ -239,6 +258,12 @@ object Profile {
         p.put("today_done_date", today)
         val done = p.optJSONObject("today_done") ?: JSONObject()
         done.put(mod, true)
+        // remember the order trainings were finished today, for the coloured progress bar
+        val order = done.optJSONArray("order") ?: JSONArray()
+        var seen = false
+        for (i in 0 until order.length()) if (order.optString(i) == mod) seen = true
+        if (!seen) order.put(mod)
+        done.put("order", order)
         p.put("today_done", done)
         if (Trainings.ALL.all { done.optBoolean(it, false) } && !p.optBoolean("today_full_counted", false)) {
             p.put("full_streak", p.optInt("full_streak", 0) + 1)

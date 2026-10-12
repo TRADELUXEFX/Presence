@@ -288,13 +288,17 @@ class HomeActivity : BaseActivity() {
         head.addView(Ui.text(c, "$done / 4", 16f, Ui.BLUE, Ui.BOLD))
         card.addView(head)
 
+        // One segment per training, filled in the order they were finished, each in its own colour.
         val bar = LinearLayout(c)
         bar.orientation = LinearLayout.HORIZONTAL
-        bar.background = Ui.rounded(c, Ui.SOFT, 6)
-        val fill = View(c)
-        fill.background = Ui.rounded(c, Ui.BLUE, 6)
-        bar.addView(fill, LinearLayout.LayoutParams(0, -1, done.toFloat()))
-        bar.addView(View(c), LinearLayout.LayoutParams(0, -1, (4 - done).toFloat()))
+        val order = Trainings.doneOrder(doneMap)
+        for (i in 0 until 4) {
+            val seg = View(c)
+            seg.background = Ui.rounded(c, if (i < order.size) Trainings.accent(order[i]) else Ui.SOFT, 6)
+            val segLp = LinearLayout.LayoutParams(0, -1, 1f)
+            if (i > 0) segLp.leftMargin = Ui.dp(c, 4)
+            bar.addView(seg, segLp)
+        }
         val barLp = LinearLayout.LayoutParams(-1, Ui.dp(c, 8))
         barLp.topMargin = Ui.dp(c, 12)
         card.addView(bar, barLp)

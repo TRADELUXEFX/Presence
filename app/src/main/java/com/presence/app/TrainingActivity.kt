@@ -121,7 +121,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
         column.addView(
-            Ui.header(c, Trainings.name(Engine.config.key)) { confirmLeave() },
+            Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key)) { confirmLeave() },
             LinearLayout.LayoutParams(-1, -2)
         )
         val content = FrameLayout(c)
@@ -157,7 +157,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
         val ringBox = FrameLayout(c)
         ring = RingView(c)
-        ring.ringColor = Ui.BLUE
+        ring.ringColor = Trainings.accent(Engine.config.key)
         ringBox.addView(ring, FrameLayout.LayoutParams(Ui.dp(c, 250), Ui.dp(c, 250), Gravity.CENTER))
         val center = LinearLayout(c)
         center.orientation = LinearLayout.VERTICAL
@@ -171,7 +171,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         ringBox.addView(center, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
         v.addTo(ringBox, 10)
 
-        badge = Ui.chip(c, "", Ui.BLUE, Ui.BLUE_SOFT)
+        badge = Ui.chip(c, "", Trainings.ink(Engine.config.key), Trainings.soft(Engine.config.key))
         badge.visibility = View.GONE
         v.addTo(badge, 14)
 
@@ -197,7 +197,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val track = FrameLayout(c)
         track.background = Ui.rounded(c, Ui.SOFT, 6)
         meterFill = View(c)
-        meterFill.background = Ui.rounded(c, Ui.BLUE, 6)
+        meterFill.background = Ui.rounded(c, Trainings.accent(Engine.config.key), 6)
         meterFill.pivotX = 0f
         meterFill.scaleX = 0f
         track.addView(meterFill, FrameLayout.LayoutParams(-1, -1))
@@ -233,7 +233,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         doneStats = Ui.card(c, Ui.CARD_TINT)
         v.addTo(doneStats, 24)
 
-        val done = Ui.pill(c, "Done")
+        val done = Ui.pill(c, "Done", Trainings.accent(Engine.config.key), Ui.onColor(Trainings.accent(Engine.config.key)))
         done.setOnClickListener { finishToHome() }
         v.addTo(done, 24)
 
@@ -283,7 +283,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             val on = i < done
             if (d.tag != on) {
                 d.tag = on
-                d.background = circle(if (on) Ui.BLUE else Ui.LINE)
+                d.background = circle(if (on) Trainings.accent(Engine.config.key) else Ui.LINE)
             }
         }
     }
@@ -294,7 +294,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val red = pct > 35
         if (red != meterRed) {
             meterRed = red
-            meterFill.background = Ui.rounded(this, if (red) Ui.RED else Ui.BLUE, 6)
+            meterFill.background = Ui.rounded(this, if (red) Ui.RED else Trainings.accent(Engine.config.key), 6)
         }
     }
 
