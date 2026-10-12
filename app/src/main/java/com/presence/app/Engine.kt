@@ -171,10 +171,6 @@ object Engine {
         when (stage) {
             Stage.REP -> {
                 val el = ((now - segStart) / 1000L).toInt()
-                if (!halfSpoken && el >= segSec / 2) {
-                    halfSpoken = true
-                    speak("Halfway")
-                }
                 decayMotion()
                 showRep(Math.max(0, segSec - el))
                 if (el >= segSec) enterPause(After.REP_DONE)
@@ -186,10 +182,6 @@ object Engine {
             }
             Stage.MEDITATION -> {
                 val el = ((now - segStart) / 1000L).toInt()
-                if (!halfSpoken && el >= segSec / 2) {
-                    halfSpoken = true
-                    speak("Halfway through your meditation. Keep going.")
-                }
                 if (el >= nextCueSec) {
                     speak(Trainings.MED_CUES[cueIdx % Trainings.MED_CUES.size])
                     cueIdx++

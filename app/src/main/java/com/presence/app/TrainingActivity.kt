@@ -107,6 +107,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     private fun build() {
         val c = this
+        if (!cameraOn) Ui.setNavColor(c, Ui.mix(Trainings.accent(Engine.config.key), Color.BLACK, 0.2f))
         val fg = if (cameraOn) Color.WHITE else Ui.TEXT
         val muted = if (cameraOn) Color.parseColor("#D9FFFFFF") else Ui.MUTED
 

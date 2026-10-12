@@ -90,6 +90,13 @@ object Ui {
         ic.isAppearanceLightNavigationBars = !dark  // dark icons on the light bottom
     }
 
+    /** Colours the navigation bar area (the strip under the bottom bar) and keeps its icons light. */
+    fun setNavColor(a: Activity, color: Int) {
+        val w = a.window
+        w.navigationBarColor = color
+        WindowCompat.getInsetsController(w, w.decorView).isAppearanceLightNavigationBars = false
+    }
+
     /** Adds the system-bar (and optionally keyboard) size on top of the view's own padding. */
     fun padInsets(v: View, top: Boolean = false, bottom: Boolean = false, ime: Boolean = false) {
         val l = v.paddingLeft; val t = v.paddingTop; val r = v.paddingRight; val b = v.paddingBottom

@@ -74,6 +74,7 @@ class SavedListActivity : BaseActivity() {
         root.addView(bar, LinearLayout.LayoutParams(-1, -2))
 
         setContentView(root)
+        Ui.setNavColor(c, Ui.BLUE_DARK)
         render()
     }
 

@@ -68,6 +68,8 @@ class ConfigActivity : BaseActivity() {
 
     private fun build() {
         val c = this
+        // the strip under the bottom bar takes the deep shade of this training's colour
+        Ui.setNavColor(c, Ui.mix(accentColor, Color.BLACK, 0.2f))
         val frame = LinearLayout(c)
         frame.orientation = LinearLayout.VERTICAL
         frame.setBackgroundColor(Ui.BG)
@@ -87,9 +89,9 @@ class ConfigActivity : BaseActivity() {
         val bar = LinearLayout(c)
         bar.orientation = LinearLayout.VERTICAL
         bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
-        Ui.tintedBottomBar(c, bar, accentColor)
+        Ui.bottomBarBg(c, bar)
         bar.elevation = Ui.dp(c, 8).toFloat()
-        startBtn = Ui.pill(c, "Start training", Color.WHITE, Trainings.ink(key))
+        startBtn = Ui.pill(c, "Start training", accentColor, Ui.onColor(accentColor))
         startBtn.setOnClickListener { onStartTapped() }
         bar.addView(startBtn, LinearLayout.LayoutParams(-1, -2))
         Ui.padInsets(bar, bottom = true)
@@ -156,7 +158,7 @@ class ConfigActivity : BaseActivity() {
                     ),
                     8
                 )
-                voiceCard("Announce begin, halfway & rest")
+                voiceCard("Announce begin & rest")
             }
             Trainings.BREATH -> {
                 panel.addTo(Ui.sectionTitle(c, "Cycles (16s each)"), 0)
