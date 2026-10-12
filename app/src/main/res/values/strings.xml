@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Presence Training</string>
+    <string name="widget_description">Your day streak and today's trainings</string>
 </resources>

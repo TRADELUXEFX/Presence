@@ -56,6 +56,7 @@ class HomeActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         if (!Session.loggedIn()) return
+        Reminders.apply(this)
         online = NetWatch.isOnline(this)
         val watch = NetWatch(this) { up ->
             online = up
@@ -97,6 +98,8 @@ class HomeActivity : BaseActivity() {
         if (!::column.isInitialized) return
         val c = this
         column.removeAllViews()
+        column.addTo(navRow(), 0)
+        StreakWidget.updateAll(c)
         if (!online) {
             val banner = Ui.banner(c, "You're offline. Trainings are saved on this phone and sync when you're back online.")
             banner.visibility = View.VISIBLE
@@ -115,6 +118,21 @@ class HomeActivity : BaseActivity() {
                 for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 10)
             }
         }
+    }
+
+    private fun navRow(): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        val progress = Ui.pill(c, "Progress", Ui.SOFT, Ui.TEXT)
+        progress.setOnClickListener { startActivity(Intent(this, ProgressActivity::class.java)) }
+        val settings = Ui.pill(c, "Settings", Ui.SOFT, Ui.TEXT)
+        settings.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+        row.addView(progress, LinearLayout.LayoutParams(0, -2, 1f))
+        val lp = LinearLayout.LayoutParams(0, -2, 1f)
+        lp.leftMargin = Ui.dp(c, 12)
+        row.addView(settings, lp)
+        return row
     }
 
     private fun resumeCard(): LinearLayout {

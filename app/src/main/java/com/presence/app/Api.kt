@@ -148,6 +148,18 @@ object Api {
         return authed("POST", "/rest/v1/profiles?on_conflict=id", row.toString(), "resolution=merge-duplicates,return=minimal").ok
     }
 
+    /** The user's training history, newest first, or null if the request failed. */
+    fun fetchSessions(): List<JSONObject>? {
+        val r = authed("GET", "/rest/v1/sessions?select=*&user_id=eq.${Session.userId}&order=ts.desc&limit=200", null, null)
+        if (!r.ok) return null
+        return try {
+            val arr = JSONArray(r.body)
+            List(arr.length()) { arr.getJSONObject(it) }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun insertSession(row: JSONObject): Boolean {
         return authed("POST", "/rest/v1/sessions", row.toString(), "return=minimal").ok
     }

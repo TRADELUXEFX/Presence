@@ -295,7 +295,10 @@ object Engine {
             LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c))
             Sync.flush()
         }
-        appCtx?.let { TrainingService.stop(it) }
+        appCtx?.let {
+            TrainingService.stop(it)
+            StreakWidget.updateAll(it)
+        }
         notifyListeners()
     }
 
