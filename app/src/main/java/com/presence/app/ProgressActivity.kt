@@ -30,6 +30,7 @@ import java.util.Locale
  */
 class ProgressActivity : BaseActivity() {
     private lateinit var tabs: LinearLayout
+    private lateinit var tabsWrap: LinearLayout
     private lateinit var column: LinearLayout
     private lateinit var scroll: ScrollView
     private lateinit var exportBar: LinearLayout
@@ -62,7 +63,7 @@ class ProgressActivity : BaseActivity() {
 
         tabs = LinearLayout(c)
         tabs.orientation = LinearLayout.VERTICAL
-        val tabsWrap = LinearLayout(c)
+        tabsWrap = LinearLayout(c)
         tabsWrap.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 4))
         tabsWrap.addView(tabs, LinearLayout.LayoutParams(-1, -2))
         root.addView(tabsWrap, LinearLayout.LayoutParams(-1, -2))
@@ -141,11 +142,25 @@ class ProgressActivity : BaseActivity() {
     }
 
     private fun render() {
+        // Nothing shows until every result is in: a blank page with the loading ring,
+        // then the tabs and cards appear together.
+        if (history == null) {
+            tabsWrap.visibility = View.GONE
+            exportBar.visibility = View.GONE
+            column.removeAllViews()
+            if (historyFailed) {
+                column.addTo(historyErrorCard(), 0)
+            } else {
+                if (!historyLoading) loadHistory()
+                column.addTo(Loading.page(this), 0)
+            }
+            return
+        }
+        tabsWrap.visibility = View.VISIBLE
         renderTabs()
         column.removeAllViews()
         exportBar.visibility = if (showHistory) View.VISIBLE else View.GONE
         applyColumnPad()
-        if (!showHistory && history == null && !historyLoading && !historyFailed) loadHistory()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
         if (showHistory) renderHistory() else renderStats(p)
     }

@@ -12,8 +12,10 @@
 
     <!-- Launch theme: shown while the app starts, then switches to AppTheme. -->
     <style name="Theme.Presence.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#1E90FF</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <!-- light look always, even in dark mode, with the sharp icon (same approach as PauzFirst) -->
+        <item name="windowSplashScreenBackground">#F4F7FB</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="android:forceDarkAllowed">false</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 </resources>

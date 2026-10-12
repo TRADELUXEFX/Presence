@@ -24,6 +24,7 @@ class LoginActivity : BaseActivity() {
     private lateinit var msg: TextView
     private lateinit var submit: Button
     private lateinit var spin: SpinnerRingView
+    private lateinit var busyPill: FrameLayout
     private lateinit var forgotRow: LinearLayout
     private lateinit var switchLabel: TextView
     private lateinit var switchLink: TextView
@@ -77,11 +78,15 @@ class LoginActivity : BaseActivity() {
         submit = Ui.pill(c, "Login")
         submit.textSize = 17f
         submit.elevation = Ui.dp(c, 3).toFloat()
+        // while signing in the button is swapped for this blue pill with a spinner
         spin = SpinnerRingView(c, Ui.WHITE, Color.parseColor("#55FFFFFF"), 3)
-        spin.visibility = View.GONE
+        busyPill = FrameLayout(c)
+        busyPill.background = Ui.rounded(c, Ui.BLUE, 28)
+        busyPill.visibility = View.GONE
+        busyPill.addView(spin, FrameLayout.LayoutParams(Ui.dp(c, 28), Ui.dp(c, 28), Gravity.CENTER))
         val submitWrap = FrameLayout(c)
         submitWrap.addView(submit, FrameLayout.LayoutParams(-1, -2))
-        submitWrap.addView(spin, FrameLayout.LayoutParams(Ui.dp(c, 26), Ui.dp(c, 26), Gravity.CENTER))
+        submitWrap.addView(busyPill, FrameLayout.LayoutParams(-1, Ui.dp(c, 56)))
         card.addTo(submitWrap, 22)
 
         msg = Ui.text(c, "", 12f, Ui.RED, Ui.MED)
@@ -162,8 +167,8 @@ class LoginActivity : BaseActivity() {
 
     private fun busy(on: Boolean) {
         submit.isEnabled = !on
-        submit.text = if (on) "" else (if (signUp) "Sign Up" else "Login")
-        spin.visibility = if (on) View.VISIBLE else View.GONE
+        submit.visibility = if (on) View.INVISIBLE else View.VISIBLE
+        busyPill.visibility = if (on) View.VISIBLE else View.GONE
     }
 
     private fun doSubmit() {

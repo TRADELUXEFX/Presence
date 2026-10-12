@@ -139,6 +139,8 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         v.orientation = LinearLayout.VERTICAL
         v.gravity = Gravity.BOTTOM
         v.setPadding(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 24))
+        // lift the buttons above the system navigation bar (it was covering them)
+        Ui.padInsets(v, bottom = true)
 
         camNote = Ui.text(c, "Camera not available. Training continues without it.", 12f, Ui.AMBER, Ui.MED)
         camNote.gravity = Gravity.CENTER
