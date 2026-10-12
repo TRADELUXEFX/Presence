@@ -23,6 +23,8 @@ class ConfigActivity : BaseActivity() {
     private lateinit var cfg: Config
     private lateinit var panel: LinearLayout
     private lateinit var startBtn: Button
+    private var editingId: String? = null
+    private var editingName = ""
     private val accentColor: Int get() = Trainings.accent(key)
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
@@ -62,8 +64,21 @@ class ConfigActivity : BaseActivity() {
             key = saved.optString("key")
             cfg = SavedLists.toConfig(saved)
         }
+        // "Edit" from Saved list opens the settings to change them and save back to that list
+        val editing = intent.getBooleanExtra("edit", false)
+        if (saved != null && editing) {
+            editingId = saved.optString("id")
+            editingName = saved.optString("name")
+        }
+        // a session from the Session screen: the first training starts straight away
+        val sessionStart = intent.getBooleanExtra("session", false) && TrainingSession.active()
+        if (sessionStart) {
+            key = TrainingSession.items[0].key
+            cfg = TrainingSession.items[0]
+        }
         build()
-        if (saved != null) onStartTapped()
+        if (sessionStart) onStartTapped()
+        else if (saved != null && !editing) onStartTapped()
     }
 
     private fun build() {
@@ -110,11 +125,17 @@ class ConfigActivity : BaseActivity() {
         box.setPadding(Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 14), Ui.dp(c, 8))
         box.contentDescription = "Save"
         box.addView(FsIconView(c, Icons.BOOKMARK, fg), LinearLayout.LayoutParams(Ui.dp(c, 16), Ui.dp(c, 16)))
-        val label = Ui.text(c, "Save", 13f, fg, Ui.BOLD)
+        val label = Ui.text(c, if (editingId != null) "Save changes" else "Save", 13f, fg, Ui.BOLD)
         val lp = LinearLayout.LayoutParams(-2, -2)
         lp.leftMargin = Ui.dp(c, 6)
         box.addView(label, lp)
         box.setOnClickListener {
+            val editId = editingId
+            if (editId != null) {
+                SavedLists.update(Session.userId, editId, editingName, cfg)
+                Toast.makeText(this, "Changes saved to Saved list", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             SavedLists.chooseSave(
                 this,
                 onDefault = { saveAsDefault() },
@@ -196,30 +217,61 @@ class ConfigActivity : BaseActivity() {
                     8
                 )
                 // one label only: the card's own switch label, with the same gap above as the other sections
-                panel.addTo(
-                    cardOf(
-                        Ui.switchRow(c, "Guided breathing cues", "Gentle voice cues every 30 seconds", cfg.voice, accentColor) { on ->
-                            cfg = cfg.copy(voice = on)
-                        }
-                    ),
-                    22
-                )
+                panel.addTo(cardOf(voiceRow("Guided breathing cues", "Gentle voice cues every 30 seconds")), 22)
             }
         }
 
         panel.addTo(estimateCard(), 22)
     }
 
+    /** The vibrate icon: grey when off, green when on. It toggles vibration on its own. */
+    private fun vibrateButton(): android.widget.FrameLayout {
+        val c = this
+        val box = android.widget.FrameLayout(c)
+        box.isClickable = true
+        box.contentDescription = "Vibration cues"
+        fun paint() {
+            val on = Session.prefs.getBoolean("vibrate", true)
+            box.removeAllViews()
+            box.background = Ui.rounded(c, if (on) Trainings.soft(key) else Ui.SOFT, 20)
+            box.addView(
+                FsIconView(c, Icons.VIBRATE, if (on) Trainings.ink(key) else Ui.TEXT),
+                android.widget.FrameLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20), Gravity.CENTER)
+            )
+        }
+        paint()
+        box.setOnClickListener {
+            val now = !Session.prefs.getBoolean("vibrate", true)
+            Session.prefs.edit().putBoolean("vibrate", now).apply()
+            paint()
+        }
+        return box
+    }
+
+    /** One row: the label, the vibrate icon, and the voice switch. Vibration and voice work separately. */
+    private fun voiceRow(label: String, sub: String): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val text = LinearLayout(c)
+        text.orientation = LinearLayout.VERTICAL
+        text.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
+        text.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
+        row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val vibLp = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
+        vibLp.rightMargin = Ui.dp(c, 12)
+        row.addView(vibrateButton(), vibLp)
+        val sw = androidx.appcompat.widget.SwitchCompat(c)
+        sw.isChecked = cfg.voice
+        Ui.styleSwitch(sw, accentColor)
+        sw.setOnCheckedChangeListener { _, on -> cfg = cfg.copy(voice = on) }
+        row.addView(sw)
+        return row
+    }
+
     private fun voiceCard(sub: String) {
-        // one label only: the card's own switch label, with the same gap above as the other sections
-        panel.addTo(
-            cardOf(
-                Ui.switchRow(this, "Voice guidance", sub, cfg.voice, accentColor) { on ->
-                    cfg = cfg.copy(voice = on)
-                }
-            ),
-            22
-        )
+        panel.addTo(cardOf(voiceRow("Voice guidance", sub)), 22)
     }
 
     /** A card holding one or more rows, spaced apart. */

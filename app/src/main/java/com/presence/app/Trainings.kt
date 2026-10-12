@@ -60,13 +60,6 @@ object Trainings {
         else -> "Meditation"
     }
 
-    fun shortName(k: String): String = when (k) {
-        BLINK -> "Blink"
-        FIDGET -> "Fidget"
-        BREATH -> "Breath"
-        else -> "Meditate"
-    }
-
     fun blurb(k: String): String = when (k) {
         BLINK -> "Hold your gaze without blinking and take control of your eyes"
         FIDGET -> "Stay completely still with zero movement and iron discipline"

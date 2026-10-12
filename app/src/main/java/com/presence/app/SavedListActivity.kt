@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -130,7 +131,62 @@ class SavedListActivity : BaseActivity() {
         return card
     }
 
+    /** A saved session: name, how many trainings and how long, then a pencil to edit and Start. */
+    private fun sessionRow(o: JSONObject): LinearLayout {
+        val c = this
+        val id = o.optString("id")
+        val items = SavedLists.sessionItems(o)
+        val secs = items.sumOf { TrainingSession.seconds(it) }
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
+        val line = LinearLayout(c)
+        line.orientation = LinearLayout.HORIZONTAL
+        line.gravity = Gravity.CENTER_VERTICAL
+        val left = LinearLayout(c)
+        left.orientation = LinearLayout.VERTICAL
+        left.addView(Ui.text(c, o.optString("name"), 15f, Ui.TEXT, Ui.BOLD))
+        left.addTo(Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG), 3)
+        line.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+        if (selecting) {
+            line.addView(Ui.tick(c, selected.contains(id), 22), LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22)))
+            card.setOnClickListener {
+                if (!selected.add(id)) selected.remove(id)
+                render()
+            }
+        } else {
+            val actions = LinearLayout(c)
+            actions.orientation = LinearLayout.HORIZONTAL
+            actions.gravity = Gravity.CENTER_VERTICAL
+            val pencil = FrameLayout(c)
+            pencil.background = Ui.rounded(c, Ui.SOFT, 20)
+            pencil.isClickable = true
+            pencil.contentDescription = "Edit session"
+            pencil.addView(FsIconView(c, Icons.PENCIL, Ui.TEXT),
+                FrameLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18), Gravity.CENTER))
+            pencil.setOnClickListener {
+                startActivity(Intent(c, SessionActivity::class.java).putExtra("listId", id))
+            }
+            actions.addView(pencil, LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40)))
+            val tint = if (items.isEmpty()) Ui.BLUE else Trainings.accent(items[0].key)
+            val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
+            start.textSize = 14f
+            start.setOnClickListener {
+                // the whole session starts, one training after another
+                TrainingSession.clear()
+                TrainingSession.items.addAll(items)
+                startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))
+            }
+            val startLp = LinearLayout.LayoutParams(-2, Ui.dp(c, 40))
+            startLp.leftMargin = Ui.dp(c, 8)
+            actions.addView(start, startLp)
+            line.addView(actions)
+        }
+        card.addView(line)
+        return card
+    }
+
     private fun row(o: JSONObject): LinearLayout {
+        if (o.optString("kind") == "session") return sessionRow(o)
         val c = this
         val id = o.optString("id")
         val cfg = SavedLists.toConfig(o)
@@ -152,11 +208,33 @@ class SavedListActivity : BaseActivity() {
                 render()
             }
         } else {
-            line.addView(Ui.text(c, "Start", 13f, Trainings.ink(cfg.key), Ui.BOLD))
-            card.setOnClickListener {
+            val actions = LinearLayout(c)
+            actions.orientation = LinearLayout.HORIZONTAL
+            actions.gravity = Gravity.CENTER_VERTICAL
+            val pencil = FrameLayout(c)
+            pencil.background = Ui.rounded(c, Ui.SOFT, 20)
+            pencil.isClickable = true
+            pencil.contentDescription = "Edit"
+            pencil.addView(FsIconView(c, Icons.PENCIL, Ui.TEXT),
+                FrameLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18), Gravity.CENTER))
+            pencil.setOnClickListener {
+                startActivity(Intent(c, ConfigActivity::class.java)
+                    .putExtra("key", cfg.key).putExtra("listId", id).putExtra("edit", true))
+            }
+            actions.addView(pencil, LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40)))
+
+            val tint = Trainings.accent(cfg.key)
+            val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
+            start.textSize = 14f
+            start.setOnClickListener {
                 // ConfigActivity reads listId, uses the saved settings and starts the training (same permission checks)
                 startActivity(Intent(c, ConfigActivity::class.java).putExtra("key", cfg.key).putExtra("listId", id))
             }
+            val startLp = LinearLayout.LayoutParams(-2, Ui.dp(c, 40))
+            startLp.leftMargin = Ui.dp(c, 8)
+            actions.addView(start, startLp)
+            line.addView(actions)
+            // the card body does nothing, so starting is always deliberate
         }
         card.addView(line)
         return card

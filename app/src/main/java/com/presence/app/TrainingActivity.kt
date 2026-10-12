@@ -9,9 +9,11 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Toast
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.camera.core.CameraSelector
@@ -31,6 +33,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private lateinit var doneView: ScrollView
     private lateinit var progress: TextView
     private lateinit var popDots: PopDotsView
+    private var motionSensor: android.hardware.SensorEventListener? = null
     private lateinit var camNote: TextView
     private lateinit var ring: RingView
     private lateinit var ringNum: TextView
@@ -44,6 +47,11 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private lateinit var doneTitle: TextView
     private lateinit var doneQuote: TextView
     private lateinit var doneStats: LinearLayout
+    private lateinit var milestoneCard: LinearLayout
+    private lateinit var milestoneText: TextView
+    private lateinit var sessionCard: LinearLayout
+    private lateinit var sessionText: TextView
+    private val sessionHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var preview: PreviewView? = null
     private var scrimView: View? = null
     private var camProvider: ProcessCameraProvider? = null
@@ -77,12 +85,14 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     override fun onStart() {
         super.onStart()
+        startMotionSensor()
         Engine.addListener(this)
         if (cameraOn && !showingDone) startCamera()
         if (!showingDone) render()
     }
 
     override fun onStop() {
+        stopMotionSensor()
         Engine.removeListener(this)
         try {
             camProvider?.unbindAll()
@@ -370,8 +380,64 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         doneQuote.setLineSpacing(0f, 1.3f)
         v.addTo(doneQuote, 12)
 
+        // day-streak milestone (7, 30, 100): hidden unless this training reached one
+        milestoneCard = Ui.card(c, Trainings.soft(Engine.config.key))
+        milestoneCard.visibility = View.GONE
+        milestoneText = Ui.text(c, "", 14f, Ui.TEXT, Ui.MED)
+        milestoneText.gravity = Gravity.CENTER
+        milestoneText.setLineSpacing(0f, 1.25f)
+        milestoneCard.addView(milestoneText)
+        v.addTo(milestoneCard, 20)
+
+        // a session: what comes next, and the way on
+        sessionCard = Ui.card(c, Trainings.soft(Engine.config.key))
+        sessionCard.visibility = View.GONE
+        sessionText = Ui.text(c, "", 14f, Ui.TEXT, Ui.MED)
+        sessionText.gravity = Gravity.CENTER
+        sessionText.setLineSpacing(0f, 1.25f)
+        sessionCard.addView(sessionText)
+        val startNow = Ui.pill(c, "Start now", Trainings.accent(Engine.config.key), Ui.onColor(Trainings.accent(Engine.config.key)))
+        startNow.setOnClickListener { advanceSession() }
+        sessionCard.addTo(startNow, 12)
+        val endSession = Ui.pill(c, "End session", Ui.SOFT, Ui.TEXT)
+        endSession.setOnClickListener { finishToHome() }
+        sessionCard.addTo(endSession, 8)
+        v.addTo(sessionCard, 20)
+
         doneStats = Ui.card(c, Trainings.soft(Engine.config.key))
         v.addTo(doneStats, 24)
+
+        // how it felt: saved against this training's record
+        val feelLabel = Ui.text(c, "How did it feel?", 14f, muted, Ui.MED)
+        feelLabel.gravity = Gravity.CENTER
+        v.addTo(feelLabel, 20)
+        val feelRow = LinearLayout(c)
+        feelRow.orientation = LinearLayout.HORIZONTAL
+        val feelButtons = ArrayList<View>()
+        for ((i, label) in Feel.OPTIONS.withIndex()) {
+            val b = LinearLayout(c)
+            b.orientation = LinearLayout.HORIZONTAL
+            b.gravity = Gravity.CENTER
+            b.background = Ui.rounded(c, Ui.SOFT, 23)
+            b.setPadding(Ui.dp(c, 10), Ui.dp(c, 12), Ui.dp(c, 10), Ui.dp(c, 12))
+            b.isClickable = true
+            b.addView(FsIconView(c, Feel.face(label), Ui.TEXT), LinearLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20)))
+            val tlp = LinearLayout.LayoutParams(-2, -2)
+            tlp.leftMargin = Ui.dp(c, 6)
+            b.addView(Ui.text(c, label, 14f, Ui.TEXT, Ui.BOLD), tlp)
+            b.setOnClickListener {
+                val uid = Session.userId
+                val ts = LocalStore.lastTrainingTs
+                if (uid.isNotEmpty() && ts > 0L) Feel.set(uid, ts, label)
+                for (other in feelButtons) other.alpha = if (other === b) 1f else 0.4f
+                Toast.makeText(this, "Saved: $label", Toast.LENGTH_SHORT).show()
+            }
+            feelButtons.add(b)
+            val lp = LinearLayout.LayoutParams(0, -2, 1f)
+            if (i > 0) lp.leftMargin = Ui.dp(c, 8)
+            feelRow.addView(b, lp)
+        }
+        v.addTo(feelRow, 10)
 
         val done = Ui.pill(c, "Done", Trainings.accent(Engine.config.key), Ui.onColor(Trainings.accent(Engine.config.key)))
         done.setOnClickListener { finishToHome() }
@@ -455,6 +521,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     private fun showDone() {
         showingDone = true
+        stopMotionSensor()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         try {
             camProvider?.unbindAll()
@@ -465,6 +532,31 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
         val cfg = Engine.config
         doneTitle.text = Trainings.doneTitle(cfg.key)
+
+        // a session: say what is next, and move on by itself after a few seconds
+        if (TrainingSession.items.size > 1) {
+            sessionCard.visibility = View.VISIBLE
+            if (TrainingSession.hasNext()) {
+                val nxt = TrainingSession.items[TrainingSession.index + 1]
+                sessionText.text = "Training ${TrainingSession.position()} done.\nUp next: ${Trainings.name(nxt.key)} in 5 seconds"
+                sessionHandler.postDelayed({ advanceSession() }, 5000L)
+            } else {
+                sessionText.text = "Session complete: ${TrainingSession.items.size} trainings done."
+            }
+        } else {
+            sessionCard.visibility = View.GONE
+        }
+
+        // show the milestone once, on the training that reached it
+        val streak = Profile.normalize(LocalStore.profile(Session.userId)).optInt("streak", 0)
+        val msg = Milestones.message(streak)
+        if (msg != null && Session.prefs.getInt("milestone", 0) != streak) {
+            Session.prefs.edit().putInt("milestone", streak).apply()
+            milestoneText.text = msg
+            milestoneCard.visibility = View.VISIBLE
+        } else {
+            milestoneCard.visibility = View.GONE
+        }
         doneQuote.text = "\"" + Trainings.quotes(cfg.key).random() + "\""
         doneStats.removeAllViews()
         val rows = statRows(cfg, Engine.resultSec)
@@ -495,6 +587,32 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     }
 
     // ---------- leaving ----------
+
+    /** No Fidgeting: real movement from the phone's motion sensor raises the Motion meter. */
+    private fun startMotionSensor() {
+        if (showingDone || Engine.config.key != Trainings.FIDGET || motionSensor != null) return
+        val sm = getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager
+        val sensor = sm.getDefaultSensor(android.hardware.Sensor.TYPE_LINEAR_ACCELERATION) ?: return
+        val l = object : android.hardware.SensorEventListener {
+            override fun onSensorChanged(e: android.hardware.SensorEvent) {
+                val x = e.values[0]
+                val y = e.values[1]
+                val z = e.values[2]
+                val mag = Math.sqrt((x * x + y * y + z * z).toDouble()).toFloat()
+                // ignore small wobble; bigger movement adds more to the meter
+                if (mag > 0.8f) Engine.addMotion(Math.min(12f, mag * 2f))
+            }
+            override fun onAccuracyChanged(s: android.hardware.Sensor?, accuracy: Int) {}
+        }
+        sm.registerListener(l, sensor, android.hardware.SensorManager.SENSOR_DELAY_UI)
+        motionSensor = l
+    }
+
+    private fun stopMotionSensor() {
+        val l = motionSensor ?: return
+        (getSystemService(android.content.Context.SENSOR_SERVICE) as android.hardware.SensorManager).unregisterListener(l)
+        motionSensor = null
+    }
 
     /** Info button on the right of the header: says what this training is about. */
     private fun infoAction(): View {
@@ -535,7 +653,18 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         finishToHome()
     }
 
+    /** Starts the next training of the session on a fresh training screen. */
+    private fun advanceSession() {
+        sessionHandler.removeCallbacksAndMessages(null)
+        val nxt = TrainingSession.next() ?: return
+        Engine.start(this, nxt)
+        startActivity(Intent(this, TrainingActivity::class.java))
+        finish()
+    }
+
     private fun finishToHome() {
+        sessionHandler.removeCallbacksAndMessages(null)
+        TrainingSession.clear()
         Engine.reset()
         startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
         finish()

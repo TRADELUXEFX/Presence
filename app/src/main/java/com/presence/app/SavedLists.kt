@@ -50,6 +50,64 @@ object SavedLists {
         save(uid) { list -> list.add(o) }
     }
 
+    private fun cfgJson(cfg: Config): JSONObject = JSONObject()
+        .put("key", cfg.key)
+        .put("mode", cfg.mode)
+        .put("repSec", cfg.repSec)
+        .put("sets", cfg.sets)
+        .put("restSec", cfg.restSec)
+        .put("medMin", cfg.medMin)
+        .put("voice", cfg.voice)
+
+    /** The trainings inside a saved session, in order. */
+    fun sessionItems(o: JSONObject): List<Config> {
+        val arr = o.optJSONArray("items") ?: return emptyList()
+        return List(arr.length()) { toConfig(arr.getJSONObject(it)) }
+    }
+
+    /** Saves a named session: several trainings in order, kept in Saved list. */
+    fun addSession(uid: String, name: String, items: List<Config>) {
+        val o = JSONObject()
+            .put("id", System.currentTimeMillis().toString())
+            .put("name", name)
+            .put("kind", "session")
+            .put("key", items.firstOrNull()?.key ?: "")
+            .put("items", JSONArray(items.map { cfgJson(it) }))
+        save(uid) { list -> list.add(o) }
+    }
+
+    /** Saves changes to a session that is already in Saved list. */
+    fun updateSession(uid: String, id: String, name: String, items: List<Config>) {
+        val o = JSONObject()
+            .put("id", id)
+            .put("name", name)
+            .put("kind", "session")
+            .put("key", items.firstOrNull()?.key ?: "")
+            .put("items", JSONArray(items.map { cfgJson(it) }))
+        save(uid) { list ->
+            val i = list.indexOfFirst { it.optString("id") == id }
+            if (i >= 0) list[i] = o
+        }
+    }
+
+    /** Saves changes to an existing saved list, keeping its place. */
+    fun update(uid: String, id: String, name: String, cfg: Config) {
+        val o = JSONObject()
+            .put("id", id)
+            .put("name", name)
+            .put("key", cfg.key)
+            .put("mode", cfg.mode)
+            .put("repSec", cfg.repSec)
+            .put("sets", cfg.sets)
+            .put("restSec", cfg.restSec)
+            .put("medMin", cfg.medMin)
+            .put("voice", cfg.voice)
+        save(uid) { list ->
+            val i = list.indexOfFirst { it.optString("id") == id }
+            if (i >= 0) list[i] = o
+        }
+    }
+
     fun remove(uid: String, ids: Set<String>) {
         save(uid) { list -> list.removeAll { ids.contains(it.optString("id")) } }
     }

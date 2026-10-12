@@ -119,11 +119,4 @@ object Loading {
         return row
     }
 
-    /** The loading animation while the AI is writing a list: just the sweeping ring, centered in a card. */
-    fun aiCard(c: Context): LinearLayout {
-        val card = Ui.card(c)
-        card.gravity = android.view.Gravity.CENTER_HORIZONTAL
-        card.addView(SpinnerRingView(c), LinearLayout.LayoutParams(Ui.dp(c, 64), Ui.dp(c, 64)))
-        return card
-    }
 }

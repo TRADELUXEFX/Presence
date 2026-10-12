@@ -67,10 +67,14 @@ object LocalStore {
         Session.prefs.edit().putString(profileKey(uid), row.toString()).apply()
     }
 
+    /** When the last finished training was saved, so its feel rating can be stored against it. */
+    @Volatile var lastTrainingTs = 0L
+
     /** Saves a finished training on the phone: updates the profile and queues the session row. */
     @Synchronized
     fun recordTraining(uid: String, key: String, sec: Int, meta: Meta): JSONObject {
         val ts = System.currentTimeMillis()
+        lastTrainingTs = ts
         val row = Profile.record(profile(uid), key, sec)
         val queue = pendingArray()
         queue.put(Profile.sessionRow(uid, key, sec, meta, ts))

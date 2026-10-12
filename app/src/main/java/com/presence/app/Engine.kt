@@ -120,6 +120,14 @@ object Engine {
         notifyListeners()
     }
 
+    /** Movement from the phone's motion sensor. Fidget only, while a training runs. */
+    fun addMotion(amount: Float) {
+        if (!running || config.key != Trainings.FIDGET) return
+        motion = Math.min(100f, motion + amount)
+        setMotion()
+        notifyListeners()
+    }
+
     /** A screen touch. Fidget counts it as movement, as the website does. */
     fun touch() {
         if (!running || config.key != Trainings.FIDGET) return
@@ -285,6 +293,7 @@ object Engine {
         val uid = Session.userId
         if (uid.isNotEmpty()) {
             LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c))
+            Recent.remember(uid, c)
             Sync.flush()
         }
         appCtx?.let {
@@ -355,7 +364,20 @@ object Engine {
         }
     }
 
+    /** A short buzz with each cue, if vibration is on in settings. */
+    private fun buzz() {
+        val ctx = appCtx ?: return
+        if (!Session.prefs.getBoolean("vibrate", true)) return
+        val vib = ctx.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator ?: return
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            vib.vibrate(android.os.VibrationEffect.createOneShot(60L, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            vib.vibrate(60L)
+        }
+    }
+
     private fun speak(text: String) {
+        buzz()
         if (!config.voice) return
         val t = tts
         if (t == null || !ttsReady) {

@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -113,5 +114,7 @@
             android:name=".TrainingService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+        <activity android:name=".SessionActivity" android:exported="false" />
+        <activity android:name=".TrainingsActivity" android:exported="false" />
     </application>
 </manifest>

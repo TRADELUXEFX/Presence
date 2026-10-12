@@ -186,10 +186,6 @@ object Ui {
         return b
     }
 
-    fun setPillColor(c: Context, b: Button, bg: Int) {
-        b.background = rounded(c, bg, 28)
-    }
-
     /** Light-blue card fill (Training History), so cards stand out from the near-white page. */
     val CARD_TINT: Int get() = c("#D6E8FF", "#1B3558")
 
@@ -229,12 +225,6 @@ object Ui {
         t.setLineSpacing(0f, 1.25f)
         t.setPadding(dp(c, 24), dp(c, 32), dp(c, 24), dp(c, 32))
         return t
-    }
-
-    fun divider(c: Context): View {
-        val v = View(c)
-        v.setBackgroundColor(LINE)
-        return v
     }
 
     fun lp(c: Context, topDp: Int = 0): LinearLayout.LayoutParams {
@@ -399,7 +389,7 @@ object Ui {
 
     /** "Tip" label for a header: tap to read what the training is about. */
     fun infoButton(c: Context, fg: Int, onClick: () -> Unit): View {
-        val tip = text(c, "Tip", 14f, fg, BOLD)
+        val tip = text(c, "Tips", 14f, fg, BOLD)
         tip.gravity = Gravity.CENTER
         tip.maxLines = 1
         tip.background = rounded(c, Color.parseColor("#33FFFFFF"), 20)
@@ -435,26 +425,6 @@ object Ui {
         if (on) {
             val s = dp(c, (sizeDp * 0.64f).toInt())
             f.addView(FsIconView(c, Icons.CHECK, WHITE), FrameLayout.LayoutParams(s, s, Gravity.CENTER))
-        }
-        return f
-    }
-
-    /** "Pick one" marker for pop-up lists: a ring, with a solid blue dot inside when chosen. */
-    fun radio(c: Context, on: Boolean, sizeDp: Int): FrameLayout {
-        val f = FrameLayout(c)
-        val ring = GradientDrawable()
-        ring.shape = GradientDrawable.OVAL
-        ring.setColor(SURFACE)
-        ring.setStroke(dp(c, 2), if (on) BLUE else CHECK_LINE)
-        f.background = ring
-        if (on) {
-            val dot = View(c)
-            val d = GradientDrawable()
-            d.shape = GradientDrawable.OVAL
-            d.setColor(BLUE)
-            dot.background = d
-            val s = dp(c, (sizeDp * 0.46f).toInt())
-            f.addView(dot, FrameLayout.LayoutParams(s, s, Gravity.CENTER))
         }
         return f
     }

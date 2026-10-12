@@ -15,6 +15,7 @@ import org.json.JSONObject
 /** Home: streaks, today's progress, and the four trainings. */
 class HomeActivity : BaseActivity() {
     private lateinit var column: LinearLayout
+    private lateinit var statHolder: LinearLayout
     private var net: NetWatch? = null
     private var online = true
     private var loading = false
@@ -65,25 +66,29 @@ class HomeActivity : BaseActivity() {
         signOutLp.leftMargin = Ui.dp(c, 8)
         top.addView(signOut, signOutLp)
         hero.addView(top, LinearLayout.LayoutParams(-1, -2))
-        val progressBtn = Ui.pill(c, "View Progress", Color.parseColor("#33FFFFFF"), Ui.WHITE)
-        progressBtn.setOnClickListener { startActivity(Intent(this, ProgressActivity::class.java)) }
-        val progressLp = LinearLayout.LayoutParams(-1, -2)
-        progressLp.topMargin = Ui.dp(c, 16)
-        hero.addView(progressBtn, progressLp)
+        // the day and full streak cards sit in the blue header
+        statHolder = LinearLayout(c)
+        statHolder.orientation = LinearLayout.VERTICAL
+        val statLp = LinearLayout.LayoutParams(-1, -2)
+        statLp.topMargin = Ui.dp(c, 16)
+        hero.addView(statHolder, statLp)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))
 
         column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
         column.setPadding(Ui.dp(c, 20), Ui.dp(c, 6), Ui.dp(c, 20), Ui.dp(c, 32))
         root.addView(column, LinearLayout.LayoutParams(-1, -2))
-        Ui.padInsets(root, bottom = true)
 
         val scroll = ScrollView(c)
         scroll.isFillViewport = true
         scroll.setBackgroundColor(Ui.BG)
         scroll.addView(root)
         Ui.noClip(root, column, scroll)
-        setContentView(scroll)
+        val screen = LinearLayout(c)
+        screen.orientation = LinearLayout.VERTICAL
+        screen.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        screen.addView(Nav.bar(c, 0), LinearLayout.LayoutParams(-1, -2))
+        setContentView(screen)
     }
 
     override fun onResume() {
@@ -131,6 +136,7 @@ class HomeActivity : BaseActivity() {
         if (!::column.isInitialized) return
         val c = this
         column.removeAllViews()
+        if (::statHolder.isInitialized) statHolder.removeAllViews()
         StreakWidget.updateAll(c)
         if (!online) {
             val banner = Ui.banner(c, "You're offline. Trainings are saved on this phone and sync when you're back online.")
@@ -143,13 +149,48 @@ class HomeActivity : BaseActivity() {
             failed -> column.addTo(errorCard(), 16)
             else -> {
                 val p = Profile.normalize(LocalStore.profile(Session.userId))
-                column.addTo(statRow(p), 16)
+                statHolder.addView(statRow(p), LinearLayout.LayoutParams(-1, -2))
                 column.addTo(todayCard(p), 16)
-                column.addTo(sectionHeader(), 28)
-                val mods = p.optJSONObject("mods") ?: JSONObject()
-                for (k in Trainings.ALL) column.addTo(trainingCard(k, mods.optInt(k, 0)), 14)
+                column.addTo(quickHeader(), 28)
+                val recent = Recent.all(Session.userId)
+                if (recent.isEmpty()) column.addTo(Ui.note(c, "Your last trainings show here after you finish one."), 12)
+                for (cfg in recent.take(3)) column.addTo(quickCard(cfg), 12)
             }
         }
+    }
+
+    private fun quickHeader(): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        row.addView(Ui.sectionTitle(c, "Quick start"), LinearLayout.LayoutParams(0, -2, 1f))
+        return row
+    }
+
+    /** A recent training with a Start button that runs it. */
+    private fun quickCard(cfg: Config): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 14))
+        val line = LinearLayout(c)
+        line.orientation = LinearLayout.HORIZONTAL
+        line.gravity = Gravity.CENTER_VERTICAL
+        val text = LinearLayout(c)
+        text.orientation = LinearLayout.VERTICAL
+        text.addView(Ui.text(c, Trainings.name(cfg.key), 15f, Ui.TEXT, Ui.BOLD))
+        text.addTo(Ui.text(c, "Recent", 12f, Ui.MUTED, Ui.REG), 3)
+        line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val start = Ui.pill(c, "Start", Trainings.accent(cfg.key), Ui.onColor(Trainings.accent(cfg.key)))
+        start.textSize = 14f
+        start.setOnClickListener {
+            TrainingSession.clear()
+            TrainingSession.items.add(cfg)
+            startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))
+        }
+        line.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)))
+        card.addView(line)
+        return card
     }
 
     /** Light/dark switch in the header. Saves the choice and restarts Home so every colour updates. */
@@ -182,6 +223,11 @@ class HomeActivity : BaseActivity() {
         row.addView(Ui.sectionTitle(c, "Trainings"), LinearLayout.LayoutParams(0, -2, 1f))
         val link = Ui.text(c, "Saved list  ›", 13f, Ui.BLUE, Ui.BOLD)
         link.setOnClickListener { startActivity(Intent(this, SavedListActivity::class.java)) }
+        val session = Ui.text(c, "Session  \u203A", 13f, Ui.BLUE, Ui.BOLD)
+        session.setOnClickListener { startActivity(Intent(this, SessionActivity::class.java)) }
+        val sessionLp = LinearLayout.LayoutParams(-2, -2)
+        sessionLp.rightMargin = Ui.dp(c, 14)
+        row.addView(session, sessionLp)
         row.addView(link)
         return row
     }

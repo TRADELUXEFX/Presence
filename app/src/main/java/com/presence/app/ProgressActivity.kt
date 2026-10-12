@@ -67,7 +67,7 @@ class ProgressActivity : BaseActivity() {
         val headBg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
         headBg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
         headBox.background = headBg
-        val titleRow = Ui.header(c, "Progress") { finish() }
+        val titleRow = Ui.header(c, "History") { finish() }
         titleRow.background = null
         headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
 
@@ -93,12 +93,16 @@ class ProgressActivity : BaseActivity() {
         exportBar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
         Ui.bottomBarBg(c, exportBar)
         exportBtn = Ui.pill(c, "Export history")
-        exportBtn.setOnClickListener { exportHistory(exportable) }
+        exportBtn.setOnClickListener { chooseExportRange() }
         exportBar.addView(exportBtn, LinearLayout.LayoutParams(-1, -2))
         exportBar.visibility = View.GONE
         root.addView(exportBar, LinearLayout.LayoutParams(-1, -2))
         Ui.padInsets(exportBar, bottom = true)
-        setContentView(root)
+        val screen = LinearLayout(c)
+        screen.orientation = LinearLayout.VERTICAL
+        screen.addView(root, LinearLayout.LayoutParams(-1, -1))
+        screen.addView(Nav.bar(c, 2), LinearLayout.LayoutParams(-1, -2))
+        setContentView(screen)
 
         // BaseActivity turns clipping off on every view, so the history list drew over the tabs
         // when scrolling up. Turn clipping back on for the scroll area only, with rounded top corners
@@ -645,8 +649,10 @@ class ProgressActivity : BaseActivity() {
         Ui.fit(whenText, 14)
         left.addView(whenText)
         val meta = metaText(key, r)
-        val details = if (meta.isEmpty()) Fmt.duration(r.optLong("sec", 0L))
+        val base = if (meta.isEmpty()) Fmt.duration(r.optLong("sec", 0L))
         else "$meta · " + Fmt.duration(r.optLong("sec", 0L))
+        val felt = Feel.get(Session.userId, r.optLong("ts", 0L))
+        val details = if (felt == null) base else "$base · Felt $felt"
         left.addTo(Ui.text(c, details, 13f, Ui.MUTED_TINT, Ui.REG), 4)
         row.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
         val tag = Ui.text(c, Trainings.name(key), 11f, Ui.onColor(Trainings.accent(key)), Ui.BOLD)
@@ -707,13 +713,87 @@ class ProgressActivity : BaseActivity() {
 
     // ---------- export ----------
 
-    private fun exportHistory(list: List<JSONObject>) {
-        if (list.isEmpty()) return
+    /** Pop-up: pick how far back the PDF goes. */
+    private fun chooseExportRange() {
+        if (history.isNullOrEmpty()) {
+            android.widget.Toast.makeText(this, "No history to export yet", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (isFinishing) return
+        val d = android.app.Dialog(this)
+        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        val card = Ui.card(this)
+        card.setPadding(Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22))
+        card.addView(Ui.text(this, "Export history", 18f, Ui.TEXT, Ui.BOLD))
+        card.addTo(Ui.text(this, "Which trainings do you want in the PDF?", 14f, Ui.MUTED, Ui.REG), 8)
+        val options = listOf(Pair("Last 7 days", 7), Pair("Last 30 days", 30), Pair("All time", 0))
+        for ((i, o) in options.withIndex()) {
+            val primary = o.second == 0
+            val b = Ui.pill(this, o.first, if (primary) Ui.BLUE else Ui.SOFT, if (primary) Ui.WHITE else Ui.TEXT)
+            b.setOnClickListener {
+                d.dismiss()
+                exportHistory(rangeOf(o.second), o.first)
+            }
+            card.addTo(b, if (i == 0) 20 else 10)
+        }
+        val dates = Ui.pill(this, "Choose dates", Ui.SOFT, Ui.TEXT)
+        dates.setOnClickListener {
+            d.dismiss()
+            pickDates()
+        }
+        card.addTo(dates, 10)
+        Ui.noClipDeep(card)
+        d.setContentView(card)
+        d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+        d.window?.setLayout((resources.displayMetrics.widthPixels * 0.9f).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+        d.show()
+    }
+
+    /** Two calendars: the first day, then the last day. The PDF covers everything in between. */
+    private fun pickDates() {
+        val now = Calendar.getInstance()
+        val dayFmt = SimpleDateFormat("d MMM yyyy", Locale.US)
+        android.app.DatePickerDialog(this, { _, y, m, d ->
+            val start = Calendar.getInstance().apply {
+                set(y, m, d, 0, 0, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            android.app.DatePickerDialog(this, { _, y2, m2, d2 ->
+                val end = Calendar.getInstance().apply {
+                    set(y2, m2, d2, 23, 59, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }.timeInMillis
+                val all = history ?: emptyList()
+                val list = all.filter {
+                    matchesFilter(it) && it.optLong("ts", 0L) in start..end
+                }
+                exportHistory(list, dayFmt.format(Date(start)) + " - " + dayFmt.format(Date(end)))
+            }, y, m, d).apply {
+                datePicker.minDate = start
+                datePicker.maxDate = System.currentTimeMillis()
+            }.show()
+        }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)).apply {
+            datePicker.maxDate = now.timeInMillis
+        }.show()
+    }
+
+    /** The trainings in the chosen range that match the training filter on screen. */
+    private fun rangeOf(days: Int): List<JSONObject> {
+        val all = history ?: return emptyList()
+        val cutoff = if (days == 0) 0L else System.currentTimeMillis() - days * DAY
+        return all.filter { matchesFilter(it) && it.optLong("ts", 0L) >= cutoff }
+    }
+
+    private fun exportHistory(list: List<JSONObject>, rangeLabel: String) {
+        if (list.isEmpty()) {
+            android.widget.Toast.makeText(this, "No trainings in that range", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         try {
-            val file = writeCsv(list)
+            val file = writePdf(list, rangeLabel)
             val uri = FileProvider.getUriForFile(this, packageName + ".fileprovider", file)
             val send = Intent(Intent.ACTION_SEND).apply {
-                type = "text/csv"
+                type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -722,27 +802,42 @@ class ProgressActivity : BaseActivity() {
             Dialogs.show(
                 this,
                 "Couldn't export",
-                "Something went wrong while making the file. Please try again.",
+                "Something went wrong while making the PDF. Please try again.",
                 "OK"
             )
         }
     }
 
-    private fun writeCsv(list: List<JSONObject>): File {
-        val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
-        val sb = StringBuilder("date,training,duration_seconds,details\n")
-        for (r in list) {
+    /** The PDF for the trainings shown on the Progress screen, in the same design as PauzFirst's summary. */
+    private fun writePdf(list: List<JSONObject>, rangeLabel: String): File {
+        val df = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.US)
+        val dayFmt = SimpleDateFormat("d MMM yyyy", Locale.US)
+        val totalSec = list.sumOf { it.optLong("sec", 0L) }
+        val rows = list.map { r ->
             val key = r.optString("mod")
-            sb.append(csv(fmt.format(Date(r.optLong("ts", 0L))))).append(',')
-            sb.append(csv(Trainings.name(key))).append(',')
-            sb.append(r.optLong("sec", 0L)).append(',')
-            sb.append(csv(metaText(key, r))).append('\n')
+            PdfReport.Row(
+                df.format(Date(r.optLong("ts", 0L))),
+                Trainings.name(key),
+                metaText(key, r),
+                Fmt.duration(r.optLong("sec", 0L))
+            )
         }
+        val totals = listOf(
+            Pair("Trainings", list.size.toString()),
+            Pair("Total time", Fmt.duration(totalSec)),
+            Pair("Avg. length", Fmt.duration(totalSec / list.size))
+        )
+        val byTraining = Trainings.ALL.mapNotNull { k ->
+            val n = list.count { it.optString("mod") == k }
+            if (n > 0) Pair(Trainings.name(k), n) else null
+        }
+        val oldest = list.minOf { it.optLong("ts", 0L) }
+        val newest = list.maxOf { it.optLong("ts", 0L) }
+        val period = dayFmt.format(Date(oldest)) + " - " + dayFmt.format(Date(newest))
+        val generated = "Generated " + df.format(Date())
         val dir = File(cacheDir, "reports").apply { mkdirs() }
-        val file = File(dir, "presence-history.csv")
-        file.writeText(sb.toString())
+        val file = File(dir, "presence-history.pdf")
+        PdfReport.write(this, file, rangeLabel, period, generated, totals, byTraining, rows)
         return file
     }
-
-    private fun csv(s: String): String = "\"" + s.replace("\"", "\"\"") + "\""
 }
