@@ -542,6 +542,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
                 sessionHandler.postDelayed({ advanceSession() }, 5000L)
             } else {
                 sessionText.text = "Session complete: ${TrainingSession.items.size} trainings done."
+                Recent.rememberSession(Session.userId, TrainingSession.items)
             }
         } else {
             sessionCard.visibility = View.GONE

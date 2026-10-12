@@ -71,7 +71,7 @@ class ProgressActivity : BaseActivity() {
         exportBtn.textSize = 13f
         exportBtn.minimumHeight = Ui.dp(c, 34)
         exportBtn.setPadding(Ui.dp(c, 14), Ui.dp(c, 6), Ui.dp(c, 14), Ui.dp(c, 6))
-        val titleRow = Ui.header(c, "History", 0, exportBtn) { Nav.goHome(this) }
+        val titleRow = Ui.header(c, "History", action = exportBtn, showBack = false) { }
         titleRow.background = null
         headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
 

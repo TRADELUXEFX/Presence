@@ -331,7 +331,7 @@ object Ui {
     }
 
     /** Blue top bar with a round arrow-only Back button and the title centered. */
-    fun header(c: Context, title: String, tint: Int = 0, action: View? = null, titleExtra: View? = null, onBack: () -> Unit): LinearLayout {
+    fun header(c: Context, title: String, tint: Int = 0, action: View? = null, titleExtra: View? = null, showBack: Boolean = true, onBack: () -> Unit): LinearLayout {
         val h = LinearLayout(c)
         h.orientation = LinearLayout.HORIZONTAL
         h.gravity = Gravity.CENTER_VERTICAL
@@ -359,7 +359,8 @@ object Ui {
         // whether the right side holds an action (Select, Save) or nothing.
         val left = LinearLayout(c)
         left.gravity = Gravity.CENTER_VERTICAL or Gravity.START
-        left.addView(back, LinearLayout.LayoutParams(size, size))
+        // tab screens have no back arrow; the space stays so the title is still centred
+        left.addView(if (showBack) back else View(c), LinearLayout.LayoutParams(size, size))
         h.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
 
         val t = text(c, title, 20f, fgHead, BOLD)

@@ -35,7 +35,7 @@ class TrainingsActivity : BaseActivity() {
         val headBg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
         headBg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
         headBox.background = headBg
-        val titleRow = Ui.header(c, "Trainings") { Nav.goHome(this) }
+        val titleRow = Ui.header(c, "Trainings", showBack = false) { }
         titleRow.background = null
         headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
         toggle = LinearLayout(c)

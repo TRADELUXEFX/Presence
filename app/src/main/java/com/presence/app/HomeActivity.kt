@@ -152,9 +152,9 @@ class HomeActivity : BaseActivity() {
                 statHolder.addView(statRow(p), LinearLayout.LayoutParams(-1, -2))
                 column.addTo(todayCard(p), 16)
                 column.addTo(quickHeader(), 28)
-                val recent = Recent.all(Session.userId)
-                if (recent.isEmpty()) column.addTo(Ui.note(c, "Your last trainings show here after you finish one."), 12)
-                for (cfg in recent.take(3)) column.addTo(quickCard(cfg), 12)
+                val quick = Recent.quick(Session.userId)
+                if (quick.isEmpty()) column.addTo(quickEmpty(), 12)
+                for (e in quick) column.addTo(quickCard(e), 12)
             }
         }
     }
@@ -168,9 +168,10 @@ class HomeActivity : BaseActivity() {
         return row
     }
 
-    /** A recent training with a Start button that runs it. */
-    private fun quickCard(cfg: Config): LinearLayout {
+    /** One Quick start item: a recent or saved training or session, with a Start button. */
+    private fun quickCard(e: JSONObject): LinearLayout {
         val c = this
+        val kind = e.optString("kind")
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 14))
         val line = LinearLayout(c)
@@ -178,18 +179,54 @@ class HomeActivity : BaseActivity() {
         line.gravity = Gravity.CENTER_VERTICAL
         val text = LinearLayout(c)
         text.orientation = LinearLayout.VERTICAL
-        text.addView(Ui.text(c, Trainings.name(cfg.key), 15f, Ui.TEXT, Ui.BOLD))
-        text.addTo(Ui.text(c, "Recent", 12f, Ui.MUTED, Ui.REG), 3)
+        val isSession = kind == "session" || kind == "saved-session"
+        val name = if (isSession) {
+            val n = SavedLists.sessionItems(e).size
+            if (kind == "saved-session") e.optString("name") else "Recent session \u00B7 $n trainings"
+        } else e.optString("name")
+        text.addView(Ui.text(c, name, 15f, Ui.TEXT, Ui.BOLD))
+        val sub = when (kind) {
+            "training" -> "Recent training"
+            "session" -> "Recent session"
+            "saved-session" -> "Saved session"
+            else -> "Saved training"
+        }
+        text.addTo(Ui.text(c, sub, 12f, Ui.MUTED, Ui.REG), 3)
         line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val start = Ui.pill(c, "Start", Trainings.accent(cfg.key), Ui.onColor(Trainings.accent(cfg.key)))
+        val firstKey = if (isSession) SavedLists.sessionItems(e).firstOrNull()?.key ?: Trainings.BLINK else e.optString("key")
+        val tint = Trainings.accent(firstKey)
+        val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
         start.textSize = 14f
         start.setOnClickListener {
-            TrainingSession.clear()
-            TrainingSession.items.add(cfg)
-            startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))
+            if (kind == "saved-single") {
+                startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", e.optString("id")))
+            } else {
+                TrainingSession.clear()
+                if (isSession) TrainingSession.items.addAll(SavedLists.sessionItems(e))
+                else TrainingSession.items.add(SavedLists.toConfig(e))
+                startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))
+            }
         }
         line.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)))
         card.addView(line)
+        return card
+    }
+
+    /** Shown when there is nothing to start yet: a way to begin. */
+    private fun quickEmpty(): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 22), Ui.dp(c, 20), Ui.dp(c, 22), Ui.dp(c, 20))
+        val head = Ui.text(c, "Nothing here yet", 15f, Ui.TEXT, Ui.BOLD)
+        head.gravity = Gravity.CENTER
+        card.addView(head)
+        val body = Ui.text(c, "Start a training to try it, or build a session. Your saved sessions appear here so you can start them in one tap.", 12f, Ui.MUTED, Ui.REG)
+        body.gravity = Gravity.CENTER
+        body.setLineSpacing(0f, 1.25f)
+        card.addTo(body, 6)
+        val go = Ui.pill(c, "Go to Trainings", Ui.BLUE, Ui.WHITE)
+        go.setOnClickListener { startActivity(Intent(c, TrainingsActivity::class.java)) }
+        card.addTo(go, 14)
         return card
     }
 

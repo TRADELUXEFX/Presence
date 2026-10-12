@@ -114,6 +114,7 @@ class SessionActivity : BaseActivity() {
 
         addIcon(line, Icons.CHEVRON, -90f) { move(i, -1) }
         addIcon(line, Icons.CHEVRON, 90f) { move(i, 1) }
+        addIcon(line, Icons.PENCIL, 0f) { editItem(i) }
         addIcon(line, closePath, 0f) {
             items.removeAt(i)
             render()
@@ -158,14 +159,76 @@ class SessionActivity : BaseActivity() {
         val card = Ui.card(this)
         card.setPadding(Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22))
         card.addView(Ui.text(this, "Add a training", 18f, Ui.TEXT, Ui.BOLD))
-        for ((i, k) in Trainings.ALL.withIndex()) {
+        card.addTo(Ui.text(this, "Default settings", 12f, Ui.MUTED, Ui.MED), 14)
+        for (k in Trainings.ALL) {
             val b = Ui.pill(this, Trainings.name(k), Trainings.accent(k), Ui.onColor(Trainings.accent(k)))
             b.setOnClickListener {
                 d.dismiss()
                 addTraining(k)
             }
-            card.addTo(b, if (i == 0) 16 else 10)
+            card.addTo(b, 8)
         }
+        val saved = SavedLists.all(Session.userId).filter { it.optString("kind") != "session" }
+        if (saved.isNotEmpty()) {
+            card.addTo(Ui.text(this, "Your saved settings", 12f, Ui.MUTED, Ui.MED), 16)
+            for (o in saved) {
+                val cfg = SavedLists.toConfig(o)
+                val b = Ui.pill(this, o.optString("name") + "  \u00B7  " + Trainings.name(cfg.key), Ui.SOFT, Ui.TEXT)
+                b.setOnClickListener {
+                    d.dismiss()
+                    items.add(cfg)
+                    render()
+                }
+                card.addTo(b, 8)
+            }
+        }
+        val scroll = ScrollView(this)
+        scroll.addView(card)
+        d.setContentView(scroll)
+        d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+        d.window?.setLayout((resources.displayMetrics.widthPixels * 0.9f).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+        d.show()
+    }
+
+    /** Changes one training's settings inside the session: reps, sets, rest, or minutes. */
+    private fun editItem(i: Int) {
+        if (isFinishing) return
+        var tmp = items[i]
+        val tint = Trainings.accent(tmp.key)
+        val d = android.app.Dialog(this)
+        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        val card = Ui.card(this)
+        card.setPadding(Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22))
+        card.addView(Ui.text(this, Trainings.name(tmp.key), 18f, Ui.TEXT, Ui.BOLD))
+        val fields = LinearLayout(this)
+        fields.orientation = LinearLayout.VERTICAL
+        if (tmp.key == Trainings.MEDITATE) {
+            fields.addView(Ui.stepper(this, "Minutes", { tmp.medMin }, { v -> tmp = tmp.copy(medMin = v) }, 1, 120, 1,
+                fastFrom = 10, fastStep = 5, tint = tint, show = { v -> "$v min" }))
+        } else {
+            if (tmp.key != Trainings.BREATH) {
+                fields.addView(Ui.stepper(this, "Seconds per rep", { tmp.repSec }, { v -> tmp = tmp.copy(repSec = v) }, 1, 60, 1,
+                    tint = tint, show = { v -> "${v}s" }))
+            }
+            fields.addView(Ui.stepper(this, if (tmp.key == Trainings.BREATH) "Cycles" else "Sets", { tmp.sets }, { v -> tmp = tmp.copy(sets = v) }, 1, 50, 1,
+                tint = tint, show = { v -> "$v" }))
+            fields.addView(Ui.stepper(this, "Rest (seconds)", { tmp.restSec }, { v -> tmp = tmp.copy(restSec = v) }, 0, 120, 1,
+                tint = tint, show = { v -> "${v}s" }))
+        }
+        card.addTo(fields, 14)
+        val buttons = LinearLayout(this)
+        buttons.orientation = LinearLayout.HORIZONTAL
+        val cancel = Ui.pill(this, "Cancel", Ui.SOFT, Ui.TEXT)
+        cancel.setOnClickListener { d.dismiss() }
+        buttons.addView(cancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = Ui.dp(this@SessionActivity, 6) })
+        val save = Ui.pill(this, "Save", tint, Ui.onColor(tint))
+        save.setOnClickListener {
+            d.dismiss()
+            items[i] = tmp
+            render()
+        }
+        buttons.addView(save, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = Ui.dp(this@SessionActivity, 6) })
+        card.addTo(buttons, 20)
         Ui.noClipDeep(card)
         d.setContentView(card)
         d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))

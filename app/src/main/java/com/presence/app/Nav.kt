@@ -6,7 +6,6 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.widget.LinearLayout
-import com.presence.app.Ui.addTo
 
 /** The bottom bar: Home, Trainings and History. Transparent with curved top corners; the tab you are on is blue. */
 object Nav {
@@ -28,16 +27,25 @@ object Nav {
             val col = if (on) Ui.BLUE else Ui.MUTED
             val tab = LinearLayout(a)
             tab.orientation = LinearLayout.VERTICAL
-            tab.gravity = Gravity.CENTER_HORIZONTAL
-            tab.addView(FsIconView(a, icons[i], col), LinearLayout.LayoutParams(Ui.dp(a, 22), Ui.dp(a, 22)))
-            tab.addTo(Ui.text(a, labels[i], 11f, col, if (on) Ui.BOLD else Ui.MED), 2)
+            tab.gravity = Gravity.CENTER
+            tab.setPadding(0, Ui.dp(a, 4), 0, Ui.dp(a, 4))
+            val icon = FsIconView(a, icons[i], col)
+            val iconLp = LinearLayout.LayoutParams(Ui.dp(a, 22), Ui.dp(a, 22))
+            iconLp.gravity = Gravity.CENTER_HORIZONTAL
+            tab.addView(icon, iconLp)
+            val label = Ui.text(a, labels[i], 11f, col, if (on) Ui.BOLD else Ui.MED)
+            label.gravity = Gravity.CENTER
+            val labelLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            labelLp.gravity = Gravity.CENTER_HORIZONTAL
+            labelLp.topMargin = Ui.dp(a, 2)
+            tab.addView(label, labelLp)
             tab.setOnClickListener {
                 if (!on) {
                     a.startActivity(Intent(a, targets[i]).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
                     a.finish()
                 }
             }
-            bar.addView(tab, LinearLayout.LayoutParams(0, -2, 1f))
+            bar.addView(tab, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         }
         return bar
     }

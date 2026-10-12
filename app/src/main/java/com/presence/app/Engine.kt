@@ -293,7 +293,7 @@ object Engine {
         val uid = Session.userId
         if (uid.isNotEmpty()) {
             LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c))
-            Recent.remember(uid, c)
+            if (TrainingSession.items.size <= 1) Recent.remember(uid, c)
             Sync.flush()
         }
         appCtx?.let {
