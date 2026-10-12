@@ -157,7 +157,7 @@ class ConfigActivity : BaseActivity() {
         saveBtn.setOnClickListener { saveAsDefault(saveBtn) }
         panel.addTo(saveBtn, 16)
         val startBtn = Ui.pill(c, "Start training")
-        startBtn.setOnClickListener { onStart() }
+        startBtn.setOnClickListener { onStartTapped() }
         panel.addTo(startBtn, 10)
     }
 
@@ -256,7 +256,7 @@ class ConfigActivity : BaseActivity() {
     private fun granted(p: String): Boolean =
         ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
 
-    private fun onStart() {
+    private fun onStartTapped() {
         val want = ArrayList<String>()
         if (needsCamera() && !granted(Manifest.permission.CAMERA)) want.add(Manifest.permission.CAMERA)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
