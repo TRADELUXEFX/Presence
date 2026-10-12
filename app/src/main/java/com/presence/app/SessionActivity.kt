@@ -17,7 +17,7 @@ import org.json.JSONObject
 class SessionActivity : BaseActivity() {
     private lateinit var column: LinearLayout
     private lateinit var startBtn: android.widget.Button
-    private val items = ArrayList<Config>()
+    private val items: ArrayList<Config> get() = SessionDraft.items
     private var editingId: String? = null
     private var editingName = ""
 
@@ -58,6 +58,7 @@ class SessionActivity : BaseActivity() {
 
         setContentView(root)
         Ui.setNavColor(c, Ui.BLUE_DARK)
+        SessionDraft.items.clear()
         // opened from Saved list with a session to edit: load its trainings
         intent.getStringExtra("listId")?.let { id ->
             SavedLists.all(Session.userId).firstOrNull { it.optString("id") == id }?.let { o ->
@@ -190,50 +191,17 @@ class SessionActivity : BaseActivity() {
         d.show()
     }
 
-    /** Changes one training's settings inside the session: reps, sets, rest, or minutes. */
+    /** A session item is edited on the full settings screen, which returns here when saved. */
     private fun editItem(i: Int) {
-        if (isFinishing) return
-        var tmp = items[i]
-        val tint = Trainings.accent(tmp.key)
-        val d = android.app.Dialog(this)
-        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
-        val card = Ui.card(this)
-        card.setPadding(Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22))
-        card.addView(Ui.text(this, Trainings.name(tmp.key), 18f, Ui.TEXT, Ui.BOLD))
-        val fields = LinearLayout(this)
-        fields.orientation = LinearLayout.VERTICAL
-        if (tmp.key == Trainings.MEDITATE) {
-            fields.addView(Ui.stepper(this, "Minutes", { tmp.medMin }, { v -> tmp = tmp.copy(medMin = v) }, 1, 120, 1,
-                fastFrom = 10, fastStep = 5, tint = tint, show = { v -> "$v min" }))
-        } else {
-            if (tmp.key != Trainings.BREATH) {
-                fields.addView(Ui.stepper(this, "Seconds per rep", { tmp.repSec }, { v -> tmp = tmp.copy(repSec = v) }, 1, 60, 1,
-                    tint = tint, show = { v -> "${v}s" }))
-            }
-            fields.addView(Ui.stepper(this, if (tmp.key == Trainings.BREATH) "Cycles" else "Sets", { tmp.sets }, { v -> tmp = tmp.copy(sets = v) }, 1, 50, 1,
-                tint = tint, show = { v -> "$v" }))
-            fields.addView(Ui.stepper(this, "Rest (seconds)", { tmp.restSec }, { v -> tmp = tmp.copy(restSec = v) }, 0, 120, 1,
-                tint = tint, show = { v -> "${v}s" }))
-        }
-        card.addTo(fields, 14)
-        val buttons = LinearLayout(this)
-        buttons.orientation = LinearLayout.HORIZONTAL
-        val cancel = Ui.pill(this, "Cancel", Ui.SOFT, Ui.TEXT)
-        cancel.setOnClickListener { d.dismiss() }
-        buttons.addView(cancel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = Ui.dp(this@SessionActivity, 6) })
-        val save = Ui.pill(this, "Save", tint, Ui.onColor(tint))
-        save.setOnClickListener {
-            d.dismiss()
-            items[i] = tmp
-            render()
-        }
-        buttons.addView(save, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = Ui.dp(this@SessionActivity, 6) })
-        card.addTo(buttons, 20)
-        Ui.noClipDeep(card)
-        d.setContentView(card)
-        d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
-        d.window?.setLayout((resources.displayMetrics.widthPixels * 0.9f).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
-        d.show()
+        SessionDraft.editing = i
+        startActivity(Intent(this, ConfigActivity::class.java)
+            .putExtra("draftEdit", true)
+            .putExtra("key", items[i].key))
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::startBtn.isInitialized) render()
     }
 
     /** Adds a training with its own saved default settings. */

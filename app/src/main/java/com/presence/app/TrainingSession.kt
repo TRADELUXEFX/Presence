@@ -31,3 +31,9 @@ object TrainingSession {
         return (active + rest).toLong()
     }
 }
+
+/** The session being built, shared with the settings screen while one item is edited. */
+object SessionDraft {
+    val items = ArrayList<Config>()
+    var editing = -1
+}

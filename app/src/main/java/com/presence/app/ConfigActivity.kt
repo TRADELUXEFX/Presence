@@ -25,6 +25,7 @@ class ConfigActivity : BaseActivity() {
     private lateinit var startBtn: Button
     private var editingId: String? = null
     private var editingName = ""
+    private var draftEdit = false
     private val accentColor: Int get() = Trainings.accent(key)
 
     private val permLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { _ ->
@@ -76,6 +77,12 @@ class ConfigActivity : BaseActivity() {
             key = TrainingSession.items[0].key
             cfg = TrainingSession.items[0]
         }
+        // a session item being edited: this screen changes its settings and returns to the session builder
+        draftEdit = intent.getBooleanExtra("draftEdit", false) && SessionDraft.editing in SessionDraft.items.indices
+        if (draftEdit) {
+            key = SessionDraft.items[SessionDraft.editing].key
+            cfg = SessionDraft.items[SessionDraft.editing]
+        }
         build()
         if (sessionStart) onStartTapped()
         else if (saved != null && !editing) onStartTapped()
@@ -88,7 +95,7 @@ class ConfigActivity : BaseActivity() {
         val frame = LinearLayout(c)
         frame.orientation = LinearLayout.VERTICAL
         frame.setBackgroundColor(Ui.BG)
-        frame.addView(Ui.header(c, Trainings.name(key), accentColor, saveAction()) { finish() }, LinearLayout.LayoutParams(-1, -2))
+        frame.addView(Ui.header(c, Trainings.name(key), accentColor, if (draftEdit) null else saveAction()) { finish() }, LinearLayout.LayoutParams(-1, -2))
 
         panel = LinearLayout(c)
         panel.orientation = LinearLayout.VERTICAL
@@ -106,8 +113,8 @@ class ConfigActivity : BaseActivity() {
         bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
         Ui.tintedBottomBar(c, bar, accentColor)
         bar.elevation = Ui.dp(c, 8).toFloat()
-        startBtn = Ui.pill(c, "Start training", Color.WHITE, Trainings.ink(key))
-        startBtn.setOnClickListener { onStartTapped() }
+        startBtn = Ui.pill(c, if (draftEdit) "Save changes" else "Start training", Color.WHITE, Trainings.ink(key))
+        startBtn.setOnClickListener { if (draftEdit) saveDraftEdit() else onStartTapped() }
         bar.addView(startBtn, LinearLayout.LayoutParams(-1, -2))
         Ui.padInsets(bar, bottom = true)
         frame.addView(bar, LinearLayout.LayoutParams(-1, -2))
@@ -368,6 +375,12 @@ class ConfigActivity : BaseActivity() {
             want.add(Manifest.permission.POST_NOTIFICATIONS)
         }
         if (want.isEmpty()) begin() else permLauncher.launch(want.toTypedArray())
+    }
+
+    /** Puts the changed settings back into the session being built, then returns to it. */
+    private fun saveDraftEdit() {
+        SessionDraft.items[SessionDraft.editing] = cfg
+        finish()
     }
 
     private fun begin() {

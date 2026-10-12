@@ -7,13 +7,12 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.widget.LinearLayout
 
-/** The bottom bar: Home, Trainings and History. Transparent with curved top corners; the tab you are on is blue. */
+/** The bottom bar: Home, Trainings and History. Blue like the header, with curved top corners; the tab you are on is white. */
 object Nav {
     fun bar(a: Activity, active: Int): LinearLayout {
         val bar = LinearLayout(a)
         bar.orientation = LinearLayout.HORIZONTAL
-        val g = GradientDrawable()
-        g.setColor(Color.TRANSPARENT)
+        val g = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
         val r = Ui.dp(a, 22).toFloat()
         g.cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
         bar.background = g
@@ -24,7 +23,7 @@ object Nav {
         val targets = listOf(HomeActivity::class.java, TrainingsActivity::class.java, ProgressActivity::class.java)
         for (i in icons.indices) {
             val on = i == active
-            val col = if (on) Ui.BLUE else Ui.MUTED
+            val col = if (on) Color.WHITE else Color.argb(170, 255, 255, 255)
             val tab = LinearLayout(a)
             tab.orientation = LinearLayout.VERTICAL
             tab.gravity = Gravity.CENTER

@@ -97,7 +97,6 @@ class ProgressActivity : BaseActivity() {
         exportBar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
         Ui.bottomBarBg(c, exportBar)
         exportBtn.setOnClickListener { chooseExportRange() }
-        exportBar.addView(exportBtn, LinearLayout.LayoutParams(-1, -2))
         exportBtn.visibility = View.GONE
         val screen = LinearLayout(c)
         screen.orientation = LinearLayout.VERTICAL
