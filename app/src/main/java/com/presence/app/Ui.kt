@@ -397,18 +397,17 @@ object Ui {
         return h
     }
 
-    /** Round "i" button for a header: tap to read what the training is about. */
+    /** "Tip" label for a header: tap to read what the training is about. */
     fun infoButton(c: Context, fg: Int, onClick: () -> Unit): View {
-        val box = FrameLayout(c)
-        val circle = GradientDrawable()
-        circle.shape = GradientDrawable.OVAL
-        circle.setColor(Color.parseColor("#33FFFFFF"))
-        box.background = circle
-        box.contentDescription = "About this training"
-        box.setOnClickListener { onClick() }
-        box.addView(FsIconView(c, "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M12 16v-4 M12 8h.01", fg),
-            FrameLayout.LayoutParams(dp(c, 22), dp(c, 22), Gravity.CENTER))
-        return box
+        val tip = text(c, "Tip", 14f, fg, BOLD)
+        tip.gravity = Gravity.CENTER
+        tip.maxLines = 1
+        tip.background = rounded(c, Color.parseColor("#33FFFFFF"), 20)
+        tip.setPadding(dp(c, 14), dp(c, 8), dp(c, 14), dp(c, 8))
+        tip.minHeight = dp(c, 40)
+        tip.contentDescription = "About this training"
+        tip.setOnClickListener { onClick() }
+        return tip
     }
 
     /** Small rounded tap target used for list actions. */

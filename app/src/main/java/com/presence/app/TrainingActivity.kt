@@ -27,6 +27,7 @@ import com.presence.app.Ui.addTo
  */
 class TrainingActivity : BaseActivity(), Engine.Listener {
     private lateinit var trainingView: View
+    private lateinit var topStack: LinearLayout
     private lateinit var doneView: ScrollView
     private lateinit var progress: TextView
     private lateinit var popDots: PopDotsView
@@ -122,19 +123,20 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             frame.addView(pv, FrameLayout.LayoutParams(-1, -1))
         }
 
-        val column = LinearLayout(c)
-        column.orientation = LinearLayout.VERTICAL
-        if (!cameraOn) column.addView(
-            Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key), null, infoAction()) { confirmLeave() },
-            LinearLayout.LayoutParams(-1, -2)
-        )
         val content = FrameLayout(c)
         trainingView = buildTraining(c, fg, muted)
         doneView = buildDone(c, fg, muted)
         content.addView(trainingView, FrameLayout.LayoutParams(-1, -1))
         content.addView(doneView, FrameLayout.LayoutParams(-1, -1))
-        column.addView(content, LinearLayout.LayoutParams(-1, 0, 1f))
-        frame.addView(column, FrameLayout.LayoutParams(-1, -1))
+        frame.addView(content, FrameLayout.LayoutParams(-1, -1))
+        if (!cameraOn) {
+            val header = Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key), infoAction()) { confirmLeave() }
+            frame.addView(header, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+            // the count and dashes start just under the header
+            header.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, _ ->
+                if (::topStack.isInitialized) topStack.setPadding(Ui.dp(c, 24), bottom + Ui.dp(c, 8), Ui.dp(c, 24), 0)
+            }
+        }
         if (cameraOn) frame.addView(buildMirrorTop(c), FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
         setContentView(frame)
     }
@@ -255,6 +257,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val top = LinearLayout(c)
         top.orientation = LinearLayout.VERTICAL
         top.setPadding(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), 0)
+        topStack = top
         camNote = Ui.text(c, "Camera not available. Training continues without it.", 12f, Ui.AMBER, Ui.MED)
         camNote.gravity = Gravity.CENTER
         camNote.visibility = View.GONE
@@ -492,12 +495,32 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     // ---------- leaving ----------
 
-    /** Info button in the header: says what this training is about. */
+    /** Info button on the right of the header: says what this training is about. */
     private fun infoAction(): View {
+        return Ui.infoButton(this, Ui.onColor(Trainings.accent(Engine.config.key))) { showAbout() }
+    }
+
+    /** The pop-up behind the info button, with its button in the training's colour. */
+    private fun showAbout() {
+        if (isFinishing) return
         val key = Engine.config.key
-        return Ui.infoButton(this, Ui.onColor(Trainings.accent(key))) {
-            Dialogs.show(this, Trainings.name(key), Trainings.about(key), "Got it")
-        }
+        val tint = Trainings.accent(key)
+        val d = android.app.Dialog(this)
+        d.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+        val card = Ui.card(this)
+        card.setPadding(Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22), Ui.dp(this, 22))
+        card.addView(Ui.text(this, Trainings.name(key), 18f, Ui.TEXT, Ui.BOLD))
+        val body = Ui.text(this, Trainings.about(key), 14f, Ui.MUTED, Ui.REG)
+        body.setLineSpacing(0f, 1.25f)
+        card.addTo(body, 8)
+        val ok = Ui.pill(this, "Got it", tint, Ui.onColor(tint))
+        ok.setOnClickListener { d.dismiss() }
+        card.addTo(ok, 20)
+        Ui.noClipDeep(card)
+        d.setContentView(card)
+        d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+        d.window?.setLayout((resources.displayMetrics.widthPixels * 0.9f).toInt(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
+        d.show()
     }
 
     /** Leaving a training never asks for confirmation; the training ends straight away. */

@@ -110,12 +110,24 @@ class SavedListActivity : BaseActivity() {
         deleteBtn.alpha = if (selected.isEmpty()) 0.45f else 1f
 
         if (all.isEmpty()) {
-            column.addTo(Ui.note(c, "No saved lists yet. Set up a training, then tap Save list at the top."), 0)
+            column.addTo(messageCard("No saved lists yet. Set up a training, then tap Save at the top."), 0)
             return
         }
         val hint = if (selecting) "Tick the lists you want to delete." else "Tap a list to start that training."
-        column.addTo(Ui.text(c, hint, 13f, Ui.MUTED, Ui.REG), 0)
+        column.addTo(messageCard(hint), 0)
         for (o in all) column.addTo(row(o), 12)
+    }
+
+    /** A message in its own card, like the other cards on the screen. */
+    private fun messageCard(text: String): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
+        val t = Ui.text(c, text, 14f, Ui.MUTED, Ui.REG)
+        t.gravity = Gravity.CENTER
+        t.setLineSpacing(0f, 1.25f)
+        card.addView(t)
+        return card
     }
 
     private fun row(o: JSONObject): LinearLayout {
@@ -123,6 +135,7 @@ class SavedListActivity : BaseActivity() {
         val id = o.optString("id")
         val cfg = SavedLists.toConfig(o)
         val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
         card.isClickable = true
         val line = LinearLayout(c)
         line.orientation = LinearLayout.HORIZONTAL
