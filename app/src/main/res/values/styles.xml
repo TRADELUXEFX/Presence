@@ -9,4 +9,11 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:forceDarkAllowed">false</item>
     </style>
+
+    <!-- Launch theme: shown while the app starts, then switches to AppTheme. -->
+    <style name="Theme.Presence.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#1E90FF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme</item>
+    </style>
 </resources>

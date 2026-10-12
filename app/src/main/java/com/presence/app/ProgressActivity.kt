@@ -101,7 +101,13 @@ class ProgressActivity : BaseActivity() {
     }
 
     private fun renderStats(p: JSONObject) {
-        column.addTo(statCard("Trainings completed", p.optInt("sessions", 0).toString(), "all time"), 0)
+        val weekly = Ui.pill(this, "Weekly summary", Ui.BLUE, Ui.WHITE)
+        weekly.setOnClickListener { startActivity(Intent(this, WeeklyActivity::class.java)) }
+        column.addTo(weekly, 0)
+        if (p.optInt("sessions", 0) == 0) {
+            column.addTo(Ui.note(this, "No trainings yet. Start one from Home and it will show up here."), 12)
+        }
+        column.addTo(statCard("Trainings completed", p.optInt("sessions", 0).toString(), "all time"), 12)
         column.addTo(statCard("Total training time", Fmt.duration(p.optLong("total_sec", 0L)), "all time"), 12)
         column.addTo(statCard("Day streak", p.optInt("streak", 0).toString(), "days you showed up"), 12)
         column.addTo(statCard("Full streak", p.optInt("full_streak", 0).toString(), "days with all 4 done"), 12)
