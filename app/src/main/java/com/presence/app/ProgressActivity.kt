@@ -67,7 +67,11 @@ class ProgressActivity : BaseActivity() {
         val headBg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
         headBg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
         headBox.background = headBg
-        val titleRow = Ui.header(c, "History") { finish() }
+        exportBtn = Ui.pill(c, "Export", Ui.BLUE, Ui.WHITE)
+        exportBtn.textSize = 13f
+        exportBtn.minimumHeight = Ui.dp(c, 34)
+        exportBtn.setPadding(Ui.dp(c, 14), Ui.dp(c, 6), Ui.dp(c, 14), Ui.dp(c, 6))
+        val titleRow = Ui.header(c, "History", 0, exportBtn) { Nav.goHome(this) }
         titleRow.background = null
         headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
 
@@ -92,12 +96,9 @@ class ProgressActivity : BaseActivity() {
         exportBar.orientation = LinearLayout.VERTICAL
         exportBar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
         Ui.bottomBarBg(c, exportBar)
-        exportBtn = Ui.pill(c, "Export history")
         exportBtn.setOnClickListener { chooseExportRange() }
         exportBar.addView(exportBtn, LinearLayout.LayoutParams(-1, -2))
-        exportBar.visibility = View.GONE
-        root.addView(exportBar, LinearLayout.LayoutParams(-1, -2))
-        Ui.padInsets(exportBar, bottom = true)
+        exportBtn.visibility = View.GONE
         val screen = LinearLayout(c)
         screen.orientation = LinearLayout.VERTICAL
         screen.addView(root, LinearLayout.LayoutParams(-1, -1))
@@ -131,6 +132,10 @@ class ProgressActivity : BaseActivity() {
         column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24) + (if (showHistory) 0 else navBottom))
     }
 
+    override fun onBackPressed() {
+        Nav.goHome(this)
+    }
+
     override fun onResume() {
         super.onResume()
         render()
@@ -161,7 +166,7 @@ class ProgressActivity : BaseActivity() {
         // then the tabs and cards appear together.
         if (history == null) {
             tabsWrap.visibility = View.GONE
-            exportBar.visibility = View.GONE
+            exportBtn.visibility = View.GONE
             column.removeAllViews()
             if (historyFailed) {
                 column.gravity = Gravity.TOP
@@ -181,7 +186,7 @@ class ProgressActivity : BaseActivity() {
         tabsWrap.visibility = View.VISIBLE
         renderTabs()
         column.removeAllViews()
-        exportBar.visibility = if (showHistory) View.VISIBLE else View.GONE
+        exportBtn.visibility = if (showHistory) View.VISIBLE else View.GONE
         applyColumnPad()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
         if (showHistory) renderHistory() else renderStats(p)

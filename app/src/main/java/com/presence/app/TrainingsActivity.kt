@@ -35,7 +35,7 @@ class TrainingsActivity : BaseActivity() {
         val headBg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
         headBg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
         headBox.background = headBg
-        val titleRow = Ui.header(c, "Trainings") { finish() }
+        val titleRow = Ui.header(c, "Trainings") { Nav.goHome(this) }
         titleRow.background = null
         headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
         toggle = LinearLayout(c)
@@ -63,6 +63,10 @@ class TrainingsActivity : BaseActivity() {
         root.addView(Nav.bar(c, 1), LinearLayout.LayoutParams(-1, -2))
         setContentView(root)
         render()
+    }
+
+    override fun onBackPressed() {
+        Nav.goHome(this)
     }
 
     override fun onResume() {
@@ -134,11 +138,46 @@ class TrainingsActivity : BaseActivity() {
         val build = Ui.pill(c, "+ Build a session", Ui.SOFT, Ui.TEXT)
         build.setOnClickListener { startActivity(Intent(c, SessionActivity::class.java)) }
         sessionsView.addTo(build, 0)
-        val sessions = SavedLists.all(Session.userId).filter { it.optString("kind") == "session" }
-        if (sessions.isEmpty()) {
-            sessionsView.addTo(Ui.note(c, "No saved sessions yet. Build one, then tap Save session."), 14)
+        val all = SavedLists.all(Session.userId)
+        if (all.isEmpty()) {
+            sessionsView.addTo(Ui.note(c, "Nothing saved yet. Build a session, or save a training from its setup screen."), 14)
         }
-        for (o in sessions) sessionsView.addTo(sessionRow(o), 12)
+        for (o in all) {
+            val row = if (o.optString("kind") == "session") sessionRow(o) else singleRow(o)
+            sessionsView.addTo(row, 12)
+        }
+    }
+
+    /** A single saved training, shown in the same list as sessions. */
+    private fun singleRow(o: org.json.JSONObject): LinearLayout {
+        val c = this
+        val id = o.optString("id")
+        val cfg = SavedLists.toConfig(o)
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
+        val line = LinearLayout(c)
+        line.orientation = LinearLayout.HORIZONTAL
+        line.gravity = Gravity.CENTER_VERTICAL
+        val left = LinearLayout(c)
+        left.orientation = LinearLayout.VERTICAL
+        left.addView(Ui.text(c, o.optString("name"), 15f, Ui.TEXT, Ui.BOLD))
+        left.addTo(Ui.text(c, Trainings.name(cfg.key) + " \u00B7 " + Trainings.estimate(cfg), 12f, Ui.MUTED, Ui.REG), 3)
+        line.addView(left, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val edit = Ui.pill(c, "Edit", Ui.SOFT, Ui.TEXT)
+        edit.textSize = 13f
+        edit.setOnClickListener {
+            startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", id).putExtra("edit", true))
+        }
+        line.addView(edit, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) })
+        val tint = Trainings.accent(cfg.key)
+        val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
+        start.textSize = 14f
+        start.setOnClickListener {
+            startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", id))
+        }
+        line.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) })
+        card.addView(line)
+        return card
     }
 
     /** A saved session: its name, how many trainings and how long, then a pencil and Start. */

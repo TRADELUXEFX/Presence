@@ -2,17 +2,22 @@ package com.presence.app
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.widget.LinearLayout
 import com.presence.app.Ui.addTo
 
-/** The bottom bar: Home, Trainings and History. The tab you are on is blue. */
+/** The bottom bar: Home, Trainings and History. Transparent with curved top corners; the tab you are on is blue. */
 object Nav {
     fun bar(a: Activity, active: Int): LinearLayout {
         val bar = LinearLayout(a)
         bar.orientation = LinearLayout.HORIZONTAL
-        bar.setBackgroundColor(Ui.SURFACE)
-        bar.elevation = Ui.dp(a, 6).toFloat()
+        val g = GradientDrawable()
+        g.setColor(Color.TRANSPARENT)
+        val r = Ui.dp(a, 22).toFloat()
+        g.cornerRadii = floatArrayOf(r, r, r, r, 0f, 0f, 0f, 0f)
+        bar.background = g
         bar.setPadding(0, Ui.dp(a, 8), 0, Ui.dp(a, 8))
         Ui.padInsets(bar, bottom = true)
         val icons = listOf(Icons.HOME, Icons.LIST, Icons.CHART)
@@ -35,5 +40,11 @@ object Nav {
             bar.addView(tab, LinearLayout.LayoutParams(0, -2, 1f))
         }
         return bar
+    }
+
+    /** Back on a tab goes here: Home. */
+    fun goHome(a: Activity) {
+        a.startActivity(Intent(a, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        a.finish()
     }
 }
