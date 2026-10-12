@@ -43,6 +43,7 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         web = WebView(this)
+        web.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         setContentView(web)
 
         web.settings.javaScriptEnabled = true

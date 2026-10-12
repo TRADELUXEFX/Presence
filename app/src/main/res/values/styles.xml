@@ -2,10 +2,13 @@
 <resources>
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">#1E90FF</item>
-        <item name="colorPrimaryDark">#1E90FF</item>
+        <item name="colorPrimaryDark">#0B5ED7</item>
         <item name="colorAccent">#1E90FF</item>
         <item name="android:windowBackground">@drawable/launch_bg</item>
-        <item name="android:statusBarColor">#F1F5F9</item>
+        <item name="android:statusBarColor">#F4F7FB</item>
+        <item name="android:navigationBarColor">#F4F7FB</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

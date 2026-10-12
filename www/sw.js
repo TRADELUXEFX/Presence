@@ -1,5 +1,5 @@
-// SW v1773796104
-const V = '1773796104';
+// SW v1791812140
+const V = '1791812140';
 self.addEventListener('install', function(e) { e.waitUntil(self.skipWaiting()); });
 self.addEventListener('activate', function(e) {
   e.waitUntil(caches.keys().then(function(keys) {
