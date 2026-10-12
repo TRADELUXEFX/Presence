@@ -1,9 +1,9 @@
-name: Deploy Presence (PWA)
+name: Build Presence APK (Native)
 
 # Phone workflow: upload ANY zip into the "incoming" folder on github.com
 # (Add file -> Upload files -> Commit to main). This workflow unpacks it into
-# the repo, checks the JavaScript, commits, deletes the zip and publishes
-# the www/ folder to GitHub Pages. Plain pushes and manual runs just redeploy.
+# the repo, commits, deletes the zip, then builds the APK from that commit.
+# Plain pushes and manual runs still just build.
 
 on:
   workflow_dispatch:
@@ -12,19 +12,15 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
+# A newer upload cancels an older still-running build so stale code never wins.
 concurrency:
-  group: presence-deploy
+  group: presence-build
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,47 +36,56 @@ jobs:
           shopt -s nullglob dotglob
           zips=(incoming/*.zip)
           if [ ${#zips[@]} -eq 0 ]; then
-            echo "No zip files in incoming/. Nothing to unpack."
+            echo "No zip files found in incoming/. Nothing to unpack."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "found=true" >> "$GITHUB_OUTPUT"
+
           repo_lc=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+
           for z in "${zips[@]}"; do
             echo "Unpacking $z ..."
             stage=$(mktemp -d)
             unzip -q -o "$z" -x "__MACOSX/*" "*/.DS_Store" ".DS_Store" -d "$stage"
-            # Strip an extra wrapper folder (e.g. presence-main/www/... -> www/...)
+
+            # Strip an extra wrapper folder (e.g. pauzfirst-app-main/app/... -> app/...)
             for pass in 1 2 3; do
               entries=("$stage"/*)
               [ ${#entries[@]} -eq 1 ] && [ -d "${entries[0]}" ] || break
               inner="${entries[0]}"
               name=$(basename "$inner")
               name_lc=$(echo "$name" | tr '[:upper:]' '[:lower:]')
+
               case "$name_lc" in
-                www|incoming|supabase|docs|.github) break ;;
+                app|www|incoming|supabase|docs|.github|gradle) break ;;
               esac
+
               wrapper=false
               if [ "$name_lc" = "$repo_lc" ] || [[ "$name_lc" == "$repo_lc"-* ]] || [[ "$name_lc" == *-main ]] || [[ "$name_lc" == *-master ]]; then
                 wrapper=true
               fi
-              for marker in www incoming supabase .github README.md; do
+              for marker in app www incoming supabase .github build.gradle settings.gradle gradle.properties; do
                 [ -e "$inner/$marker" ] && wrapper=true
               done
+
               [ "$wrapper" = true ] || break
               echo "Removing wrapper folder: $name/"
               stage="$inner"
             done
+
             # GitHub blocks the default token from changing workflow files.
             rm -rf "$stage/.github/workflows"
+
             echo "Files being deployed:"
             (cd "$stage" && find . -type f | sed 's|^\./||' | head -200)
+
             cp -a "$stage"/. .
             rm -f "$z"
           done
 
-      # To delete files, put DELETE_FILES.txt at the root of the zip:
-      # one repo-relative path per line (blank lines and # comments ignored).
+      # To delete files, put DELETE_FILES.txt at the root of the zip: one
+      # repo-relative path per line (blank lines and # comments ignored).
       - name: Delete files listed in DELETE_FILES.txt
         if: steps.extract.outputs.found == 'true'
         run: |
@@ -99,7 +104,7 @@ jobs:
             esac
             p="${p#./}"
             case "$p" in
-              /*|*..*|.git|.git/*|.github|.github/*|incoming|incoming/*|www/index.html|www/sw.js|www/manifest.json|DELETE_FILES.txt)
+              /*|*..*|.git|.git/*|.github|.github/*|incoming|incoming/*|www/index.html|www/sw.js|www/manifest.json|build.gradle|app/build.gradle|settings.gradle|gradle.properties|DELETE_FILES.txt)
                 echo "::warning::Skipped (protected or unsafe path): $p"
                 skipped=$((skipped + 1))
                 continue
@@ -119,33 +124,25 @@ jobs:
           rm -f "$list"
           echo "Deleted $deleted file(s), skipped $skipped."
 
-      # Stops a broken script from ever going live: every inline <script>
-      # in every www/*.html file is syntax-checked before anything is committed.
       - name: Check JavaScript syntax
         run: |
           set -e
           cat > /tmp/check.js <<'JS'
           const fs = require('fs'), path = require('path'), cp = require('child_process');
-          const dir = 'www';
           let bad = 0, count = 0;
-          const files = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
+          const files = fs.existsSync('www') ? fs.readdirSync('www') : [];
           for (const f of files) {
-            const full = path.join(dir, f);
-            if (f.endsWith('.js')) {
-              try { cp.execFileSync('node', ['--check', full], { stdio: 'pipe' }); count++; }
-              catch (e) { bad++; console.log('SYNTAX ERROR in ' + full + '\n' + e.stderr); }
-            } else if (f.endsWith('.html')) {
-              const html = fs.readFileSync(full, 'utf8');
-              const re = /<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/gi;
-              let m, i = 0;
-              while ((m = re.exec(html))) {
-                if (/type\s*=\s*["'](?!module|text\/javascript)/i.test(m[1])) continue;
-                i++;
-                const tmp = '/tmp/chk_' + f.replace(/\W/g, '_') + '_' + i + (/type\s*=\s*["']module/i.test(m[1]) ? '.mjs' : '.js');
-                fs.writeFileSync(tmp, m[2]);
-                try { cp.execFileSync('node', ['--check', tmp], { stdio: 'pipe' }); count++; }
-                catch (e) { bad++; console.log('SYNTAX ERROR in ' + full + ' (script #' + i + ')\n' + e.stderr); }
-              }
+            if (!f.endsWith('.html')) continue;
+            const html = fs.readFileSync(path.join('www', f), 'utf8');
+            const re = /<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/gi;
+            let m, i = 0;
+            while ((m = re.exec(html))) {
+              if (/type\s*=\s*["'](?!module|text\/javascript)/i.test(m[1])) continue;
+              i++;
+              const tmp = '/tmp/chk_' + f.replace(/\W/g, '_') + '_' + i + '.js';
+              fs.writeFileSync(tmp, m[2]);
+              try { cp.execFileSync('node', ['--check', tmp], { stdio: 'pipe' }); count++; }
+              catch (e) { bad++; console.log('SYNTAX ERROR in ' + f + ' (script #' + i + ')\n' + e.stderr); }
             }
           }
           console.log('Checked ' + count + ' script(s), ' + bad + ' with errors.');
@@ -155,25 +152,86 @@ jobs:
 
       - name: Commit unpacked files
         if: steps.extract.outputs.found == 'true'
+        id: commit_unpacked
         run: |
           git config user.name "deploy-bot"
           git config user.email "deploy-bot@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
-            echo "Nothing changed after extracting the zip."
+            echo "Nothing changed after extracting the zip - continuing anyway."
           else
             git commit -m "Deploy: unpack zip(s) from incoming/"
           fi
-          git push
+          if git push; then
+            echo "Push succeeded."
+          else
+            echo "::error::Push of unpacked files was rejected (see log above)."
+            echo "push_failed=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Remove the zip even if the full push failed
+        if: steps.extract.outputs.found == 'true' && steps.commit_unpacked.outputs.push_failed == 'true'
+        run: |
+          set -e
+          git fetch origin main
+          git checkout origin/main -- .
+          shopt -s nullglob
+          zips=(incoming/*.zip)
+          if [ ${#zips[@]} -eq 0 ]; then exit 0; fi
+          git rm -f "${zips[@]}"
+          git commit -m "Deploy: remove zip(s) from incoming/ after failed deploy"
+          git push origin HEAD:main
 
-      - name: Upload site (www folder)
-        uses: actions/upload-pages-artifact@v3
+      - name: Stop here if the new code never made it to main
+        if: steps.commit_unpacked.outputs.push_failed == 'true'
+        run: |
+          echo "::error::Your zip could not be pushed to main, so the build was stopped instead of building old code."
+          exit 1
+
+      - name: Build from the latest main
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
+          echo "Building from commit: $(git rev-parse HEAD)"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          path: www
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Publish to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.2'
+
+      - name: Decode release keystore
+        run: |
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set - APK will be signed with the debug key and will NOT update over your installed app."
+          fi
+
+      - name: Build APK
+        run: gradle assembleRelease
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: presence
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: presence-apk
+          path: app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload APK to Releases
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/app-release.apk
+          tag_name: v1.0.${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
