@@ -1,8 +1,9 @@
 # Presence
 
-Presence Training PWA. The website lives in `www/` and is published to GitHub Pages.
-Deploy by dropping a zip into `incoming/` (see `incoming/DEPLOY_WORKFLOW.md`).
+Presence Training, native Android app (package `com.presence.app`).
+Deploy by dropping a zip into `incoming/` (see `incoming/DEPLOY_WORKFLOW.md`). The APK appears on the Releases page.
 
-- `www/` the PWA (index.html, sw.js, manifest.json, icons)
+- `app/` native Android project (Kotlin)
+- `www/` the Presence web app, bundled inside the APK
 - `supabase/migrations/` SQL history (run manually in Supabase > SQL Editor)
 - `docs/DESIGN_REFERENCE.md` design tokens copied from the PauzFirst app
