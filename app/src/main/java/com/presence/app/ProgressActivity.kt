@@ -108,6 +108,7 @@ class ProgressActivity : BaseActivity() {
         renderTabs()
         column.removeAllViews()
         exportBar.visibility = if (showHistory) View.VISIBLE else View.GONE
+        if (!showHistory && history == null && !historyLoading && !historyFailed) loadHistory()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
         if (showHistory) renderHistory() else renderStats(p)
     }
@@ -142,6 +143,7 @@ class ProgressActivity : BaseActivity() {
     // ---------- Training Stats ----------
 
     private fun renderStats(p: JSONObject) {
+        renderPractice()
         if (p.optInt("sessions", 0) == 0) {
             column.addTo(Ui.note(this, "No trainings yet. Start one from Home and it will show up here."), 8)
         }
@@ -155,18 +157,114 @@ class ProgressActivity : BaseActivity() {
         ), 16)
         column.addTo(statCard("Total training time", Fmt.duration(p.optLong("total_sec", 0L))), 12)
         addGrid(Trainings.ALL.map { statCard(Trainings.name(it), mods.optInt(it, 0).toString()) }, 12)
-        column.addTo(weeklyCard(), 12)
     }
 
-    private fun weeklyCard(): LinearLayout {
+    private var practiceMonth = false
+
+    /** "Your practice": bar chart of the last 7 or 30 days, as on PauzFirst. */
+    private fun renderPractice() {
         val c = this
-        val card = Ui.card(c, Ui.CARD_TINT)
-        card.isClickable = true
-        card.setOnClickListener { startActivity(Intent(c, WeeklyActivity::class.java)) }
-        card.addView(Ui.text(c, "Weekly summary", 15f, Ui.TEXT, Ui.BOLD))
-        card.addTo(Ui.text(c, "Last 7 days, with a PDF report", 12f, Ui.MUTED_TINT, Ui.REG), 3)
-        return card
+        val card = Ui.card(c)
+        card.setPadding(Ui.dp(c, 18), Ui.dp(c, 18), Ui.dp(c, 18), Ui.dp(c, 18))
+        val head = LinearLayout(c)
+        head.orientation = LinearLayout.HORIZONTAL
+        head.gravity = Gravity.CENTER_VERTICAL
+        head.addView(Ui.sectionTitle(c, "Your practice"), LinearLayout.LayoutParams(0, -2, 1f))
+        head.addView(
+            segment(listOf("Week", "Month"), if (practiceMonth) 1 else 0) {
+                practiceMonth = it == 1
+                render()
+            },
+            LinearLayout.LayoutParams(Ui.dp(c, 170), -2)
+        )
+        card.addView(head)
+
+        val all = history
+        if (all == null) {
+            val msg = if (historyFailed) "Couldn't load your practice. Check your connection." else "Loading your practice…"
+            card.addTo(Ui.text(c, msg, 13f, Ui.MUTED, Ui.REG), 14)
+            column.addTo(card, 0)
+            return
+        }
+
+        val days = if (practiceMonth) 30 else 7
+        val now = System.currentTimeMillis()
+        val secs = LongArray(days)
+        for (i in 0 until days) {
+            val key = dayKeyOf(dayStart(days - 1 - i))
+            secs[i] = all.filter { dayKeyOf(it.optLong("ts", 0L)) == key }.sumOf { it.optLong("sec", 0L) }
+        }
+        val total = secs.sum()
+        val maxSec = Math.max(1L, secs.max() ?: 1L)
+
+        card.addTo(Ui.text(
+            c,
+            "${Fmt.duration(total)} this ${if (practiceMonth) "month" else "week"}",
+            15f, Ui.TEXT, Ui.MED
+        ), 14)
+
+        // Bars share one baseline; the value sits on top of each bar.
+        val chart = LinearLayout(c)
+        chart.orientation = LinearLayout.HORIZONTAL
+        chart.gravity = Gravity.BOTTOM
+        val labels = LinearLayout(c)
+        labels.orientation = LinearLayout.HORIZONTAL
+        val barW = if (practiceMonth) 6 else 14
+        for (i in 0 until days) {
+            val col = LinearLayout(c)
+            col.orientation = LinearLayout.VERTICAL
+            col.gravity = Gravity.CENTER_HORIZONTAL or Gravity.BOTTOM
+            if (!practiceMonth && secs[i] > 0) {
+                col.addView(Ui.text(c, shortMinutes(secs[i]), 11f, Ui.MUTED, Ui.REG))
+            }
+            val h = if (secs[i] == 0L) Ui.dp(c, 4) else Math.max(Ui.dp(c, 6), (Ui.dp(c, 120).toLong() * secs[i] / maxSec).toInt())
+            val bar = View(c)
+            bar.background = Ui.rounded(c, if (secs[i] == 0L) Ui.BLUE_SOFT else Ui.BLUE, 6)
+            col.addView(bar, LinearLayout.LayoutParams(Ui.dp(c, barW), h))
+            chart.addView(col, LinearLayout.LayoutParams(0, -1, 1f))
+
+            val isToday = i == days - 1
+            val label = if (practiceMonth) {
+                val dom = Calendar.getInstance().apply { timeInMillis = dayStart(days - 1 - i) }.get(Calendar.DAY_OF_MONTH)
+                if (dom % 5 == 1 || isToday) dom.toString() else ""
+            } else {
+                SimpleDateFormat("EEE", Locale.US).format(Date(dayStart(days - 1 - i))).take(1)
+            }
+            val t = Ui.text(c, label, 12f, if (isToday) Ui.TEXT else Ui.MUTED, if (isToday) Ui.BOLD else Ui.REG)
+            t.gravity = Gravity.CENTER
+            labels.addView(t, LinearLayout.LayoutParams(0, -2, 1f))
+        }
+        val chartLp = LinearLayout.LayoutParams(-1, Ui.dp(c, 150))
+        chartLp.topMargin = Ui.dp(c, 14)
+        card.addView(chart, chartLp)
+        card.addTo(labels, 8)
+        column.addTo(card, 0)
+
+        if (secs[days - 1] > 0) {
+            column.addTo(Ui.text(c, "Great job! You practiced today.", 14f, Ui.MUTED, Ui.REG).apply {
+                gravity = Gravity.CENTER
+            }, 16)
+        }
     }
+
+    /** Local midnight, offset days before today. */
+    private fun dayStart(offsetDays: Int): Long {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        cal.add(Calendar.DAY_OF_MONTH, -offsetDays)
+        return cal.timeInMillis
+    }
+
+    private fun dayKeyOf(ms: Long): String {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = ms
+        return "${cal.get(Calendar.YEAR)}-${cal.get(Calendar.DAY_OF_YEAR)}"
+    }
+
+    private fun shortMinutes(sec: Long): String = if (sec < 60) "${sec}s" else "${sec / 60}m"
 
     /** Puts tiles two to a row, with equal heights. A lone last tile keeps its half width. */
     private fun addGrid(items: List<View>, topDp: Int) {
