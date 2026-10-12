@@ -46,6 +46,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private var scrimView: View? = null
     private var camProvider: ProcessCameraProvider? = null
     private var cameraOn = false
+    private var lensFront = true
     private var showingDone = false
     private var dotCount = -1
     private var dotViews = ArrayList<View>()
@@ -106,21 +107,19 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val muted = if (cameraOn) Color.parseColor("#D9FFFFFF") else Ui.MUTED
 
         val frame = FrameLayout(c)
-        frame.setBackgroundColor(Ui.BG)
+        frame.setBackgroundColor(if (cameraOn) Color.BLACK else Ui.BG)
         if (cameraOn) {
             val pv = PreviewView(c)
+            // compatible mode draws the picture in the normal view tree, so the ring and text sit on top of it (as on PauzFirst)
+            pv.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
             pv.scaleType = PreviewView.ScaleType.FILL_CENTER
             preview = pv
             frame.addView(pv, FrameLayout.LayoutParams(-1, -1))
-            val scrim = View(c)
-            scrim.setBackgroundColor(Color.parseColor("#B3000000"))
-            scrimView = scrim
-            frame.addView(scrim, FrameLayout.LayoutParams(-1, -1))
         }
 
         val column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
-        column.addView(
+        if (!cameraOn) column.addView(
             Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key)) { confirmLeave() },
             LinearLayout.LayoutParams(-1, -2)
         )
@@ -134,7 +133,34 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         setContentView(frame)
     }
 
+    /** Mirror mode: only the two buttons at the bottom. No ring, count, name or text, so you can see yourself. */
+    private fun buildMirrorControls(c: Context): LinearLayout {
+        val v = LinearLayout(c)
+        v.orientation = LinearLayout.VERTICAL
+        v.gravity = Gravity.BOTTOM
+        v.setPadding(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 24))
+
+        camNote = Ui.text(c, "Camera not available. Training continues without it.", 12f, Ui.AMBER, Ui.MED)
+        camNote.gravity = Gravity.CENTER
+        camNote.visibility = View.GONE
+        v.addTo(camNote, 4)
+
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        val flip = Ui.pill(c, "Flip camera", Color.parseColor("#99000000"), Color.WHITE)
+        flip.setOnClickListener { flipCamera() }
+        row.addView(flip, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val end = Ui.pill(c, "End training", Color.parseColor("#99000000"), Color.WHITE)
+        end.setOnClickListener { confirmLeave() }
+        val endLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        endLp.leftMargin = Ui.dp(c, 10)
+        row.addView(end, endLp)
+        v.addTo(row, 0)
+        return v
+    }
+
     private fun buildTraining(c: Context, fg: Int, muted: Int): LinearLayout {
+        if (cameraOn) return buildMirrorControls(c)
         val v = LinearLayout(c)
         v.orientation = LinearLayout.VERTICAL
         v.gravity = Gravity.CENTER_HORIZONTAL
@@ -245,7 +271,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     /** Redraws the live values. Only changed text is set, so nothing flickers. */
     private fun render() {
-        if (showingDone) return
+        if (showingDone || cameraOn) return
         val e = Engine.config
         val eng = Engine
         ring.fraction = eng.ringFraction
@@ -385,15 +411,26 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
                     val p = Preview.Builder().build()
                     p.setSurfaceProvider(pv.surfaceProvider)
                     provider.unbindAll()
-                    provider.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, p)
+                    val sel = if (lensFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+                    provider.bindToLifecycle(this, sel, p)
                     camProvider = provider
                 } catch (e: Exception) {
-                    showCamFailed()
+                    if (!lensFront) {
+                        lensFront = true
+                        startCamera()
+                    } else {
+                        showCamFailed()
+                    }
                 }
             }, ContextCompat.getMainExecutor(this))
         } catch (e: Exception) {
             showCamFailed()
         }
+    }
+
+    private fun flipCamera() {
+        lensFront = !lensFront
+        startCamera()
     }
 
     private fun showCamFailed() {
