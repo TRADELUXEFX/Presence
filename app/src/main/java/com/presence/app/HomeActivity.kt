@@ -62,6 +62,11 @@ class HomeActivity : BaseActivity() {
         subLp.leftMargin = Ui.dp(c, 46)
         subLp.topMargin = Ui.dp(c, 6)
         hero.addView(subtitle, subLp)
+        val progressBtn = Ui.pill(c, "Progress", Color.parseColor("#33FFFFFF"), Ui.WHITE)
+        progressBtn.setOnClickListener { startActivity(Intent(this, ProgressActivity::class.java)) }
+        val progressLp = LinearLayout.LayoutParams(-1, -2)
+        progressLp.topMargin = Ui.dp(c, 16)
+        hero.addView(progressBtn, progressLp)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))
 
         column = LinearLayout(c)
@@ -123,7 +128,6 @@ class HomeActivity : BaseActivity() {
         if (!::column.isInitialized) return
         val c = this
         column.removeAllViews()
-        column.addTo(navRow(), 4)
         StreakWidget.updateAll(c)
         if (!online) {
             val banner = Ui.banner(c, "You're offline. Trainings are saved on this phone and sync when you're back online.")
@@ -165,16 +169,6 @@ class HomeActivity : BaseActivity() {
             finish()
         }
         return box
-    }
-
-    private fun navRow(): LinearLayout {
-        val c = this
-        val row = LinearLayout(c)
-        row.orientation = LinearLayout.HORIZONTAL
-        val progress = Ui.pill(c, "Progress", Ui.SOFT, Ui.TEXT)
-        progress.setOnClickListener { startActivity(Intent(this, ProgressActivity::class.java)) }
-        row.addView(progress, LinearLayout.LayoutParams(-1, -2))
-        return row
     }
 
     /** "TRAININGS" on the left, the Saved list link on the right. */

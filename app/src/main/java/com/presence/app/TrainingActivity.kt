@@ -153,7 +153,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         flip.setOnClickListener { flipCamera() }
         row.addView(flip, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val end = Ui.pill(c, "End training", Color.parseColor("#99000000"), Color.WHITE)
-        end.setOnClickListener { confirmLeave() }
+        end.setOnClickListener { endNow() }
         val endLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         endLp.leftMargin = Ui.dp(c, 10)
         row.addView(end, endLp)
@@ -183,6 +183,16 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         camNote.visibility = View.GONE
         v.addTo(camNote, 4)
 
+        badge = Ui.chip(c, "", Trainings.ink(Engine.config.key), Trainings.soft(Engine.config.key))
+        badge.visibility = View.GONE
+        v.addTo(badge, 14)
+        dots = LinearLayout(c)
+        dots.orientation = LinearLayout.HORIZONTAL
+        dots.gravity = Gravity.CENTER
+        v.addTo(dots, 14)
+        // equal space above and below the ring keeps it in the middle of the screen
+        val spaceTop = View(c)
+        v.addView(spaceTop, LinearLayout.LayoutParams(-1, 0, 1f))
         val ringBox = FrameLayout(c)
         ring = RingView(c)
         ring.ringColor = Trainings.accent(Engine.config.key)
@@ -197,22 +207,13 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         center.addView(ringNum)
         center.addView(ringUnit)
         ringBox.addView(center, FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
-        v.addTo(ringBox, 10)
-
-        badge = Ui.chip(c, "", Trainings.ink(Engine.config.key), Trainings.soft(Engine.config.key))
-        badge.visibility = View.GONE
-        v.addTo(badge, 14)
-
+        v.addTo(ringBox, 0)
+        val spaceBottom = View(c)
+        v.addView(spaceBottom, LinearLayout.LayoutParams(-1, 0, 1f))
         instr = Ui.text(c, "", 16f, fg, Ui.MED)
         instr.gravity = Gravity.CENTER
         instr.setLineSpacing(0f, 1.25f)
         v.addTo(instr, 16)
-
-        dots = LinearLayout(c)
-        dots.orientation = LinearLayout.HORIZONTAL
-        dots.gravity = Gravity.CENTER
-        v.addTo(dots, 18)
-
         // Fidget: the motion meter, raised by screen touches as on the website
         meter = LinearLayout(c)
         meter.orientation = LinearLayout.VERTICAL
@@ -236,7 +237,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         v.addTo(meter, 18)
 
         val stop = Ui.pill(c, "End training", Ui.SOFT, Ui.TEXT)
-        stop.setOnClickListener { confirmLeave() }
+        stop.setOnClickListener { endNow() }
         v.addTo(stop, 26)
         return v
     }
@@ -392,6 +393,12 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
                 finishToHome()
             }
         )
+    }
+
+    /** End training button: stops straight away, no confirmation (the back arrow still asks). */
+    private fun endNow() {
+        if (!showingDone && !Engine.isDone()) Engine.cancel()
+        finishToHome()
     }
 
     private fun finishToHome() {

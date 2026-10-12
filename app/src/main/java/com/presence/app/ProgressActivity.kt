@@ -40,7 +40,7 @@ class ProgressActivity : BaseActivity() {
     private var historyLoading = false
     private var historyFailed = false
     private var filterMod: String? = null   // null = all trainings
-    private var rangeDays = 7               // 7, 30, or 0 for all time
+    private var rangeDays = 0               // 7, 30, or 0 for all time (default: all time)
     private var exportable: List<JSONObject> = emptyList()
     private var practiceMonth = false       // "Your practice": false = Week, true = Month
     private var practiceMonthOffset = 0     // 0 = this month, -1 = last month, ...
@@ -149,13 +149,20 @@ class ProgressActivity : BaseActivity() {
             exportBar.visibility = View.GONE
             column.removeAllViews()
             if (historyFailed) {
+                column.gravity = Gravity.TOP
+                column.layoutParams = FrameLayout.LayoutParams(-1, -2)
                 column.addTo(historyErrorCard(), 0)
             } else {
                 if (!historyLoading) loadHistory()
+                // the loader sits in the middle of the free screen, not at the top
+                column.gravity = Gravity.CENTER
+                column.layoutParams = FrameLayout.LayoutParams(-1, -1)
                 column.addTo(Loading.page(this), 0)
             }
             return
         }
+        column.gravity = Gravity.TOP
+        column.layoutParams = FrameLayout.LayoutParams(-1, -2)
         tabsWrap.visibility = View.VISIBLE
         renderTabs()
         column.removeAllViews()
