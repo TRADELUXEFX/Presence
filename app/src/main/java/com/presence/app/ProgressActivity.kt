@@ -394,7 +394,7 @@ class ProgressActivity : BaseActivity() {
         var max = 1L
         var total = 0L
         for (v in secs) { total += v; if (v > max) max = v }
-        card.addTo(Ui.text(c, Fmt.duration(total) + " this week", 13f, Ui.MUTED_TINT, Ui.MED), 10)
+        card.addTo(Ui.clockLine(c, null, Fmt.duration(total) + " this week", 13f, Ui.MUTED_TINT, Ui.MED, 15), 10)
 
         val dayFmt = SimpleDateFormat("EEEEE", Locale.getDefault())
         val barArea = Ui.dp(c, 96)
@@ -754,14 +754,24 @@ class ProgressActivity : BaseActivity() {
         val detailRow = LinearLayout(c)
         detailRow.orientation = LinearLayout.HORIZONTAL
         detailRow.gravity = Gravity.CENTER_VERTICAL
+        // the clock icon sits before the length, as on the Quick start cards
+        fun clockAndLength() {
+            detailRow.addView(FsIconView(c, Icons.ALARM, Ui.MUTED_TINT),
+                LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)))
+            detailRow.addView(Ui.text(c, sec, 13f, Ui.MUTED_TINT, Ui.REG),
+                LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 4) })
+        }
         if (showMode) {
             if (meta.isNotEmpty()) detailRow.addView(Ui.text(c, "$meta ·", 13f, Ui.MUTED_TINT, Ui.REG))
             detailRow.addView(FsIconView(c, modePath!!, Ui.MUTED_TINT),
                 LinearLayout.LayoutParams(Ui.dp(c, 15), Ui.dp(c, 15)).apply { leftMargin = Ui.dp(c, 6); rightMargin = Ui.dp(c, 6) })
-            detailRow.addView(Ui.text(c, "· $sec", 13f, Ui.MUTED_TINT, Ui.REG))
+            detailRow.addView(Ui.text(c, "·", 13f, Ui.MUTED_TINT, Ui.REG),
+                LinearLayout.LayoutParams(-2, -2).apply { rightMargin = Ui.dp(c, 6) })
+            clockAndLength()
         } else {
-            val base = if (meta.isEmpty()) sec else "$meta · $sec"
-            detailRow.addView(Ui.text(c, base, 13f, Ui.MUTED_TINT, Ui.REG))
+            if (meta.isNotEmpty()) detailRow.addView(Ui.text(c, "$meta ·", 13f, Ui.MUTED_TINT, Ui.REG),
+                LinearLayout.LayoutParams(-2, -2).apply { rightMargin = Ui.dp(c, 6) })
+            clockAndLength()
         }
         // the face of how it felt (no text), when it was rated
         if (felt != null) {

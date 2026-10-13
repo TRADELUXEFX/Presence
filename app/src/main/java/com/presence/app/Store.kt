@@ -80,8 +80,7 @@ object LocalStore {
 
     /** Saves a finished training on the phone: updates the profile and queues the session row. */
     @Synchronized
-    fun recordTraining(uid: String, key: String, sec: Int, meta: Meta): JSONObject {
-        val ts = System.currentTimeMillis()
+    fun recordTraining(uid: String, key: String, sec: Int, meta: Meta, ts: Long = System.currentTimeMillis()): JSONObject {
         lastTrainingTs = ts
         val row = Profile.record(profile(uid), key, sec)
         val queue = pendingArray()

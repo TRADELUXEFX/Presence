@@ -459,6 +459,24 @@ object Ui {
             t, minSp, maxSp, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
     }
 
+    /** "lead ·  (clock) length": a details line with the small clock icon before the time, e.g. "Session · 4 trainings · [clock] 12 min". */
+    fun clockLine(
+        c: Context, lead: String?, length: String,
+        sizeSp: Float = 12f, color: Int = MUTED, weight: Int = REG, iconDp: Int = 14
+    ): LinearLayout {
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        if (!lead.isNullOrEmpty()) {
+            row.addView(text(c, "$lead \u00B7", sizeSp, color, weight),
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { rightMargin = dp(c, 6) })
+        }
+        row.addView(FsIconView(c, Icons.ALARM, color), LinearLayout.LayoutParams(dp(c, iconDp), dp(c, iconDp)))
+        row.addView(text(c, length, sizeSp, color, weight),
+            LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { leftMargin = dp(c, 4) })
+        return row
+    }
+
     /**
      * A card header where a name sits beside buttons or a chip. The name and its buttons share the top
      * row (the name takes the room that is left, up to two lines), and the details go BELOW, at the full

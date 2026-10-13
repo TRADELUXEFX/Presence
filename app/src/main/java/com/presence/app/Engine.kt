@@ -96,8 +96,12 @@ object Engine {
     // ---------- public API ----------
 
     /** Starts a training. The caller has already checked permissions. */
+    /** Counts every training that starts, so a screen can tell the training it was built for from the one running now. */
+    @Volatile var runId = 0
+
     fun start(ctx: Context, cfg: Config) {
         if (running) return
+        runId++
         val app = ctx.applicationContext
         appCtx = app
         handler.removeCallbacks(nextRunnable)
@@ -179,6 +183,8 @@ object Engine {
     /** The person left the session: no next training will start. */
     fun cancelSession() {
         handler.removeCallbacks(nextRunnable)
+        // leaving a session before its last training is done: none of its trainings count
+        TrainingSession.held.clear()
         if (!sessionPending) return
         sessionPending = false
         if (!running) appCtx?.let { TrainingService.stop(it) }
@@ -356,10 +362,25 @@ object Engine {
         if (c.key != Trainings.MEDITATE) speak("Training complete. Great job.")
         val uid = Session.userId
         if (uid.isNotEmpty()) {
-            val row = LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c))
-            if (TrainingSession.items.size > 1) SessionLog.put(uid, row.optLong("ts"), TrainingSession.name, TrainingSession.index + 1, TrainingSession.items.size)
-            if (TrainingSession.items.size <= 1) Recent.remember(uid, c)
-            Sync.flush()
+            val ts = System.currentTimeMillis()
+            LocalStore.lastTrainingTs = ts
+            val inSession = TrainingSession.items.size > 1
+            if (inSession && TrainingSession.hasNext()) {
+                // A session only counts when it is complete: hold this one, save nothing yet
+                TrainingSession.held.add(TrainingSession.Held(ts, c.key, sec, Trainings.meta(c), TrainingSession.index + 1))
+            } else {
+                // Single training, or the last training of a session: save everything now, in order
+                val total = TrainingSession.items.size
+                for (h in TrainingSession.held) {
+                    LocalStore.recordTraining(uid, h.key, h.sec, h.meta, h.ts)
+                    SessionLog.put(uid, h.ts, TrainingSession.name, h.pos, total)
+                }
+                TrainingSession.held.clear()
+                LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c), ts)
+                if (inSession) SessionLog.put(uid, ts, TrainingSession.name, TrainingSession.index + 1, total)
+                else Recent.remember(uid, c)
+                Sync.flush()
+            }
         }
         // More trainings in this session: keep the background service up and start the next one in 5 seconds,
         // whether or not the app is on screen.

@@ -177,7 +177,7 @@ class SavedListActivity : BaseActivity() {
             trailing.add(Pair(actions as View, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 10) }))
         }
         card.addView(Ui.nameRow(c, o.optString("name"), trailing,
-            Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG)))
+            Ui.clockLine(c, "Session \u00B7 ${items.size} trainings", Fmt.duration(secs))))
         return card
     }
 

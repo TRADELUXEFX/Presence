@@ -410,7 +410,10 @@ class ConfigActivity : BaseActivity() {
             cell.orientation = LinearLayout.VERTICAL
             cell.gravity = Gravity.CENTER_HORIZONTAL
             cell.addView(btn, LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 44)))
-            cell.addTo(Ui.text(c, name, 12f, Ui.TEXT, Ui.MED), 4)
+            // the label spans the cell, so it is centred under its icon
+            val label = Ui.text(c, name, 12f, Ui.TEXT, Ui.MED)
+            label.gravity = Gravity.CENTER
+            cell.addTo(label, 4)
             icons.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
         }
         col.addTo(icons, 14)

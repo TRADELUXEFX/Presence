@@ -59,6 +59,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private lateinit var mirrorRep: TextView
     private lateinit var mirrorSentence: TextView
     private var showingDone = false
+    private var builtForRun = -1
     private var dotCount = -1
     private var dotViews = ArrayList<View>()
     private var meterRed = false
@@ -69,6 +70,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             finish()
             return
         }
+        builtForRun = Engine.runId
         val key = Engine.config.key
         cameraOn = Engine.config.mode == "mirror" && (key == Trainings.BLINK || key == Trainings.FIDGET)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -85,6 +87,18 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         super.onStart()
         startMotionSensor()
         Engine.addListener(this)
+        // Coming back after the app was minimised: the Engine kept going without this screen listening,
+        // so catch up with where it is now.
+        if (!showingDone && !isFinishing) {
+            when {
+                // the training finished while away: open its results
+                Engine.isDone() -> { showDone(); return }
+                // the session was ended meanwhile
+                !Engine.isActive() -> { finish(); return }
+                // the session moved on to the next training: rebuild this screen for it
+                Engine.runId != builtForRun -> { window.decorView.post { if (!isFinishing) recreate() }; return }
+            }
+        }
         if (cameraOn && !showingDone) startCamera()
         if (!showingDone) render()
     }

@@ -170,7 +170,10 @@ class TrainingDetailActivity : BaseActivity() {
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 14), Ui.dp(c, 12), Ui.dp(c, 14), Ui.dp(c, 12))
         card.addView(Ui.text(c, p.first, 10f, Ui.MUTED, Ui.MED))
-        card.addView(Ui.text(c, p.second, 15f, Ui.TEXT, Ui.BOLD), LinearLayout.LayoutParams(-1, -2).apply { topMargin = Ui.dp(c, 3) })
+        // the Duration tile gets the small clock before its value
+        val value: View = if (p.first == "Duration") Ui.clockLine(c, null, p.second, 15f, Ui.TEXT, Ui.BOLD, 16)
+        else Ui.text(c, p.second, 15f, Ui.TEXT, Ui.BOLD)
+        card.addView(value, LinearLayout.LayoutParams(-1, -2).apply { topMargin = Ui.dp(c, 3) })
         return card
     }
 }

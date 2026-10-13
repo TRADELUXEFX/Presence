@@ -201,7 +201,7 @@ class TrainingsActivity : BaseActivity() {
         // name + buttons share the top row; the details sit below at the full card width
         val head = Ui.nameRow(c, o.optString("name"),
             listOf(Pair(edit as View, editLp), Pair(start as View, startLp1)),
-            Ui.text(c, Trainings.name(cfg.key) + " \u00B7 " + Trainings.estimate(cfg), 12f, Ui.MUTED, Ui.REG))
+            Ui.clockLine(c, Trainings.name(cfg.key), Trainings.estimate(cfg)))
         // long press to rename
         card.isLongClickable = true
         card.setOnLongClickListener {
@@ -243,7 +243,7 @@ class TrainingsActivity : BaseActivity() {
         // name + buttons share the top row; the details sit below at the full card width
         val head = Ui.nameRow(c, o.optString("name"),
             listOf(Pair(pencil as View, pencilLp), Pair(start as View, startLp)),
-            Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG))
+            Ui.clockLine(c, "Session \u00B7 ${items.size} trainings", Fmt.duration(secs)))
         // long press to rename
         card.isLongClickable = true
         card.setOnLongClickListener {

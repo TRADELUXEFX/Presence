@@ -8,6 +8,15 @@ object TrainingSession {
     var index = 0
     var name = "Session"
 
+    /** A finished training of a session that is not complete yet. It is kept here, not saved. */
+    class Held(val ts: Long, val key: String, val sec: Int, val meta: Meta, val pos: Int)
+
+    /**
+     * A session only counts once its LAST training is done. Until then each finished training waits here,
+     * in memory. If the session is left early, they are dropped and nothing is saved.
+     */
+    val held = ArrayList<Held>()
+
     fun active(): Boolean = items.isNotEmpty()
 
     fun hasNext(): Boolean = index + 1 < items.size
@@ -21,6 +30,7 @@ object TrainingSession {
 
     fun clear() {
         items.clear()
+        held.clear()
         index = 0
     }
 
