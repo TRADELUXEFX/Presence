@@ -225,7 +225,10 @@ class HomeActivity : BaseActivity() {
         body.setLineSpacing(0f, 1.25f)
         card.addTo(body, 6)
         val go = Ui.pill(c, "Go to Trainings", Ui.BLUE, Ui.WHITE)
-        go.setOnClickListener { startActivity(Intent(c, TrainingsActivity::class.java)) }
+        go.setOnClickListener {
+            startActivity(Intent(c, TrainingsActivity::class.java))
+            Nav.fade(c)
+        }
         card.addTo(go, 14)
         return card
     }
@@ -246,7 +249,9 @@ class HomeActivity : BaseActivity() {
         box.setOnClickListener {
             Settings.setDark(!Ui.dark)
             startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+            Nav.fade(this)
             finish()
+            Nav.fade(this)
         }
         return box
     }

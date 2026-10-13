@@ -97,7 +97,7 @@ class ProgressActivity : BaseActivity() {
         exportBar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
         Ui.bottomBarBg(c, exportBar)
         exportBtn.setOnClickListener { chooseExportRange() }
-        exportBtn.visibility = View.GONE
+        exportBtn.visibility = View.INVISIBLE
         // same structure as the Trainings tab: the bar is the last child of the screen's root
         root.addView(Nav.bar(c, 2), LinearLayout.LayoutParams(-1, -2))
         setContentView(root)
@@ -142,6 +142,8 @@ class ProgressActivity : BaseActivity() {
         showHistory = hist
         if (hist && history == null && !historyLoading) loadHistory()
         render()
+        // each tab starts at the top; they are different screens, so one tab's scroll must not carry over
+        scroll.scrollTo(0, 0)
     }
 
     private fun loadHistory() {
@@ -162,8 +164,8 @@ class ProgressActivity : BaseActivity() {
         // Nothing shows until every result is in: a blank page with the loading ring,
         // then the tabs and cards appear together.
         if (history == null) {
-            tabsWrap.visibility = View.GONE
-            exportBtn.visibility = View.GONE
+            tabsWrap.visibility = View.INVISIBLE
+            exportBtn.visibility = View.INVISIBLE
             column.removeAllViews()
             if (historyFailed) {
                 column.gravity = Gravity.TOP
@@ -183,7 +185,7 @@ class ProgressActivity : BaseActivity() {
         tabsWrap.visibility = View.VISIBLE
         renderTabs()
         column.removeAllViews()
-        exportBtn.visibility = if (showHistory) View.VISIBLE else View.GONE
+        exportBtn.visibility = if (showHistory) View.VISIBLE else View.INVISIBLE
         applyColumnPad()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
         if (showHistory) renderHistory() else renderStats(p)

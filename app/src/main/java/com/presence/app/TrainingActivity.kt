@@ -668,7 +668,9 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         TrainingSession.clear()
         Engine.reset()
         startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))
+        Nav.fade(this)
         finish()
+        Nav.fade(this)
     }
 
     // ---------- mirror camera ----------

@@ -43,7 +43,9 @@ object Nav {
             tab.setOnClickListener {
                 if (!on) {
                     a.startActivity(Intent(a, targets[i]).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                    fade(a)
                     a.finish()
+                    fade(a)
                 }
             }
             bar.addView(tab, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
@@ -54,6 +56,13 @@ object Nav {
     /** Back on a tab goes here: Home. */
     fun goHome(a: Activity) {
         a.startActivity(Intent(a, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        fade(a)
         a.finish()
+        fade(a)
+    }
+
+    /** A soft fade between tabs, instead of a hard cut. */
+    fun fade(a: Activity) {
+        a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
 }
