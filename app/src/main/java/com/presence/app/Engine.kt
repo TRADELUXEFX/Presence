@@ -68,8 +68,6 @@ object Engine {
     private var nextCueSec = 30
     private var cueIdx = 0
     private var motion = 0f
-    private var nextBellSec = Int.MAX_VALUE
-    private var bellEvery = 0
 
     /**
      * True during the 5 second gap between two trainings of a session. The Engine itself starts the next
@@ -248,12 +246,6 @@ object Engine {
             }
             Stage.MEDITATION -> {
                 val el = ((now - segStart) / 1000L).toInt()
-                // the interval bell, if one is chosen: not at the very end, where the end bell rings
-                if (el >= nextBellSec && nextBellSec < segSec) {
-                    chime(true)
-                    buzz()
-                    nextBellSec += bellEvery
-                }
                 if (el >= nextCueSec) {
                     speak(Trainings.MED_CUES[cueIdx % Trainings.MED_CUES.size])
                     cueIdx++
@@ -307,8 +299,6 @@ object Engine {
         halfSpoken = false
         nextCueSec = 30
         cueIdx = 0
-        bellEvery = Session.prefs.getInt("med_bell_min", 0) * 60
-        nextBellSec = if (bellEvery > 0) bellEvery else Int.MAX_VALUE
         speak("Begin your meditation. Breathe slowly and relax.")
     }
 

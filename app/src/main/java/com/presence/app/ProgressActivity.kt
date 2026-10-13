@@ -34,7 +34,10 @@ class ProgressActivity : BaseActivity() {
     private lateinit var tabs: LinearLayout
     private lateinit var tabsWrap: LinearLayout
     private lateinit var column: LinearLayout
-    private lateinit var scroll: ScrollView
+    private lateinit var scroll: ScrollView          // Training History's own scroll area
+    private lateinit var statsScroll: ScrollView     // Training Stats' own scroll area
+    private lateinit var historyColumn: LinearLayout
+    private lateinit var statsColumn: LinearLayout
     private lateinit var exportBar: LinearLayout
     private lateinit var exportBtn: Button
     private var showHistory = true      // History opens on Training History; Training Stats is the second tab
@@ -86,14 +89,17 @@ class ProgressActivity : BaseActivity() {
         headBox.addView(tabsWrap, LinearLayout.LayoutParams(-1, -2))
         root.addView(headBox, LinearLayout.LayoutParams(-1, -2))
 
-        column = LinearLayout(c)
-        column.orientation = LinearLayout.VERTICAL
-        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 40))
-        scroll = ScrollView(c)
-        scroll.isFillViewport = true
-        scroll.setBackgroundColor(Ui.BG)
-        scroll.addView(column)
-        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        // Each tab has its own scroll area, so one tab's scroll position can never carry over to the other.
+        historyColumn = newColumn()
+        statsColumn = newColumn()
+        column = historyColumn          // the column the current tab draws into (set again in render())
+        scroll = newScroll(historyColumn)
+        statsScroll = newScroll(statsColumn)
+        statsScroll.visibility = View.GONE
+        val scrollHost = FrameLayout(c)
+        scrollHost.addView(scroll, FrameLayout.LayoutParams(-1, -1))
+        scrollHost.addView(statsScroll, FrameLayout.LayoutParams(-1, -1))
+        root.addView(scrollHost, LinearLayout.LayoutParams(-1, 0, 1f))
 
         exportBar = LinearLayout(c)
         exportBar.orientation = LinearLayout.VERTICAL
@@ -108,28 +114,48 @@ class ProgressActivity : BaseActivity() {
         // BaseActivity turns clipping off on every view, so the history list drew over the tabs
         // when scrolling up. Turn clipping back on for the scroll area only, with rounded top corners
         // so content scrolling under the tabs is cut softly (same as PauzFirst).
-        scroll.clipChildren = true
+        for (sv in listOf(scroll, statsScroll)) {
+        sv.clipChildren = true
         val topR = Ui.dp(c, 20).toFloat()
-        scroll.outlineProvider = object : ViewOutlineProvider() {
+        sv.outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(v: View, outline: Outline) {
                 outline.setRoundRect(0, 0, v.width, v.height + topR.toInt(), topR)
             }
         }
-        scroll.clipToOutline = true
+        sv.clipToOutline = true
+        }
 
         // Stats content sits above the system navigation bar, so the last card and the
         // "Great job" line are not hidden behind it (as on PauzFirst).
-        ViewCompat.setOnApplyWindowInsetsListener(column) { _, insets ->
-            navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()).bottom
-            applyColumnPad()
-            insets
+        for (col in listOf(historyColumn, statsColumn)) {
+            ViewCompat.setOnApplyWindowInsetsListener(col) { _, insets ->
+                navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()).bottom
+                applyColumnPad()
+                insets
+            }
+            ViewCompat.requestApplyInsets(col)
         }
-        ViewCompat.requestApplyInsets(column)
+    }
+
+    private fun newColumn(): LinearLayout {
+        val col = LinearLayout(this)
+        col.orientation = LinearLayout.VERTICAL
+        col.setPadding(Ui.dp(this, 18), Ui.dp(this, 12), Ui.dp(this, 18), Ui.dp(this, 40))
+        return col
+    }
+
+    private fun newScroll(col: LinearLayout): ScrollView {
+        val sv = ScrollView(this)
+        sv.isFillViewport = true
+        sv.setBackgroundColor(Ui.BG)
+        sv.addView(col)
+        return sv
     }
 
     private fun applyColumnPad() {
         val c = this
-        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24) + (if (showHistory) 0 else navBottom))
+        historyColumn.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24))
+        statsColumn.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24) + navBottom)
     }
 
     override fun onBackPressed() {
@@ -150,14 +176,11 @@ class ProgressActivity : BaseActivity() {
     private fun setTab(hist: Boolean) {
         showHistory = hist
         if (hist && history == null && !historyLoading) loadHistory()
-        // each tab starts at the top; they are different screens, so one tab's scroll must not carry over.
-        // Stop any fling still running, reset now, and reset again after the new content is laid out
-        // (the page height changes, and a fling or the layout pass would otherwise put it back down).
-        scroll.smoothScrollBy(0, 0)
-        scroll.scrollTo(0, 0)
         render()
-        scroll.scrollTo(0, 0)
-        scroll.post { scroll.scrollTo(0, 0) }
+        // the tab you switch to always opens at the top
+        val target = if (hist) scroll else statsScroll
+        target.scrollTo(0, 0)
+        target.post { target.scrollTo(0, 0) }
     }
 
     private fun loadHistory() {
@@ -202,6 +225,11 @@ class ProgressActivity : BaseActivity() {
     }
 
     private fun render() {
+        // draw into the current tab's own column and show only its scroll area
+        val showStats = history != null && !showHistory
+        column = if (showStats) statsColumn else historyColumn
+        scroll.visibility = if (showStats) View.GONE else View.VISIBLE
+        statsScroll.visibility = if (showStats) View.VISIBLE else View.GONE
         // Nothing shows until every result is in: a blank page with the loading ring,
         // then the tabs and cards appear together.
         if (history == null) {

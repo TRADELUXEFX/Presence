@@ -231,7 +231,6 @@ class ConfigActivity : BaseActivity() {
                 // one label only: the card's own switch label, with the same gap above as the other sections
                 panel.addTo(cardOf(voiceRow("Guided breathing cues", "Gentle voice cues every 30 seconds")), 22)
                 soundHint()
-                panel.addTo(cardOf(bellChips()), 22)
             }
         }
 
@@ -255,36 +254,6 @@ class ConfigActivity : BaseActivity() {
         sw.setOnCheckedChangeListener { _, v -> onChange(v) }
         row.addView(sw)
         return row
-    }
-
-    /** Meditation: a soft bell every few minutes. Off by default. */
-    private fun bellChips(): LinearLayout {
-        val c = this
-        val col = LinearLayout(c)
-        col.orientation = LinearLayout.VERTICAL
-        col.addView(Ui.text(c, "Interval bell", 16f, Ui.TEXT, Ui.MED))
-        col.addTo(Ui.text(c, "A soft bell every few minutes", 13f, Ui.MUTED, Ui.REG), 2)
-        val row = LinearLayout(c)
-        row.orientation = LinearLayout.HORIZONTAL
-        val options = listOf(0, 1, 2, 5, 10)
-        val current = Session.prefs.getInt("med_bell_min", 0)
-        for (m in options) {
-            val sel = current == m
-            val chip = Ui.text(c, if (m == 0) "Off" else "${m}m", 14f, if (sel) Ui.onColor(accentColor) else Ui.TEXT, Ui.BOLD)
-            chip.gravity = Gravity.CENTER
-            chip.background = Ui.rounded(c, if (sel) accentColor else Ui.SURFACE, 18, if (sel) 0 else Ui.LINE, if (sel) 0 else 1)
-            chip.setPadding(0, Ui.dp(c, 12), 0, Ui.dp(c, 12))
-            chip.setOnClickListener {
-                Session.prefs.edit().putInt("med_bell_min", m).apply()
-                if (m > 0) Bell.play(true)
-                renderPanel()
-            }
-            val lp = LinearLayout.LayoutParams(0, -2, 1f)
-            if (m != options.first()) lp.leftMargin = Ui.dp(c, 6)
-            row.addView(chip, lp)
-        }
-        col.addTo(row, 12)
-        return col
     }
 
     /** The vibrate icon: grey when off, green when on. It toggles vibration on its own. */
@@ -434,31 +403,35 @@ class ConfigActivity : BaseActivity() {
         }
     }
 
-    /** One row: the label, then four icons: vibrate, bell, voice, music. Tap switches each on or off; hold the bell or music icon for more sound choices. */
+    /** The label and its line of text across the full width, then the four switches in a 2 x 2 grid: vibration, bell, voice, music. Tap switches each on or off; hold the bell or music icon for more sound choices. */
     private fun voiceRow(label: String, sub: String): LinearLayout {
         val c = this
-        val row = LinearLayout(c)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER_VERTICAL
-        val text = LinearLayout(c)
-        text.orientation = LinearLayout.VERTICAL
-        text.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
-        text.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
-        row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        // four icons, a little smaller and closer than three, so the label still has room
-        val size = Ui.dp(c, 38)
-        val gap = Ui.dp(c, 6)
-        val vibLp = LinearLayout.LayoutParams(size, size)
-        vibLp.rightMargin = gap
-        row.addView(vibrateButton(), vibLp)
-        val bellLp = LinearLayout.LayoutParams(size, size)
-        bellLp.rightMargin = gap
-        row.addView(bellButton(), bellLp)
-        val voiceLp = LinearLayout.LayoutParams(size, size)
-        voiceLp.rightMargin = gap
-        row.addView(speechButton(), voiceLp)
-        row.addView(musicButton(), LinearLayout.LayoutParams(size, size))
-        return row
+        val col = LinearLayout(c)
+        col.orientation = LinearLayout.VERTICAL
+        col.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
+        col.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
+        // the four switches in a 2 x 2 grid, each icon with its name beside it
+        val size = Ui.dp(c, 44)
+        val cells = listOf(
+            "Vibration" to vibrateButton(), "Bell" to bellButton(),
+            "Voice" to speechButton(), "Music" to musicButton()
+        )
+        for (r in 0..1) {
+            val line = LinearLayout(c)
+            line.orientation = LinearLayout.HORIZONTAL
+            line.gravity = Gravity.CENTER_VERTICAL
+            for (k in 0..1) {
+                val (name, btn) = cells[r * 2 + k]
+                val cell = LinearLayout(c)
+                cell.orientation = LinearLayout.HORIZONTAL
+                cell.gravity = Gravity.CENTER_VERTICAL
+                cell.addView(btn, LinearLayout.LayoutParams(size, size))
+                cell.addView(Ui.text(c, name, 14f, Ui.TEXT, Ui.MED), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 10) })
+                line.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
+            }
+            col.addTo(line, if (r == 0) 14 else 10)
+        }
+        return col
     }
 
     private fun voiceCard(sub: String) {
