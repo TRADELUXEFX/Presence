@@ -133,16 +133,8 @@ object Ui {
     }
 
     /** Text colour that reads best on [bg]: dark ink or white, whichever has more contrast. */
-    fun onColor(bg: Int): Int {
-        fun lin(v: Int): Double {
-            val s = v / 255.0
-            return if (s <= 0.03928) s / 12.92 else Math.pow((s + 0.055) / 1.055, 2.4)
-        }
-        val l = 0.2126 * lin(Color.red(bg)) + 0.7152 * lin(Color.green(bg)) + 0.0722 * lin(Color.blue(bg))
-        val contrastWhite = 1.05 / (l + 0.05)
-        val contrastDark = (l + 0.05) / (0.0086 + 0.05)
-        return if (contrastDark > contrastWhite) Color.parseColor("#0F172A") else Color.WHITE
-    }
+    /** The one text colour for anything sitting on a training colour: dark ink, in light and dark mode alike. */
+    fun onColor(bg: Int): Int = Color.parseColor("#0F172A")
 
     fun rounded(c: Context, color: Int, radiusDp: Int, strokeColor: Int = 0, strokeDp: Int = 0): GradientDrawable {
         val g = GradientDrawable()

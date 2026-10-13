@@ -126,7 +126,7 @@ class TrainingsActivity : BaseActivity() {
         text.addView(Ui.text(c, Trainings.name(k), 15f, Ui.TEXT, Ui.BOLD))
         text.addTo(Ui.text(c, Trainings.about(k), 12f, Ui.MUTED, Ui.REG), 3)
         line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val open = Ui.pill(c, "Open", Trainings.accent(k), Ui.onColor(Trainings.accent(k)))
+        val open = Ui.pill(c, "Open", Trainings.accent(k), Color.parseColor("#0F172A"))
         open.textSize = 14f
         open.setOnClickListener { openTraining(k) }
         val openLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))

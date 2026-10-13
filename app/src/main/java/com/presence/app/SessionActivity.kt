@@ -100,7 +100,7 @@ class SessionActivity : BaseActivity() {
         line.orientation = LinearLayout.HORIZONTAL
         line.gravity = Gravity.CENTER_VERTICAL
 
-        val num = Ui.text(c, "${i + 1}", 13f, Color.WHITE, Ui.BOLD)
+        val num = Ui.text(c, "${i + 1}", 13f, Ui.onColor(Trainings.accent(cfg.key)), Ui.BOLD)
         num.gravity = Gravity.CENTER
         num.background = Ui.rounded(c, Trainings.accent(cfg.key), 16)
         line.addView(num, LinearLayout.LayoutParams(Ui.dp(c, 32), Ui.dp(c, 32)))
