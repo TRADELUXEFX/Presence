@@ -292,7 +292,8 @@ object Engine {
         if (c.key != Trainings.MEDITATE) speak("Training complete. Great job.")
         val uid = Session.userId
         if (uid.isNotEmpty()) {
-            LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c))
+            val row = LocalStore.recordTraining(uid, c.key, sec, Trainings.meta(c))
+            if (TrainingSession.items.size > 1) SessionLog.put(uid, row.optLong("ts"), TrainingSession.name, TrainingSession.index + 1, TrainingSession.items.size)
             if (TrainingSession.items.size <= 1) Recent.remember(uid, c)
             Sync.flush()
         }
@@ -312,6 +313,20 @@ object Engine {
         ringColor = Trainings.accent(config.key)
         badgeText = if (config.key == Trainings.BLINK) "Hold Gaze" else "Be Still"
         instrText = Trainings.instruction(config.key, config.mode)
+    }
+
+    /** Box Breathing: true while the breathing phases are running. */
+    fun breathing(): Boolean = stage == Stage.BREATH
+
+    /** Box Breathing: how full the breathing circle is now, from 0.45 (small) to 1 (full). */
+    fun breathScale(): Float {
+        val f = ringFraction
+        return when (breathPhase) {
+            0 -> 0.45f + 0.55f * f
+            1 -> 1f
+            2 -> 1f - 0.55f * f
+            else -> 0.45f
+        }
     }
 
     private fun showBreath(rem: Int) {

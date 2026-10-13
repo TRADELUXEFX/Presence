@@ -159,6 +159,14 @@ object SavedLists {
     }
 
     /** Small pop-up: type a name, then Save. Calls [onSave] with the trimmed name. */
+    /** Changes only the name of a saved training or session. */
+    fun rename(uid: String, id: String, name: String) {
+        save(uid) { list ->
+            val i = list.indexOfFirst { it.optString("id") == id }
+            if (i >= 0) list[i] = JSONObject(list[i].toString()).put("name", name)
+        }
+    }
+
     fun askName(a: Activity, onSave: (String) -> Unit) {
         if (a.isFinishing) return
         val d = Dialog(a)

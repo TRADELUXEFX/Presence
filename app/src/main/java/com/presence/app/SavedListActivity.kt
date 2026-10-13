@@ -172,6 +172,7 @@ class SavedListActivity : BaseActivity() {
             start.textSize = 14f
             start.setOnClickListener {
                 // the whole session starts, one training after another
+                TrainingSession.name = o.optString("name")
                 TrainingSession.clear()
                 TrainingSession.items.addAll(items)
                 startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))

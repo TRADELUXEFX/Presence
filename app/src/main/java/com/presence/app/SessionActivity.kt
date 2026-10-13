@@ -229,6 +229,7 @@ class SessionActivity : BaseActivity() {
 
     private fun startSession() {
         if (items.isEmpty()) return
+        TrainingSession.name = editingName.ifEmpty { "Session" }
         TrainingSession.clear()
         TrainingSession.items.addAll(items)
         // Config sets up permissions and starts the first training, the same way a single training starts

@@ -693,8 +693,16 @@ class ProgressActivity : BaseActivity() {
         val base = if (meta.isEmpty()) Fmt.duration(r.optLong("sec", 0L))
         else "$meta · " + Fmt.duration(r.optLong("sec", 0L))
         val felt = Feel.get(Session.userId, r.optLong("ts", 0L))
-        val details = if (felt == null) base else "$base · Felt $felt"
-        left.addTo(Ui.text(c, details, 13f, Ui.MUTED_TINT, Ui.REG), 4)
+        // the details line, then the face of how it felt (no text), when it was rated
+        val detailRow = LinearLayout(c)
+        detailRow.orientation = LinearLayout.HORIZONTAL
+        detailRow.gravity = Gravity.CENTER_VERTICAL
+        detailRow.addView(Ui.text(c, base, 13f, Ui.MUTED_TINT, Ui.REG))
+        if (felt != null) {
+            detailRow.addView(FsIconView(c, Feel.face(felt), Ui.MUTED_TINT),
+                LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)).apply { leftMargin = Ui.dp(c, 6) })
+        }
+        left.addTo(detailRow, 4)
         row.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
         val tag = Ui.text(c, Trainings.name(key), 11f, Ui.onColor(Trainings.accent(key)), Ui.BOLD)
         tag.gravity = Gravity.CENTER
@@ -702,6 +710,12 @@ class ProgressActivity : BaseActivity() {
         tag.setPadding(Ui.dp(c, 12), Ui.dp(c, 6), Ui.dp(c, 12), Ui.dp(c, 6))
         row.addView(tag, LinearLayout.LayoutParams(-2, -2))
         card.addView(row)
+        card.isClickable = true
+        card.setOnClickListener {
+            startActivity(Intent(c, TrainingDetailActivity::class.java)
+                .putExtra("row", r.toString())
+                .putExtra("when", whenText.text.toString()))
+        }
         return card
     }
 

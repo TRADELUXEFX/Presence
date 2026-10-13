@@ -213,6 +213,15 @@ class TrainingsActivity : BaseActivity() {
             startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", id))
         }
         line.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) })
+        // long press to rename
+        card.isLongClickable = true
+        card.setOnLongClickListener {
+            SavedLists.askName(this) { name ->
+                SavedLists.rename(Session.userId, o.optString("id"), name)
+                render()
+            }
+            true
+        }
         card.addView(line)
         return card
     }
@@ -244,6 +253,7 @@ class TrainingsActivity : BaseActivity() {
         val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
         start.textSize = 14f
         start.setOnClickListener {
+            TrainingSession.name = o.optString("name")
             TrainingSession.clear()
             TrainingSession.items.addAll(items)
             startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))
@@ -251,6 +261,15 @@ class TrainingsActivity : BaseActivity() {
         val startLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
         startLp.leftMargin = Ui.dp(c, 8)
         line.addView(start, startLp)
+        // long press to rename
+        card.isLongClickable = true
+        card.setOnLongClickListener {
+            SavedLists.askName(this) { name ->
+                SavedLists.rename(Session.userId, o.optString("id"), name)
+                render()
+            }
+            true
+        }
         card.addView(line)
         return card
     }

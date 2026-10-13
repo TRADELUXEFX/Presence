@@ -116,5 +116,7 @@
             android:foregroundServiceType="mediaPlayback" />
         <activity android:name=".SessionActivity" android:exported="false" />
         <activity android:name=".TrainingsActivity" android:exported="false" />
+        <activity android:name=".TrainingDetailActivity" android:exported="false" />
+        <activity android:name=".ResultActivity" android:exported="false" />
     </application>
 </manifest>

@@ -1,9 +1,12 @@
 package com.presence.app
 
+import org.json.JSONObject
+
 /** Trainings done one after another. Kept in memory while the session runs. */
 object TrainingSession {
     val items = ArrayList<Config>()
     var index = 0
+    var name = "Session"
 
     fun active(): Boolean = items.isNotEmpty()
 
@@ -36,4 +39,24 @@ object TrainingSession {
 object SessionDraft {
     val items = ArrayList<Config>()
     var editing = -1
+}
+
+/** Which finished trainings were part of a session, kept on this phone (keyed by the training's time). */
+object SessionLog {
+    private fun key(uid: String) = "session_log_$uid"
+
+    private fun load(uid: String): JSONObject = try {
+        JSONObject(Session.prefs.getString(key(uid), "{}") ?: "{}")
+    } catch (e: Exception) {
+        JSONObject()
+    }
+
+    fun put(uid: String, ts: Long, name: String, pos: Int, total: Int) {
+        if (uid.isEmpty() || ts <= 0L) return
+        val map = load(uid)
+        map.put(ts.toString(), JSONObject().put("name", name).put("pos", pos).put("total", total))
+        Session.prefs.edit().putString(key(uid), map.toString()).apply()
+    }
+
+    fun get(uid: String, ts: Long): JSONObject? = load(uid).optJSONObject(ts.toString())
 }

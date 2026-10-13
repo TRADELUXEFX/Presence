@@ -460,6 +460,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         val eng = Engine
         ring.fraction = eng.ringFraction
         ring.ringColor = eng.ringColor
+        ring.breathScale = if (e.key == Trainings.BREATH && eng.breathing()) eng.breathScale() else -1f
         setText(ringNum, eng.ringText)
         setText(ringUnit, eng.ringUnit)
         setText(badge, eng.badgeText)
@@ -519,7 +520,9 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         return g
     }
 
+    /** A finished training opens its results page straight away; Done on that page closes it and returns to where you were. */
     private fun showDone() {
+        if (showingDone) return
         showingDone = true
         stopMotionSensor()
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -527,50 +530,18 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             camProvider?.unbindAll()
         } catch (e: Exception) {
         }
-        preview?.visibility = View.GONE
-        scrimView?.visibility = View.GONE
-
         val cfg = Engine.config
-        doneTitle.text = Trainings.doneTitle(cfg.key)
-
-        // a session: say what is next, and move on by itself after a few seconds
-        if (TrainingSession.items.size > 1) {
-            sessionCard.visibility = View.VISIBLE
-            if (TrainingSession.hasNext()) {
-                val nxt = TrainingSession.items[TrainingSession.index + 1]
-                sessionText.text = "Training ${TrainingSession.position()} done.\nUp next: ${Trainings.name(nxt.key)} in 5 seconds"
-                sessionHandler.postDelayed({ advanceSession() }, 5000L)
-            } else {
-                sessionText.text = "Session complete: ${TrainingSession.items.size} trainings done."
-                Recent.rememberSession(Session.userId, TrainingSession.items)
-            }
-        } else {
-            sessionCard.visibility = View.GONE
-        }
-
-        // show the milestone once, on the training that reached it
-        val streak = Profile.normalize(LocalStore.profile(Session.userId)).optInt("streak", 0)
-        val msg = Milestones.message(streak)
-        if (msg != null && Session.prefs.getInt("milestone", 0) != streak) {
-            Session.prefs.edit().putInt("milestone", streak).apply()
-            milestoneText.text = msg
-            milestoneCard.visibility = View.VISIBLE
-        } else {
-            milestoneCard.visibility = View.GONE
-        }
-        doneQuote.text = "\"" + Trainings.quotes(cfg.key).random() + "\""
-        doneStats.removeAllViews()
         val rows = statRows(cfg, Engine.resultSec)
-        for ((i, r) in rows.withIndex()) {
-            val row = LinearLayout(this)
-            row.orientation = LinearLayout.HORIZONTAL
-            row.gravity = Gravity.CENTER_VERTICAL
-            row.addView(Ui.text(this, r.first, 14f, Ui.MUTED, Ui.REG), LinearLayout.LayoutParams(0, -2, 1f))
-            row.addView(Ui.text(this, r.second, 15f, Ui.TEXT, Ui.BOLD))
-            doneStats.addTo(row, if (i == 0) 0 else 12)
-        }
-        trainingView.visibility = View.GONE
-        doneView.visibility = View.VISIBLE
+        val results = Intent(this, ResultActivity::class.java)
+            .putExtra("key", cfg.key)
+            .putExtra("quote", "\"" + Trainings.quotes(cfg.key).random() + "\"")
+            .putExtra("ts", LocalStore.lastTrainingTs)
+            .putStringArrayListExtra("labels", ArrayList(rows.map { it.first }))
+            .putStringArrayListExtra("values", ArrayList(rows.map { it.second }))
+        sessionHandler.removeCallbacksAndMessages(null)
+        Engine.reset()
+        startActivity(results)
+        finish()
     }
 
     private fun statRows(c: Config, sec: Int): List<Pair<String, String>> {
