@@ -225,10 +225,69 @@ class ConfigActivity : BaseActivity() {
                 )
                 // one label only: the card's own switch label, with the same gap above as the other sections
                 panel.addTo(cardOf(voiceRow("Guided breathing cues", "Gentle voice cues every 30 seconds")), 22)
+                panel.addTo(cardOf(bellChips()), 22)
             }
         }
 
+        panel.addTo(
+            cardOf(
+                switchRow("Bell sound", "A soft bell at the start and end", Session.prefs.getBoolean("bell", true)) { on ->
+                    Session.prefs.edit().putBoolean("bell", on).apply()
+                    if (on) Bell.play(true)
+                }
+            ),
+            22
+        )
         panel.addTo(estimateCard(), 22)
+    }
+
+    /** A label, a small line under it, and a switch. */
+    private fun switchRow(label: String, sub: String, on: Boolean, onChange: (Boolean) -> Unit): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val text = LinearLayout(c)
+        text.orientation = LinearLayout.VERTICAL
+        text.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
+        text.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
+        row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val sw = androidx.appcompat.widget.SwitchCompat(c)
+        sw.isChecked = on
+        Ui.styleSwitch(sw, accentColor)
+        sw.setOnCheckedChangeListener { _, v -> onChange(v) }
+        row.addView(sw)
+        return row
+    }
+
+    /** Meditation: a soft bell every few minutes. Off by default. */
+    private fun bellChips(): LinearLayout {
+        val c = this
+        val col = LinearLayout(c)
+        col.orientation = LinearLayout.VERTICAL
+        col.addView(Ui.text(c, "Interval bell", 16f, Ui.TEXT, Ui.MED))
+        col.addTo(Ui.text(c, "A soft bell every few minutes", 13f, Ui.MUTED, Ui.REG), 2)
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        val options = listOf(0, 1, 2, 5, 10)
+        val current = Session.prefs.getInt("med_bell_min", 0)
+        for (m in options) {
+            val sel = current == m
+            val chip = Ui.text(c, if (m == 0) "Off" else "${m}m", 14f, if (sel) Ui.onColor(accentColor) else Ui.TEXT, Ui.BOLD)
+            chip.gravity = Gravity.CENTER
+            chip.background = Ui.rounded(c, if (sel) accentColor else Ui.SURFACE, 18, if (sel) 0 else Ui.LINE, if (sel) 0 else 1)
+            chip.setPadding(0, Ui.dp(c, 12), 0, Ui.dp(c, 12))
+            chip.setOnClickListener {
+                Session.prefs.edit().putInt("med_bell_min", m).apply()
+                if (m > 0) Bell.play(true)
+                renderPanel()
+            }
+            val lp = LinearLayout.LayoutParams(0, -2, 1f)
+            if (m != options.first()) lp.leftMargin = Ui.dp(c, 6)
+            row.addView(chip, lp)
+        }
+        col.addTo(row, 12)
+        return col
     }
 
     /** The vibrate icon: grey when off, green when on. It toggles vibration on its own. */
@@ -381,6 +440,29 @@ class ConfigActivity : BaseActivity() {
         ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
 
     private fun onStartTapped() {
+        // Do not disturb is always on during a training. The phone needs your permission once, so it is asked about one time only.
+        if (!Dnd.granted(this) && !Session.prefs.getBoolean("dnd_asked", false)) {
+            Session.prefs.edit().putBoolean("dnd_asked", true).apply()
+            Dialogs.show(
+                this,
+                "Silence notifications while you train",
+                "Presence turns on Do not disturb during each training and switches it back afterwards. The phone needs your permission once. Tap Open settings, switch on Presence, then come back and press Start.",
+                "Open settings",
+                "Not now",
+                onPrimary = {
+                    try {
+                        startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                    } catch (e: Exception) {
+                    }
+                },
+                onSecondary = { startChecked() }
+            )
+            return
+        }
+        startChecked()
+    }
+
+    private fun startChecked() {
         val want = ArrayList<String>()
         if (needsCamera() && !granted(Manifest.permission.CAMERA)) want.add(Manifest.permission.CAMERA)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(Manifest.permission.POST_NOTIFICATIONS)) {

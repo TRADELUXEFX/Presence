@@ -195,6 +195,8 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         }
         val trackLp = LinearLayout.LayoutParams(-1, Ui.dp(c, 4))
         trackLp.topMargin = Ui.dp(c, 14)
+        // a single rep would be one long line, so no bar
+        if (Engine.totalReps <= 1) track.visibility = View.GONE
         topBox.addView(track, trackLp)
 
         val card = LinearLayout(c)
@@ -354,7 +356,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         bar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
         Ui.tintedBottomBar(c, bar, Trainings.accent(Engine.config.key))
         bar.elevation = Ui.dp(c, 8).toFloat()
-        val stop = Ui.pill(c, "End training", Color.WHITE, Ui.TEXT)
+        val stop = Ui.pill(c, "End training", Color.WHITE, Trainings.ink(Engine.config.key))
         stop.setOnClickListener { endNow() }
         bar.addView(stop, LinearLayout.LayoutParams(-1, -2))
         Ui.padInsets(bar, bottom = true)
@@ -481,6 +483,8 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     private fun buildDots(n: Int) {
         dotCount = n
+        // one rep means one long line that shows nothing, so the dashes are hidden
+        dots.visibility = if (n <= 1) View.GONE else View.VISIBLE
         dots.removeAllViews()
         dotViews = ArrayList()
         for (i in 0 until n) {

@@ -58,6 +58,35 @@ class NotificationsActivity : BaseActivity() {
             ),
             8
         )
+        column.addTo(Ui.sectionTitle(c, "Weekly summary"), 24)
+        column.addTo(
+            cardOf(
+                Ui.switchRow(c, "Weekly summary", "Every Sunday at 6:00 PM", Weekly.on) { on -> setWeekly(on) },
+                seeWeekRow()
+            ),
+            8
+        )
+    }
+
+    private fun seeWeekRow(): LinearLayout {
+        val c = this
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        row.addView(Ui.text(c, "See this week now", 14f, Ui.BLUE, Ui.BOLD), LinearLayout.LayoutParams(0, -2, 1f))
+        row.setOnClickListener { startActivity(Intent(c, WeeklySummaryActivity::class.java)) }
+        return row
+    }
+
+    private fun setWeekly(on: Boolean) {
+        Weekly.on = on
+        if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        Weekly.apply(this)
+        render()
     }
 
     private fun cardOf(vararg rows: View): LinearLayout {

@@ -95,5 +95,6 @@ class ReminderReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         Reminders.apply(ctx)
+        Weekly.apply(ctx)
     }
 }

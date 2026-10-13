@@ -68,6 +68,8 @@ object Engine {
     private var nextCueSec = 30
     private var cueIdx = 0
     private var motion = 0f
+    private var nextBellSec = Int.MAX_VALUE
+    private var bellEvery = 0
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -95,6 +97,8 @@ object Engine {
         setMotion()
         ensureTts(app)
         TrainingService.start(app)
+        Dnd.engage(app)
+        chime(false)
         beginCurrent()
         handler.removeCallbacks(ticker)
         handler.post(ticker)
@@ -108,7 +112,10 @@ object Engine {
         handler.removeCallbacks(ticker)
         tts?.stop()
         pendingSpeech = null
-        appCtx?.let { TrainingService.stop(it) }
+        appCtx?.let {
+            TrainingService.stop(it)
+            Dnd.restore(it)
+        }
         notifyListeners()
     }
 
@@ -117,6 +124,7 @@ object Engine {
         running = false
         stage = Stage.IDLE
         handler.removeCallbacks(ticker)
+        appCtx?.let { Dnd.restore(it) }
         notifyListeners()
     }
 
@@ -190,6 +198,12 @@ object Engine {
             }
             Stage.MEDITATION -> {
                 val el = ((now - segStart) / 1000L).toInt()
+                // the interval bell, if one is chosen: not at the very end, where the end bell rings
+                if (el >= nextBellSec && nextBellSec < segSec) {
+                    chime(true)
+                    buzz()
+                    nextBellSec += bellEvery
+                }
                 if (el >= nextCueSec) {
                     speak(Trainings.MED_CUES[cueIdx % Trainings.MED_CUES.size])
                     cueIdx++
@@ -232,7 +246,8 @@ object Engine {
         stage = Stage.BREATH
         segStart = System.currentTimeMillis()
         segSec = 4
-        speak(Trainings.BREATH_PHASES[i].label)
+        buzz(phaseBuzz(i))
+        speak(Trainings.BREATH_PHASES[i].label, false)
     }
 
     private fun beginMeditation() {
@@ -242,6 +257,8 @@ object Engine {
         halfSpoken = false
         nextCueSec = 30
         cueIdx = 0
+        bellEvery = Session.prefs.getInt("med_bell_min", 0) * 60
+        nextBellSec = if (bellEvery > 0) bellEvery else Int.MAX_VALUE
         speak("Begin your meditation. Breathe slowly and relax.")
     }
 
@@ -289,6 +306,7 @@ object Engine {
         running = false
         resultSec = sec
         handler.removeCallbacks(ticker)
+        chime(false)
         if (c.key != Trainings.MEDITATE) speak("Training complete. Great job.")
         val uid = Session.userId
         if (uid.isNotEmpty()) {
@@ -299,6 +317,7 @@ object Engine {
         }
         appCtx?.let {
             TrainingService.stop(it)
+            Dnd.restore(it)
             StreakWidget.updateAll(it)
         }
         notifyListeners()
@@ -380,19 +399,32 @@ object Engine {
     }
 
     /** A short buzz with each cue, if vibration is on in settings. */
-    private fun buzz() {
+    private fun buzz(pattern: LongArray = longArrayOf(0L, 60L)) {
         val ctx = appCtx ?: return
         if (!Session.prefs.getBoolean("vibrate", true)) return
         val vib = ctx.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator ?: return
         if (android.os.Build.VERSION.SDK_INT >= 26) {
-            vib.vibrate(android.os.VibrationEffect.createOneShot(60L, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            vib.vibrate(android.os.VibrationEffect.createWaveform(pattern, -1))
         } else {
-            vib.vibrate(60L)
+            vib.vibrate(pattern, -1)
         }
     }
 
-    private fun speak(text: String) {
-        buzz()
+    /** Box Breathing: each phase feels different. Inhale one pulse, hold two light taps, exhale one long pulse. */
+    private fun phaseBuzz(i: Int): LongArray = when (i) {
+        0 -> longArrayOf(0L, 90L)
+        2 -> longArrayOf(0L, 220L)
+        else -> longArrayOf(0L, 40L, 70L, 40L)
+    }
+
+    /** The soft bell, if sound is on in settings. */
+    private fun chime(soft: Boolean) {
+        if (!Session.prefs.getBoolean("bell", true)) return
+        Bell.play(soft)
+    }
+
+    private fun speak(text: String, shake: Boolean = true) {
+        if (shake) buzz()
         if (!config.voice) return
         val t = tts
         if (t == null || !ttsReady) {

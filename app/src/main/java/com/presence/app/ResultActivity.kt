@@ -60,6 +60,9 @@ class ResultActivity : BaseActivity() {
             mt.gravity = Gravity.CENTER
             mt.setLineSpacing(0f, 1.25f)
             m.addView(mt)
+            val share = Ui.pill(c, "Share my streak", accent, ink)
+            share.setOnClickListener { ShareCard.shareStreak(c, streak) }
+            m.addView(share, LinearLayout.LayoutParams(-1, -2).apply { topMargin = Ui.dp(c, 12) })
             body.addView(m, LinearLayout.LayoutParams(-1, -2).apply { topMargin = Ui.dp(c, 20) })
         }
 
