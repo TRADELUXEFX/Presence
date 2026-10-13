@@ -56,9 +56,19 @@ object Ui {
      */
     fun noClipDeep(v: View) {
         if (v is ViewGroup) {
-            // a vertical scroll area keeps clipping its content, so a scrolled page never draws over the header or the bottom bar
-            v.clipChildren = v is android.widget.ScrollView
-            if (v !is android.widget.ScrollView && v !is android.widget.HorizontalScrollView) v.clipToPadding = false
+            // A vertical scroll area must clip itself to its own bounds, otherwise a scrolled page draws over the header
+            // or the bottom bar (the parent has clipChildren off, and a ScrollView with no padding does not clip by itself).
+            // clipBounds does this on the scroll view itself, without touching the parent's clipping.
+            if (v is android.widget.ScrollView) {
+                v.clipChildren = true
+                v.clipToPadding = true
+                v.addOnLayoutChangeListener { sv, l, t, r, b, _, _, _, _ ->
+                    sv.clipBounds = android.graphics.Rect(0, 0, r - l, b - t)
+                }
+            } else {
+                v.clipChildren = false
+                if (v !is android.widget.HorizontalScrollView) v.clipToPadding = false
+            }
             v.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
                 override fun onChildViewAdded(parent: View?, child: View?) { if (child != null) noClipDeep(child) }
                 override fun onChildViewRemoved(parent: View?, child: View?) {}
