@@ -26,6 +26,14 @@ object SavedLists {
         return arr.objects()
     }
 
+    /** A name for a list the person did not name: "Box Breathing 1", "Session 2", the first number not already used. */
+    fun autoName(uid: String, base: String): String {
+        val taken = all(uid).map { it.optString("name").trim().lowercase() }.toSet()
+        var i = 1
+        while (taken.contains("$base $i".lowercase())) i++
+        return "$base $i"
+    }
+
     fun toConfig(o: JSONObject): Config = Config(
         o.optString("key"),
         o.optString("mode", "open"),
@@ -174,7 +182,7 @@ object SavedLists {
         }
     }
 
-    fun askName(a: Activity, accent: Int = Ui.BLUE, onSave: (String) -> Unit) {
+    fun askName(a: Activity, accent: Int = Ui.BLUE, defaultName: String? = null, onSave: (String) -> Unit) {
         if (a.isFinishing) return
         val d = Dialog(a)
         d.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -182,11 +190,14 @@ object SavedLists {
         val card = Ui.card(a)
         card.setPadding(Ui.dp(a, 22), Ui.dp(a, 22), Ui.dp(a, 22), Ui.dp(a, 18))
         card.addView(Ui.text(a, "Name your list", 18f, Ui.TEXT, Ui.BOLD))
-        val hint = Ui.text(a, "Name this training so you can start it from your saved list.", 14f, Ui.MUTED, Ui.REG)
+        // a name is optional: left empty, the list gets [defaultName]
+        val hintText = if (defaultName != null) "Name this list, or leave it empty and it is saved as \"$defaultName\"."
+        else "Name this training so you can start it from your saved list."
+        val hint = Ui.text(a, hintText, 14f, Ui.MUTED, Ui.REG)
         hint.setLineSpacing(0f, 1.25f)
         card.addTo(hint, 8)
 
-        val field = Ui.input(a, "e.g. Morning focus", false)
+        val field = Ui.input(a, defaultName ?: "e.g. Morning focus", false)
         field.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         card.addTo(field, 16)
 
@@ -200,10 +211,13 @@ object SavedLists {
         row.addView(cancel, cancelLp)
         val save = if (accent == Ui.BLUE) Ui.pill(a, "Save") else Ui.pill(a, "Save", accent, Ui.onColor(accent))
         save.setOnClickListener {
-            val name = field.text.toString().trim()
+            var name = field.text.toString().trim()
             if (name.isEmpty()) {
-                Toast.makeText(a, "Write a name first", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                if (defaultName == null) {
+                    Toast.makeText(a, "Write a name first", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                name = defaultName
             }
             d.dismiss()
             onSave(name)

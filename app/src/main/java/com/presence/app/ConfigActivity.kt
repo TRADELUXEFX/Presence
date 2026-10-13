@@ -151,7 +151,7 @@ class ConfigActivity : BaseActivity() {
                 this,
                 onDefault = { saveAsDefault() },
                 onList = {
-                    SavedLists.askName(this, accentColor) { name ->
+                    SavedLists.askName(this, accentColor, SavedLists.autoName(Session.userId, Trainings.name(cfg.key))) { name ->
                         SavedLists.add(Session.userId, name, cfg)
                         Toast.makeText(this, "Saved to Saved list", Toast.LENGTH_SHORT).show()
                     }

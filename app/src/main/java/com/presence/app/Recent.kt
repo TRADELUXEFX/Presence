@@ -45,10 +45,26 @@ object Recent {
         save(uid, items)
     }
 
-    /** A whole session finished: it goes to the top as one session. */
+    /** A session with no name of its own shows as "Recent session", so those count as one name. */
+    private fun nameOf(name: String): String = name.trim().let { if (it.isEmpty() || it == "Session") "Recent session" else it.lowercase() }
+
+    /**
+     * Which list this is. A named list is identified by its name: changing its settings or trainings does not
+     * make it a new list. A list with no name is identified by the order of its trainings (not their settings).
+     */
+    private fun listKey(name: String, items: JSONArray?): String {
+        val n = nameOf(name)
+        if (n != "Recent session") return "n#$n"
+        val order = items?.objects()?.joinToString(",") { it.optString("key") } ?: ""
+        return "u#$order"
+    }
+
+    /** A whole session finished: it goes to the top as one session. Doing the same session again moves it up, not a second copy. */
     fun rememberSession(uid: String, cfgs: List<Config>, name: String = "Session") {
         if (uid.isEmpty() || cfgs.size < 2) return
         val items = list(uid)
+        val key = listKey(name, JSONArray(cfgs.map { cfgJson(it) }))
+        items.removeAll { it.optString("kind") == "session" && listKey(it.optString("name"), it.optJSONArray("items")) == key }
         items.add(0, JSONObject()
             .put("kind", "session")
             .put("name", name)
@@ -58,14 +74,30 @@ object Recent {
 
     /** Quick start: recent trainings and sessions first, then saved sessions and trainings. Three at most. */
     fun quick(uid: String): List<JSONObject> {
-        val out = ArrayList<JSONObject>(list(uid))
-        for (o in SavedLists.all(uid)) {
+        val out = ArrayList<JSONObject>()
+        val saved = SavedLists.all(uid)
+        fun savedSession(o: JSONObject): JSONObject = JSONObject()
+            .put("kind", "saved-session")
+            .put("id", o.optString("id"))
+            .put("name", o.optString("name"))
+            .put("items", o.optJSONArray("items") ?: JSONArray())
+        // the saved list is the source of truth: a recent run of a saved list shows the list as it is now
+        val savedByKey = HashMap<String, JSONObject>()
+        for (o in saved) if (o.optString("kind") == "session") savedByKey.putIfAbsent(listKey(o.optString("name"), o.optJSONArray("items")), o)
+        // a list shows once, however many times it was done, and also when it is in Saved list
+        val seen = HashSet<String>()
+        for (o in list(uid)) {
             if (o.optString("kind") == "session") {
-                out.add(JSONObject()
-                    .put("kind", "saved-session")
-                    .put("id", o.optString("id"))
-                    .put("name", o.optString("name"))
-                    .put("items", o.optJSONArray("items") ?: JSONArray()))
+                val k = listKey(o.optString("name"), o.optJSONArray("items"))
+                if (!seen.add(k)) continue
+                val s = savedByKey[k]
+                out.add(if (s != null) savedSession(s) else o)
+            } else out.add(o)
+        }
+        for (o in saved) {
+            if (o.optString("kind") == "session") {
+                if (!seen.add(listKey(o.optString("name"), o.optJSONArray("items")))) continue
+                out.add(savedSession(o))
             } else {
                 out.add(JSONObject(o.toString()).put("kind", "saved-single"))
             }

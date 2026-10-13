@@ -215,7 +215,7 @@ class SessionActivity : BaseActivity() {
             finish()
             return
         }
-        SavedLists.askName(this) { name ->
+        SavedLists.askName(this, Ui.BLUE, SavedLists.autoName(uid, "Session")) { name ->
             SavedLists.addSession(uid, name, items.toList())
             Toast.makeText(this, "Saved to Saved list", Toast.LENGTH_SHORT).show()
         }
