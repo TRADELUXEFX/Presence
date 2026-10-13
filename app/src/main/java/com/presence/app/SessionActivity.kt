@@ -96,35 +96,29 @@ class SessionActivity : BaseActivity() {
         val c = this
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 14), Ui.dp(c, 14), Ui.dp(c, 12), Ui.dp(c, 14))
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-
         val num = Ui.text(c, "${i + 1}", 13f, Ui.onColor(Trainings.accent(cfg.key)), Ui.BOLD)
         num.gravity = Gravity.CENTER
         num.background = Ui.rounded(c, Trainings.accent(cfg.key), 16)
-        line.addView(num, LinearLayout.LayoutParams(Ui.dp(c, 32), Ui.dp(c, 32)))
 
-        val text = LinearLayout(c)
-        text.orientation = LinearLayout.VERTICAL
-        text.addView(Ui.text(c, Trainings.name(cfg.key), 15f, Ui.TEXT, Ui.BOLD))
-        text.addTo(Ui.text(c, summary(cfg), 12f, Ui.MUTED, Ui.REG), 2)
-        val textLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        textLp.leftMargin = Ui.dp(c, 12)
-        line.addView(text, textLp)
-
-        addIcon(line, Icons.CHEVRON, -90f) { move(i, -1) }
-        addIcon(line, Icons.CHEVRON, 90f) { move(i, 1) }
-        addIcon(line, Icons.PENCIL, 0f) { editItem(i) }
-        addIcon(line, closePath, 0f) {
-            items.removeAt(i)
-            render()
-        }
-        card.addView(line)
+        // number, name and the four small buttons share the top row; the summary sits below at the full card width
+        val trailing = listOf(
+            icon(Icons.CHEVRON, -90f) { move(i, -1) },
+            icon(Icons.CHEVRON, 90f) { move(i, 1) },
+            icon(Icons.PENCIL, 0f) { editItem(i) },
+            icon(closePath, 0f) {
+                items.removeAt(i)
+                render()
+            }
+        )
+        card.addView(Ui.nameRow(
+            c, Trainings.name(cfg.key), trailing,
+            Ui.text(c, summary(cfg), 12f, Ui.MUTED, Ui.REG),
+            leading = Pair(num as View, LinearLayout.LayoutParams(Ui.dp(c, 32), Ui.dp(c, 32)))
+        ))
         return card
     }
 
-    private fun addIcon(line: LinearLayout, path: String, turn: Float, onClick: () -> Unit) {
+    private fun icon(path: String, turn: Float, onClick: () -> Unit): Pair<View, LinearLayout.LayoutParams> {
         val c = this
         val box = FrameLayout(c)
         box.background = Ui.rounded(c, Ui.SOFT, 17)
@@ -135,7 +129,7 @@ class SessionActivity : BaseActivity() {
         box.setOnClickListener { onClick() }
         val lp = LinearLayout.LayoutParams(Ui.dp(c, 34), Ui.dp(c, 34))
         lp.leftMargin = Ui.dp(c, 6)
-        line.addView(box, lp)
+        return Pair(box as View, lp)
     }
 
     private fun move(i: Int, d: Int) {

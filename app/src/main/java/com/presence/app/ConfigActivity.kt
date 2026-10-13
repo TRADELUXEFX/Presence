@@ -191,7 +191,7 @@ class ConfigActivity : BaseActivity() {
                     ),
                     8
                 )
-                voiceCard("Announce begin & rest")
+                voiceCard("A calm voice says when to begin and when to rest.")
             }
             Trainings.BREATH -> {
                 panel.addTo(Ui.sectionTitle(c, "Cycles (16s each)"), 0)
@@ -202,7 +202,7 @@ class ConfigActivity : BaseActivity() {
                     ),
                     8
                 )
-                voiceCard("Announce each phase name")
+                voiceCard("A calm voice says the name of each phase as you go.")
             }
             else -> {
                 panel.addTo(Ui.sectionTitle(c, "Preset duration"), 0)
@@ -228,32 +228,11 @@ class ConfigActivity : BaseActivity() {
                     ),
                     8
                 )
-                // one label only: the card's own switch label, with the same gap above as the other sections
-                panel.addTo(cardOf(voiceRow("Guided breathing cues", "Gentle voice cues every 30 seconds")), 22)
-                soundHint()
+                voiceCard("A calm voice says a short cue about every 30 seconds, like \"Breathe in slowly\" or \"Relax your shoulders\".")
             }
         }
 
         panel.addTo(estimateCard(), 22)
-    }
-
-    /** A label, a small line under it, and a switch. */
-    private fun switchRow(label: String, sub: String, on: Boolean, onChange: (Boolean) -> Unit): LinearLayout {
-        val c = this
-        val row = LinearLayout(c)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER_VERTICAL
-        val text = LinearLayout(c)
-        text.orientation = LinearLayout.VERTICAL
-        text.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
-        text.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
-        row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val sw = androidx.appcompat.widget.SwitchCompat(c)
-        sw.isChecked = on
-        Ui.styleSwitch(sw, accentColor)
-        sw.setOnCheckedChangeListener { _, v -> onChange(v) }
-        row.addView(sw)
-        return row
     }
 
     /** The vibrate icon: grey when off, green when on. It toggles vibration on its own. */
@@ -403,51 +382,43 @@ class ConfigActivity : BaseActivity() {
         }
     }
 
-    /** The label and its line of text across the full width, then the four switches in a 2 x 2 grid: vibration, bell, voice, music. Tap switches each on or off; hold the bell or music icon for more sound choices. */
-    private fun voiceRow(label: String, sub: String): LinearLayout {
+    /**
+     * One compact row: "Cues and sounds" with a ? that explains each switch, then the four switches side by side
+     * (vibration, bell, voice, music), each with its name under it. Tap switches one on or off; hold the bell or music icon for more sound choices.
+     * [voiceText] is what the voice does in this training, shown in the ? pop-up.
+     */
+    private fun cuesRow(voiceText: String): LinearLayout {
         val c = this
         val col = LinearLayout(c)
         col.orientation = LinearLayout.VERTICAL
-        col.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
-        col.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
-        // the four switches in a 2 x 2 grid, each icon with its name beside it
-        val size = Ui.dp(c, 44)
-        val cells = listOf(
-            "Vibration" to vibrateButton(), "Bell" to bellButton(),
-            "Voice" to speechButton(), "Music" to musicButton()
-        )
-        for (r in 0..1) {
-            val line = LinearLayout(c)
-            line.orientation = LinearLayout.HORIZONTAL
-            line.gravity = Gravity.CENTER_VERTICAL
-            for (k in 0..1) {
-                val (name, btn) = cells[r * 2 + k]
-                val cell = LinearLayout(c)
-                cell.orientation = LinearLayout.HORIZONTAL
-                cell.gravity = Gravity.CENTER_VERTICAL
-                cell.addView(btn, LinearLayout.LayoutParams(size, size))
-                cell.addView(Ui.text(c, name, 14f, Ui.TEXT, Ui.MED), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 10) })
-                line.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
-            }
-            col.addTo(line, if (r == 0) 14 else 10)
+        val head = LinearLayout(c)
+        head.orientation = LinearLayout.HORIZONTAL
+        head.gravity = Gravity.CENTER_VERTICAL
+        head.addView(Ui.text(c, "Cues and sounds", 16f, Ui.TEXT, Ui.MED), LinearLayout.LayoutParams(0, -2, 1f))
+        val help = Ui.text(c, "?", 14f, Ui.MUTED, Ui.BOLD)
+        help.gravity = Gravity.CENTER
+        help.background = Ui.rounded(c, Color.TRANSPARENT, 14, Ui.MUTED, 1)
+        help.contentDescription = "What do these do?"
+        help.setOnClickListener { Dialogs.cuesHelp(c, key, voiceText) }
+        head.addView(help, LinearLayout.LayoutParams(Ui.dp(c, 28), Ui.dp(c, 28)))
+        col.addView(head, LinearLayout.LayoutParams(-1, -2))
+        val icons = LinearLayout(c)
+        icons.orientation = LinearLayout.HORIZONTAL
+        val cells = listOf("Vibrate" to vibrateButton(), "Bell" to bellButton(), "Voice" to speechButton(), "Music" to musicButton())
+        for ((name, btn) in cells) {
+            val cell = LinearLayout(c)
+            cell.orientation = LinearLayout.VERTICAL
+            cell.gravity = Gravity.CENTER_HORIZONTAL
+            cell.addView(btn, LinearLayout.LayoutParams(Ui.dp(c, 44), Ui.dp(c, 44)))
+            cell.addTo(Ui.text(c, name, 12f, Ui.TEXT, Ui.MED), 4)
+            icons.addView(cell, LinearLayout.LayoutParams(0, -2, 1f))
         }
+        col.addTo(icons, 14)
         return col
     }
 
-    private fun voiceCard(sub: String) {
-        panel.addTo(cardOf(voiceRow("Voice guidance", sub)), 22)
-        soundHint()
-    }
-
-    /** One quiet line so the hold gestures can be found. */
-    private fun soundHint() {
-        panel.addTo(
-            Ui.text(this, "Tap an icon to switch it on or off. Hold the bell or music icon to choose the sound.", 12f, Ui.MUTED, Ui.REG).apply {
-                gravity = Gravity.CENTER
-                setLineSpacing(0f, 1.2f)
-            },
-            8
-        )
+    private fun voiceCard(voiceText: String) {
+        panel.addTo(cardOf(cuesRow(voiceText)), 22)
     }
 
     /** A card holding one or more rows, spaced apart. */

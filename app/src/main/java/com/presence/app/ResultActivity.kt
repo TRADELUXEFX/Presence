@@ -75,15 +75,14 @@ class ResultActivity : BaseActivity(), Engine.Listener {
             if (TrainingSession.hasNext()) {
                 val nxt = TrainingSession.items[TrainingSession.index + 1]
                 // the Engine starts the next training itself after 5 seconds, even with the screen off
-                st.text = "Training ${TrainingSession.position()} done.\nUp next: ${Trainings.name(nxt.key)} in 5 seconds"
+                st.text = "Training ${TrainingSession.position()} done.\nUp next: ${Trainings.name(nxt.key)}"
             } else {
                 st.text = "Session complete: ${TrainingSession.items.size} trainings done."
-                Recent.rememberSession(uid, TrainingSession.items)
+                Recent.rememberSession(uid, TrainingSession.items, TrainingSession.name)
             }
             if (TrainingSession.hasNext()) {
-                val startNow = Ui.pill(c, "Start now", accent, ink)
-                startNow.setOnClickListener { advanceNext() }
-                s.addTo(startNow, 12)
+                // the button is the countdown: it fills and counts 5 to 1, then the Engine starts the next training
+                s.addTo(CountdownButton(c, accent, ink), 12)
             }
             body.addView(s, LinearLayout.LayoutParams(-1, -2).apply { topMargin = Ui.dp(c, 20) })
         }
@@ -171,10 +170,5 @@ class ResultActivity : BaseActivity(), Engine.Listener {
         leaving = true
         startActivity(Intent(this, TrainingActivity::class.java))
         finish()
-    }
-
-    /** "Start now": the Engine starts the next training straight away. */
-    private fun advanceNext() {
-        if (Engine.advanceSessionNow()) openTraining()
     }
 }

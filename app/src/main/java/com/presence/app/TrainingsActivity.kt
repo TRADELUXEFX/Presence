@@ -118,21 +118,14 @@ class TrainingsActivity : BaseActivity() {
         val c = this
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 14))
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-        val text = LinearLayout(c)
-        text.orientation = LinearLayout.VERTICAL
-        text.addView(Ui.text(c, Trainings.name(k), 15f, Ui.TEXT, Ui.BOLD))
-        text.addTo(Ui.text(c, Trainings.about(k), 12f, Ui.MUTED, Ui.REG), 3)
-        line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val open = Ui.pill(c, "Open", Trainings.accent(k), Color.parseColor("#0F172A"))
         open.textSize = 14f
         open.setOnClickListener { openTraining(k) }
         val openLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
         openLp.leftMargin = Ui.dp(c, 10)
-        line.addView(open, openLp)
-        card.addView(line)
+        // name + Open share the top row; the description sits below at the full card width
+        card.addView(Ui.nameRow(c, Trainings.name(k), listOf(Pair(open as View, openLp)),
+            Ui.text(c, Trainings.about(k), 12f, Ui.MUTED, Ui.REG)))
         card.setOnClickListener { openTraining(k) }
         return card
     }
@@ -192,27 +185,23 @@ class TrainingsActivity : BaseActivity() {
         val cfg = SavedLists.toConfig(o)
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-        val left = LinearLayout(c)
-        left.orientation = LinearLayout.VERTICAL
-        left.addView(Ui.text(c, o.optString("name"), 15f, Ui.TEXT, Ui.BOLD))
-        left.addTo(Ui.text(c, Trainings.name(cfg.key) + " \u00B7 " + Trainings.estimate(cfg), 12f, Ui.MUTED, Ui.REG), 3)
-        line.addView(left, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val edit = Ui.pill(c, "Edit", Ui.SOFT, Ui.TEXT)
         edit.textSize = 13f
         edit.setOnClickListener {
             startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", id).putExtra("edit", true))
         }
-        line.addView(edit, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) })
+        val editLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) }
         val tint = Trainings.accent(cfg.key)
         val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
         start.textSize = 14f
         start.setOnClickListener {
             startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", id))
         }
-        line.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) })
+        val startLp1 = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) }
+        // name + buttons share the top row; the details sit below at the full card width
+        val head = Ui.nameRow(c, o.optString("name"),
+            listOf(Pair(edit as View, editLp), Pair(start as View, startLp1)),
+            Ui.text(c, Trainings.name(cfg.key) + " \u00B7 " + Trainings.estimate(cfg), 12f, Ui.MUTED, Ui.REG))
         // long press to rename
         card.isLongClickable = true
         card.setOnLongClickListener {
@@ -222,7 +211,7 @@ class TrainingsActivity : BaseActivity() {
             }
             true
         }
-        card.addView(line)
+        card.addView(head)
         return card
     }
 
@@ -233,14 +222,6 @@ class TrainingsActivity : BaseActivity() {
         val secs = items.sumOf { TrainingSession.seconds(it) }
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-        val left = LinearLayout(c)
-        left.orientation = LinearLayout.VERTICAL
-        left.addView(Ui.text(c, o.optString("name"), 15f, Ui.TEXT, Ui.BOLD))
-        left.addTo(Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG), 3)
-        line.addView(left, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val pencil = Ui.pill(c, "Edit", Ui.SOFT, Ui.TEXT)
         pencil.textSize = 13f
         pencil.setOnClickListener {
@@ -248,7 +229,6 @@ class TrainingsActivity : BaseActivity() {
         }
         val pencilLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
         pencilLp.leftMargin = Ui.dp(c, 8)
-        line.addView(pencil, pencilLp)
         val tint = if (items.isEmpty()) Ui.BLUE else Trainings.accent(items[0].key)
         val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
         start.textSize = 14f
@@ -260,7 +240,10 @@ class TrainingsActivity : BaseActivity() {
         }
         val startLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
         startLp.leftMargin = Ui.dp(c, 8)
-        line.addView(start, startLp)
+        // name + buttons share the top row; the details sit below at the full card width
+        val head = Ui.nameRow(c, o.optString("name"),
+            listOf(Pair(pencil as View, pencilLp), Pair(start as View, startLp)),
+            Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG))
         // long press to rename
         card.isLongClickable = true
         card.setOnLongClickListener {
@@ -270,7 +253,7 @@ class TrainingsActivity : BaseActivity() {
             }
             true
         }
-        card.addView(line)
+        card.addView(head)
         return card
     }
 }

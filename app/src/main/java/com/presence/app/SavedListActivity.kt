@@ -139,16 +139,10 @@ class SavedListActivity : BaseActivity() {
         val secs = items.sumOf { TrainingSession.seconds(it) }
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-        val left = LinearLayout(c)
-        left.orientation = LinearLayout.VERTICAL
-        left.addView(Ui.text(c, o.optString("name"), 15f, Ui.TEXT, Ui.BOLD))
-        left.addTo(Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG), 3)
-        line.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+        // name + its buttons share the top row; the details sit below at the full card width
+        val trailing = ArrayList<Pair<View, LinearLayout.LayoutParams>>()
         if (selecting) {
-            line.addView(Ui.tick(c, selected.contains(id), 22), LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22)))
+            trailing.add(Pair(Ui.tick(c, selected.contains(id), 22) as View, LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22)).apply { leftMargin = Ui.dp(c, 10) }))
             card.setOnClickListener {
                 if (!selected.add(id)) selected.remove(id)
                 render()
@@ -180,9 +174,10 @@ class SavedListActivity : BaseActivity() {
             val startLp = LinearLayout.LayoutParams(-2, Ui.dp(c, 40))
             startLp.leftMargin = Ui.dp(c, 8)
             actions.addView(start, startLp)
-            line.addView(actions)
+            trailing.add(Pair(actions as View, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 10) }))
         }
-        card.addView(line)
+        card.addView(Ui.nameRow(c, o.optString("name"), trailing,
+            Ui.text(c, "Session \u00B7 ${items.size} trainings \u00B7 ${Fmt.duration(secs)}", 12f, Ui.MUTED, Ui.REG)))
         return card
     }
 
@@ -194,16 +189,10 @@ class SavedListActivity : BaseActivity() {
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 18), Ui.dp(c, 16), Ui.dp(c, 18), Ui.dp(c, 16))
         card.isClickable = true
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-        val left = LinearLayout(c)
-        left.orientation = LinearLayout.VERTICAL
-        left.addView(Ui.text(c, o.optString("name"), 15f, Ui.TEXT, Ui.BOLD))
-        left.addTo(Ui.text(c, Trainings.name(cfg.key) + " · " + summary(cfg), 12f, Ui.MUTED, Ui.REG), 3)
-        line.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+        // name + its buttons share the top row; the details sit below at the full card width
+        val trailing = ArrayList<Pair<View, LinearLayout.LayoutParams>>()
         if (selecting) {
-            line.addView(Ui.tick(c, selected.contains(id), 22), LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22)))
+            trailing.add(Pair(Ui.tick(c, selected.contains(id), 22) as View, LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22)).apply { leftMargin = Ui.dp(c, 10) }))
             card.setOnClickListener {
                 if (!selected.add(id)) selected.remove(id)
                 render()
@@ -234,10 +223,11 @@ class SavedListActivity : BaseActivity() {
             val startLp = LinearLayout.LayoutParams(-2, Ui.dp(c, 40))
             startLp.leftMargin = Ui.dp(c, 8)
             actions.addView(start, startLp)
-            line.addView(actions)
+            trailing.add(Pair(actions as View, LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 10) }))
             // the card body does nothing, so starting is always deliberate
         }
-        card.addView(line)
+        card.addView(Ui.nameRow(c, o.optString("name"), trailing,
+            Ui.text(c, Trainings.name(cfg.key) + " · " + summary(cfg), 12f, Ui.MUTED, Ui.REG)))
         return card
     }
 

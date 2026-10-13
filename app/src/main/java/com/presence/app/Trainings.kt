@@ -288,6 +288,19 @@ object Profile {
 
 /** Text helpers for the screens. "3h 59m 20s" style, as the Progress screen needs it. */
 object Fmt {
+    /** Quick Start length: "45 sec" under a minute, otherwise whole minutes rounded up ("12 min", "1h 5 min"). */
+    fun minutes(sec: Long): String {
+        if (sec < 60L) return "$sec sec"
+        val m = (sec + 59L) / 60L
+        val h = m / 60L
+        val r = m % 60L
+        return when {
+            h == 0L -> "$m min"
+            r == 0L -> "${h}h"
+            else -> "${h}h $r min"
+        }
+    }
+
     fun duration(sec: Long): String {
         val h = sec / 3600
         val m = (sec % 3600) / 60

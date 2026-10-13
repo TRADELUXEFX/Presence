@@ -50,9 +50,6 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private lateinit var doneStats: LinearLayout
     private lateinit var milestoneCard: LinearLayout
     private lateinit var milestoneText: TextView
-    private lateinit var sessionCard: LinearLayout
-    private lateinit var sessionText: TextView
-    private val sessionHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private var preview: PreviewView? = null
     private var scrimView: View? = null
     private var camProvider: ProcessCameraProvider? = null
@@ -392,21 +389,6 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         milestoneCard.addView(milestoneText)
         v.addTo(milestoneCard, 20)
 
-        // a session: what comes next, and the way on
-        sessionCard = Ui.card(c, Trainings.soft(Engine.config.key))
-        sessionCard.visibility = View.GONE
-        sessionText = Ui.text(c, "", 14f, Ui.TEXT, Ui.MED)
-        sessionText.gravity = Gravity.CENTER
-        sessionText.setLineSpacing(0f, 1.25f)
-        sessionCard.addView(sessionText)
-        val startNow = Ui.pill(c, "Start now", Trainings.accent(Engine.config.key), Ui.onColor(Trainings.accent(Engine.config.key)))
-        startNow.setOnClickListener { advanceSession() }
-        sessionCard.addTo(startNow, 12)
-        val endSession = Ui.pill(c, "End session", Ui.SOFT, Ui.TEXT)
-        endSession.setOnClickListener { finishToHome() }
-        sessionCard.addTo(endSession, 8)
-        v.addTo(sessionCard, 20)
-
         doneStats = Ui.card(c, Trainings.soft(Engine.config.key))
         v.addTo(doneStats, 24)
 
@@ -543,7 +525,6 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             .putExtra("ts", LocalStore.lastTrainingTs)
             .putStringArrayListExtra("labels", ArrayList(rows.map { it.first }))
             .putStringArrayListExtra("values", ArrayList(rows.map { it.second }))
-        sessionHandler.removeCallbacksAndMessages(null)
         Engine.reset()
         startActivity(results)
         finish()
@@ -630,16 +611,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         finishToHome()
     }
 
-    /** Starts the next training of the session on a fresh training screen. */
-    private fun advanceSession() {
-        sessionHandler.removeCallbacksAndMessages(null)
-        if (!Engine.advanceSessionNow()) return
-        startActivity(Intent(this, TrainingActivity::class.java))
-        finish()
-    }
-
     private fun finishToHome() {
-        sessionHandler.removeCallbacksAndMessages(null)
         Engine.cancelSession()
         TrainingSession.clear()
         Engine.reset()

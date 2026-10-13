@@ -460,6 +460,37 @@ object Ui {
     }
 
     /**
+     * A card header where a name sits beside buttons or a chip. The name and its buttons share the top
+     * row (the name takes the room that is left, up to two lines), and the details go BELOW, at the full
+     * card width. So a long name or details line is never squeezed into a narrow column next to the buttons.
+     * Same approach as the Progress history card. [leading] is an optional badge before the name.
+     */
+    fun nameRow(
+        c: Context, name: String,
+        trailing: List<Pair<View, LinearLayout.LayoutParams>>,
+        detail: View?,
+        leading: Pair<View, LinearLayout.LayoutParams>? = null,
+        nameSp: Float = 15f
+    ): LinearLayout {
+        val col = LinearLayout(c)
+        col.orientation = LinearLayout.VERTICAL
+        val top = LinearLayout(c)
+        top.orientation = LinearLayout.HORIZONTAL
+        top.gravity = Gravity.CENTER_VERTICAL
+        if (leading != null) top.addView(leading.first, leading.second)
+        val title = text(c, name, nameSp, TEXT, BOLD)
+        title.maxLines = 2
+        title.ellipsize = android.text.TextUtils.TruncateAt.END
+        val titleLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        if (leading != null) titleLp.leftMargin = dp(c, 12)
+        top.addView(title, titleLp)
+        for ((v, p) in trailing) top.addView(v, p)
+        col.addView(top, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        if (detail != null) col.addTo(detail, 4)
+        return col
+    }
+
+    /**
      * Round selection marker: empty ring when off, solid blue circle with a drawn white tick when on.
      * The tick is a vector line, centered exactly (the old "✓" text character sat off-center because
      * the app font has no tick, so the phone drew it from another font).

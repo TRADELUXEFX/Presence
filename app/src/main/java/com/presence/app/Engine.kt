@@ -3,6 +3,7 @@ package com.presence.app
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArraySet
@@ -76,6 +77,13 @@ object Engine {
      */
     private var sessionPending = false
     private val nextRunnable = Runnable { runNext() }
+
+    /** Gap between two trainings of a session. */
+    const val NEXT_DELAY_MS = 5000L
+
+    /** When the next training of the session will start (SystemClock.uptimeMillis), so the Result screen can count down in step. */
+    var nextAt = 0L
+        private set
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -167,9 +175,6 @@ object Engine {
     fun keepService(): Boolean = isActive() || sessionPending
 
     fun isDone(): Boolean = stage == Stage.DONE
-
-    /** Starts the next training of the session now (the "Start now" button). False if there is none waiting. */
-    fun advanceSessionNow(): Boolean = runNext()
 
     /** The person left the session: no next training will start. */
     fun cancelSession() {
@@ -366,7 +371,10 @@ object Engine {
             StreakWidget.updateAll(it)
         }
         handler.removeCallbacks(nextRunnable)
-        if (continuing) handler.postDelayed(nextRunnable, 5000L)
+        if (continuing) {
+            nextAt = SystemClock.uptimeMillis() + NEXT_DELAY_MS
+            handler.postDelayed(nextRunnable, NEXT_DELAY_MS)
+        }
         notifyListeners()
     }
 

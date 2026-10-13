@@ -46,12 +46,12 @@ object Recent {
     }
 
     /** A whole session finished: it goes to the top as one session. */
-    fun rememberSession(uid: String, cfgs: List<Config>) {
+    fun rememberSession(uid: String, cfgs: List<Config>, name: String = "Session") {
         if (uid.isEmpty() || cfgs.size < 2) return
         val items = list(uid)
         items.add(0, JSONObject()
             .put("kind", "session")
-            .put("name", "Session")
+            .put("name", name)
             .put("items", JSONArray(cfgs.map { cfgJson(it) })))
         save(uid, items)
     }

@@ -170,25 +170,19 @@ class HomeActivity : BaseActivity() {
         val kind = e.optString("kind")
         val card = Ui.card(c)
         card.setPadding(Ui.dp(c, 16), Ui.dp(c, 14), Ui.dp(c, 16), Ui.dp(c, 14))
-        val line = LinearLayout(c)
-        line.orientation = LinearLayout.HORIZONTAL
-        line.gravity = Gravity.CENTER_VERTICAL
-        val text = LinearLayout(c)
-        text.orientation = LinearLayout.VERTICAL
         val isSession = kind == "session" || kind == "saved-session"
+        val sessionItems = if (isSession) SavedLists.sessionItems(e) else emptyList()
         val name = if (isSession) {
-            val n = SavedLists.sessionItems(e).size
-            if (kind == "saved-session") e.optString("name") else "Recent session \u00B7 $n trainings"
+            // the list's own name; a session that never had one is just "Recent session"
+            e.optString("name").let { if (it.isBlank() || it == "Session") "Recent session" else it }
         } else e.optString("name")
-        text.addView(Ui.text(c, name, 15f, Ui.TEXT, Ui.BOLD))
-        val sub = when (kind) {
-            "training" -> "Recent training"
-            "session" -> "Recent session"
-            "saved-session" -> "Saved session"
-            else -> "Saved training"
+        // name + Start share the top row; the details sit below at the full card width
+        val detail: View = if (isSession) {
+            sessionInfoLine(sessionItems)
+        } else {
+            val sub = if (kind == "training") "Recent training" else "Saved training"
+            Ui.text(c, sub, 12f, Ui.MUTED, Ui.REG)
         }
-        text.addTo(Ui.text(c, sub, 12f, Ui.MUTED, Ui.REG), 3)
-        line.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val firstKey = if (isSession) SavedLists.sessionItems(e).firstOrNull()?.key ?: Trainings.BLINK else e.optString("key")
         val tint = Trainings.accent(firstKey)
         val start = Ui.pill(c, "Start", tint, Ui.onColor(tint))
@@ -204,9 +198,24 @@ class HomeActivity : BaseActivity() {
                 startActivity(Intent(c, ConfigActivity::class.java).putExtra("session", true))
             }
         }
-        line.addView(start, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)))
-        card.addView(line)
+        val startLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
+        startLp.leftMargin = Ui.dp(c, 10)
+        card.addView(Ui.nameRow(c, name, listOf(Pair(start as View, startLp)), detail))
         return card
+    }
+
+    /** "4 training sessions · (alarm) 12 min": how many trainings are in the list and how long it takes. */
+    private fun sessionInfoLine(items: List<Config>): LinearLayout {
+        val c = this
+        val secs = items.sumOf { TrainingSession.seconds(it) }
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val n = items.size
+        row.addView(Ui.text(c, (if (n == 1) "1 training session" else "$n training sessions") + " \u00B7", 12f, Ui.MUTED, Ui.REG))
+        row.addView(FsIconView(c, Icons.ALARM, Ui.MUTED), LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)).apply { leftMargin = Ui.dp(c, 6) })
+        row.addView(Ui.text(c, Fmt.minutes(secs), 12f, Ui.MUTED, Ui.REG), LinearLayout.LayoutParams(-2, -2).apply { leftMargin = Ui.dp(c, 3) })
+        return row
     }
 
     /** Shown when there is nothing to start yet: a way to begin. */
@@ -417,36 +426,30 @@ class HomeActivity : BaseActivity() {
         card.setOnClickListener {
             startActivity(Intent(this, ConfigActivity::class.java).putExtra("key", k))
         }
-        val row = LinearLayout(c)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER_VERTICAL
-
+        // dot, name, count chip and arrow share the top row; the blurb sits below at the full card width
         val dot = View(c)
         dot.background = circle(Trainings.accent(k))
         val dlp = LinearLayout.LayoutParams(Ui.dp(c, 12), Ui.dp(c, 12))
-        dlp.rightMargin = Ui.dp(c, 14)
-        row.addView(dot, dlp)
 
-        val text = LinearLayout(c)
-        text.orientation = LinearLayout.VERTICAL
-        text.addView(Ui.text(c, Trainings.name(k), 16f, Ui.TEXT, Ui.BOLD))
         val blurb = Ui.text(c, Trainings.blurb(k), 12f, Ui.MUTED, Ui.REG)
         blurb.setLineSpacing(0f, 1.2f)
-        val blp = LinearLayout.LayoutParams(-1, -2)
-        blp.topMargin = Ui.dp(c, 3)
-        text.addView(blurb, blp)
-        row.addView(text, LinearLayout.LayoutParams(0, -2, 1f))
 
-        row.addView(
-            Ui.chip(c, if (count > 0) "${count}x" else "-", Ui.BLUE, Ui.BLUE_SOFT),
-            LinearLayout.LayoutParams(-2, -2)
-        )
+        val chipLp = LinearLayout.LayoutParams(-2, -2)
+        chipLp.leftMargin = Ui.dp(c, 8)
         val chev = FsIconView(c, Icons.CHEVRON, Ui.MUTED)
         val clp = LinearLayout.LayoutParams(Ui.dp(c, 18), Ui.dp(c, 18))
         clp.leftMargin = Ui.dp(c, 10)
-        row.addView(chev, clp)
 
-        card.addView(row)
+        card.addView(Ui.nameRow(
+            c, Trainings.name(k),
+            listOf(
+                Pair(Ui.chip(c, if (count > 0) "${count}x" else "-", Ui.BLUE, Ui.BLUE_SOFT) as View, chipLp),
+                Pair(chev as View, clp)
+            ),
+            blurb,
+            leading = Pair(dot as View, dlp),
+            nameSp = 16f
+        ))
         return card
     }
 
