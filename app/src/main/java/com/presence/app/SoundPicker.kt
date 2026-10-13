@@ -61,7 +61,7 @@ object SoundPicker {
         fill()
         card.addTo(list, 14)
 
-        val done = Ui.pill(a, "Done")
+        val done = Ui.pill(a, "Done", accent, Ui.onColor(accent))
         done.setOnClickListener { d.dismiss() }
         card.addTo(done, 16)
 

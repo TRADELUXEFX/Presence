@@ -82,7 +82,7 @@ Longest possible training in the app: 6000 s (300 s per rep, 20 sets). The app a
 | Sign in, sign up, reset, refresh | `/auth/v1/token`, `/signup`, `/recover` | tokens kept on the phone |
 | Load profile | `GET /rest/v1/profiles?id=eq.<uid>` | empty list means no row yet |
 | Save profile | `POST /rest/v1/profiles?on_conflict=id` with `resolution=merge-duplicates` | needs the insert, update and select policies |
-| Load history | `GET /rest/v1/sessions?user_id=eq.<uid>&order=ts.desc&limit=1000` | the website loads 200 |
+| Load history | `GET /rest/v1/sessions?user_id=eq.<uid>&order=ts.desc&limit=1000` | paged until empty, so no cap; the website loads 200 |
 | Save a training | `POST /rest/v1/sessions` | queued on the phone first |
 
 ### Saving and retrying (`Store.kt`)

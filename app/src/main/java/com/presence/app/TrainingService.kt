@@ -39,10 +39,11 @@ class TrainingService : Service() {
             build(this),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
         )
+        up = true
         shown = Engine.statusKey()
         acquireWakeLock()
         Engine.addListener(listener)
-        if (!Engine.isActive()) stopSelf()
+        if (!Engine.keepService()) stopSelf()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -51,6 +52,7 @@ class TrainingService : Service() {
     }
 
     override fun onDestroy() {
+        up = false
         Engine.removeListener(listener)
         releaseWakeLock()
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -61,7 +63,7 @@ class TrainingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun refresh() {
-        if (!Engine.isActive()) {
+        if (!Engine.keepService()) {
             stopSelf()
             return
         }
@@ -98,6 +100,9 @@ class TrainingService : Service() {
         const val NOTIFICATION_ID = 1001
         private const val CHANNEL = "presence_training"
 
+        /** True while the service is running, so a session's next training does not try to start it from the background. */
+        @Volatile var up = false
+
         fun start(ctx: Context) {
             try {
                 ContextCompat.startForegroundService(ctx, Intent(ctx, TrainingService::class.java))
@@ -106,6 +111,7 @@ class TrainingService : Service() {
         }
 
         fun stop(ctx: Context) {
+            up = false
             try {
                 ctx.stopService(Intent(ctx, TrainingService::class.java))
             } catch (e: Exception) {

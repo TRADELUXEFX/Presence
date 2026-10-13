@@ -3,8 +3,6 @@ package com.presence.app
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
@@ -13,8 +11,8 @@ import android.widget.Toast
 import com.presence.app.Ui.addTo
 
 /** The results of a finished training, on their own page over Home. */
-class ResultActivity : BaseActivity() {
-    private val handler = Handler(Looper.getMainLooper())
+class ResultActivity : BaseActivity(), Engine.Listener {
+    private var leaving = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -76,8 +74,8 @@ class ResultActivity : BaseActivity() {
             s.addView(st)
             if (TrainingSession.hasNext()) {
                 val nxt = TrainingSession.items[TrainingSession.index + 1]
+                // the Engine starts the next training itself after 5 seconds, even with the screen off
                 st.text = "Training ${TrainingSession.position()} done.\nUp next: ${Trainings.name(nxt.key)} in 5 seconds"
-                handler.postDelayed({ autoAdvance() }, 5000L)
             } else {
                 st.text = "Session complete: ${TrainingSession.items.size} trainings done."
                 Recent.rememberSession(uid, TrainingSession.items)
@@ -130,7 +128,7 @@ class ResultActivity : BaseActivity() {
 
         val done = Ui.pill(c, "Done", accent, ink)
         done.setOnClickListener {
-            handler.removeCallbacksAndMessages(null)
+            Engine.cancelSession()
             TrainingSession.clear()
             // Done always returns to Home, whichever screen the training was started from
             Nav.goHome(this)
@@ -145,33 +143,38 @@ class ResultActivity : BaseActivity() {
         setContentView(root)
     }
 
-    private var pendingAdvance = false
-
-    /** The 5 second timer ended. A training only starts while the app is on screen. */
-    private fun autoAdvance() {
-        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) advanceNext() else pendingAdvance = true
+    override fun onStart() {
+        super.onStart()
+        Engine.addListener(this)
+        // The session may have moved on while the screen was off: show the training that is running now
+        if (Engine.isActive()) openTraining()
     }
 
-    override fun onResume() {
-        super.onResume()
-        // back on screen after the timer ran out: give a short moment, then carry on
-        if (pendingAdvance) {
-            pendingAdvance = false
-            handler.postDelayed({ autoAdvance() }, 3000L)
-        }
+    override fun onStop() {
+        Engine.removeListener(this)
+        super.onStop()
     }
 
     override fun onDestroy() {
-        handler.removeCallbacksAndMessages(null)
+        // Back (or Done) leaves the session. A screen rotation or a locked phone does not come through here as finishing.
+        if (isFinishing && !leaving) Engine.cancelSession()
         super.onDestroy()
     }
 
-    /** Starts the next training of the session. */
-    private fun advanceNext() {
-        handler.removeCallbacksAndMessages(null)
-        val nxt = TrainingSession.next() ?: return
-        Engine.start(this, nxt)
+    /** The Engine started the next training of the session: follow it. */
+    override fun onEngine() {
+        if (Engine.running) openTraining()
+    }
+
+    private fun openTraining() {
+        if (leaving || isFinishing) return
+        leaving = true
         startActivity(Intent(this, TrainingActivity::class.java))
         finish()
+    }
+
+    /** "Start now": the Engine starts the next training straight away. */
+    private fun advanceNext() {
+        if (Engine.advanceSessionNow()) openTraining()
     }
 }

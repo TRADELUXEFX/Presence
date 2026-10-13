@@ -5,6 +5,8 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.graphics.drawable.GradientDrawable
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.presence.app.Ui.addTo
@@ -32,7 +34,27 @@ class TrainingDetailActivity : BaseActivity() {
         root.setBackgroundColor(Ui.BG)
 
         // header in the training's colour, dark text; the back arrow returns to History
-        root.addView(Ui.header(c, Trainings.name(key), accent) { finish() }, LinearLayout.LayoutParams(-1, -2))
+        // the eyes mode (open / closed / mirror) is shown as just an icon on the right of the title, not as a card
+        var mode = r.optString("mode", "")
+        // No Blinking only has Eyes Open or Mirror; an older entry with no mode saved was Eyes Open
+        if (key == Trainings.BLINK && (mode.isBlank() || mode == "null")) mode = "open"
+        var modeIcon: View? = null
+        if (key != Trainings.MEDITATE && key != Trainings.BREATH && mode.isNotBlank() && mode != "null") {
+            val path = when (mode) {
+                "closed" -> Icons.EYE_OFF
+                "mirror" -> Icons.MIRROR
+                else -> Icons.EYE
+            }
+            val box = FrameLayout(c)
+            val circle = GradientDrawable()
+            circle.shape = GradientDrawable.OVAL
+            circle.setColor(Color.parseColor("#33FFFFFF"))
+            box.background = circle
+            box.contentDescription = Trainings.modeLabel(mode)
+            box.addView(FsIconView(c, path, Ui.onColor(accent)), FrameLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22), Gravity.CENTER).apply { setMargins(Ui.dp(c, 9), Ui.dp(c, 9), Ui.dp(c, 9), Ui.dp(c, 9)) })
+            modeIcon = box
+        }
+        root.addView(Ui.header(c, Trainings.name(key), accent, modeIcon) { finish() }, LinearLayout.LayoutParams(-1, -2))
 
         val body = LinearLayout(c)
         body.orientation = LinearLayout.VERTICAL
@@ -55,8 +77,6 @@ class TrainingDetailActivity : BaseActivity() {
             cells.add("Sets" to r.optInt("sets", 0).toString())
             cells.add("Per rep" to "${r.optInt("rep_sec", 0)}s")
             cells.add("Rest between" to "${r.optInt("rest_sec", 0)}s")
-            val mode = r.optString("mode", "")
-            if (mode.isNotBlank() && mode != "null") cells.add("Mode" to mode)
         }
 
         var i = 0

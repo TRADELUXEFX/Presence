@@ -150,9 +150,14 @@ class ProgressActivity : BaseActivity() {
     private fun setTab(hist: Boolean) {
         showHistory = hist
         if (hist && history == null && !historyLoading) loadHistory()
-        render()
-        // each tab starts at the top; they are different screens, so one tab's scroll must not carry over
+        // each tab starts at the top; they are different screens, so one tab's scroll must not carry over.
+        // Stop any fling still running, reset now, and reset again after the new content is laid out
+        // (the page height changes, and a fling or the layout pass would otherwise put it back down).
+        scroll.smoothScrollBy(0, 0)
         scroll.scrollTo(0, 0)
+        render()
+        scroll.scrollTo(0, 0)
+        scroll.post { scroll.scrollTo(0, 0) }
     }
 
     private fun loadHistory() {
@@ -690,34 +695,53 @@ class ProgressActivity : BaseActivity() {
         val c = this
         val key = r.optString("mod")
         val card = Ui.card(c, Trainings.soft(key))
+        // top row: the time on the left, the training name chip on the right.
+        // Below it, the details line gets the full card width, so a long one never runs under the chip.
         val row = LinearLayout(c)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER_VERTICAL
-        val left = LinearLayout(c)
-        left.orientation = LinearLayout.VERTICAL
+        row.orientation = LinearLayout.VERTICAL
+        val top = LinearLayout(c)
+        top.orientation = LinearLayout.HORIZONTAL
+        top.gravity = Gravity.CENTER_VERTICAL
         val whenText = Ui.text(c, timeLabel(r.optLong("ts", 0L)), 14f, Ui.TEXT, Ui.MED)
         Ui.fit(whenText, 14)
-        left.addView(whenText)
-        val meta = metaText(key, r)
-        val base = if (meta.isEmpty()) Fmt.duration(r.optLong("sec", 0L))
-        else "$meta · " + Fmt.duration(r.optLong("sec", 0L))
-        val felt = Feel.get(Session.userId, r.optLong("ts", 0L))
-        // the details line, then the face of how it felt (no text), when it was rated
-        val detailRow = LinearLayout(c)
-        detailRow.orientation = LinearLayout.HORIZONTAL
-        detailRow.gravity = Gravity.CENTER_VERTICAL
-        detailRow.addView(Ui.text(c, base, 13f, Ui.MUTED_TINT, Ui.REG))
-        if (felt != null) {
-            detailRow.addView(FsIconView(c, Feel.face(felt), Ui.MUTED_TINT),
-                LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)).apply { leftMargin = Ui.dp(c, 6) })
-        }
-        left.addTo(detailRow, 4)
-        row.addView(left, LinearLayout.LayoutParams(0, -2, 1f))
+        top.addView(whenText, LinearLayout.LayoutParams(0, -2, 1f))
         val tag = Ui.text(c, Trainings.name(key), 11f, Ui.onColor(Trainings.accent(key)), Ui.BOLD)
         tag.gravity = Gravity.CENTER
         tag.background = Ui.rounded(c, Trainings.accent(key), 20)
         tag.setPadding(Ui.dp(c, 12), Ui.dp(c, 6), Ui.dp(c, 12), Ui.dp(c, 6))
-        row.addView(tag, LinearLayout.LayoutParams(-2, -2))
+        top.addView(tag, LinearLayout.LayoutParams(-2, -2))
+        row.addView(top, LinearLayout.LayoutParams(-1, -2))
+
+        // details: settings, the eyes mode as a small icon (Eyes Open stays hidden, as before), then the length
+        val meta = metaText(key, r, includeMode = false)
+        val sec = Fmt.duration(r.optLong("sec", 0L))
+        val modeKey = r.str("mode")
+        val modePath = when (modeKey) {
+            "closed" -> Icons.EYE_OFF
+            "mirror" -> Icons.MIRROR
+            else -> null
+        }
+        val showMode = key != Trainings.MEDITATE && key != Trainings.BREATH && modePath != null
+        val felt = Feel.get(Session.userId, r.optLong("ts", 0L))
+        val detailRow = LinearLayout(c)
+        detailRow.orientation = LinearLayout.HORIZONTAL
+        detailRow.gravity = Gravity.CENTER_VERTICAL
+        if (showMode) {
+            if (meta.isNotEmpty()) detailRow.addView(Ui.text(c, "$meta ·", 13f, Ui.MUTED_TINT, Ui.REG))
+            detailRow.addView(FsIconView(c, modePath!!, Ui.MUTED_TINT),
+                LinearLayout.LayoutParams(Ui.dp(c, 15), Ui.dp(c, 15)).apply { leftMargin = Ui.dp(c, 6); rightMargin = Ui.dp(c, 6) })
+            detailRow.addView(Ui.text(c, "· $sec", 13f, Ui.MUTED_TINT, Ui.REG))
+        } else {
+            val base = if (meta.isEmpty()) sec else "$meta · $sec"
+            detailRow.addView(Ui.text(c, base, 13f, Ui.MUTED_TINT, Ui.REG))
+        }
+        // the face of how it felt (no text), when it was rated
+        if (felt != null) {
+            detailRow.addView(FsIconView(c, Feel.face(felt), Ui.MUTED_TINT),
+                LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)).apply { leftMargin = Ui.dp(c, 6) })
+        }
+        row.addTo(detailRow, 4)
+
         card.addView(row)
         card.isClickable = true
         card.setOnClickListener {
@@ -734,7 +758,7 @@ class ProgressActivity : BaseActivity() {
             render()
         }
 
-    private fun metaText(key: String, r: JSONObject): String {
+    private fun metaText(key: String, r: JSONObject, includeMode: Boolean = true): String {
         val parts = ArrayList<String>()
         when (key) {
             Trainings.MEDITATE -> parts.add("${r.optInt("med_min", 0)} min")
@@ -747,7 +771,7 @@ class ProgressActivity : BaseActivity() {
                 val rest = r.optInt("rest_sec", -1)
                 if (rest >= 0) parts.add("${rest}s rest")
                 val mode = r.str("mode")
-                if (mode != null && mode != "open") parts.add(Trainings.modeLabel(mode))
+                if (includeMode && mode != null && mode != "open") parts.add(Trainings.modeLabel(mode))
             }
         }
         return parts.joinToString(" · ")

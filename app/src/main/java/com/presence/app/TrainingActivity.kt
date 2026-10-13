@@ -633,14 +633,14 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     /** Starts the next training of the session on a fresh training screen. */
     private fun advanceSession() {
         sessionHandler.removeCallbacksAndMessages(null)
-        val nxt = TrainingSession.next() ?: return
-        Engine.start(this, nxt)
+        if (!Engine.advanceSessionNow()) return
         startActivity(Intent(this, TrainingActivity::class.java))
         finish()
     }
 
     private fun finishToHome() {
         sessionHandler.removeCallbacksAndMessages(null)
+        Engine.cancelSession()
         TrainingSession.clear()
         Engine.reset()
         startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP))

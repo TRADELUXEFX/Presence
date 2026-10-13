@@ -132,7 +132,7 @@ object SavedLists {
     }
 
     /** Save pop-up: two full-width buttons stacked, Save as default above Save as list. */
-    fun chooseSave(a: Activity, onDefault: () -> Unit, onList: () -> Unit) {
+    fun chooseSave(a: Activity, onDefault: () -> Unit, onList: () -> Unit, accent: Int = Ui.BLUE) {
         if (a.isFinishing) return
         val d = Dialog(a)
         d.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -151,7 +151,7 @@ object SavedLists {
         }
         card.addTo(asDefault, 20)
 
-        val asList = Ui.pill(a, "Save as list")
+        val asList = if (accent == Ui.BLUE) Ui.pill(a, "Save as list") else Ui.pill(a, "Save as list", accent, Ui.onColor(accent))
         asList.setOnClickListener {
             d.dismiss()
             onList()
@@ -174,7 +174,7 @@ object SavedLists {
         }
     }
 
-    fun askName(a: Activity, onSave: (String) -> Unit) {
+    fun askName(a: Activity, accent: Int = Ui.BLUE, onSave: (String) -> Unit) {
         if (a.isFinishing) return
         val d = Dialog(a)
         d.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -198,7 +198,7 @@ object SavedLists {
         val cancelLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         cancelLp.rightMargin = Ui.dp(a, 6)
         row.addView(cancel, cancelLp)
-        val save = Ui.pill(a, "Save")
+        val save = if (accent == Ui.BLUE) Ui.pill(a, "Save") else Ui.pill(a, "Save", accent, Ui.onColor(accent))
         save.setOnClickListener {
             val name = field.text.toString().trim()
             if (name.isEmpty()) {

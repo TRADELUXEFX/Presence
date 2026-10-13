@@ -150,14 +150,25 @@ object Api {
 
     /** The user's training history, newest first, or null if the request failed. */
     fun fetchSessions(): List<JSONObject>? {
-        val r = authed("GET", "/rest/v1/sessions?select=*&user_id=eq.${Session.userId}&order=ts.desc&limit=1000", null, null)
-        if (!r.ok) return null
-        return try {
-            val arr = JSONArray(r.body)
-            arr.objects()
-        } catch (e: Exception) {
-            null
+        // No cap: ask page by page until the server has nothing more, so All time really is everything.
+        // (A server can answer with fewer rows than asked for, so only an empty page ends the loop.)
+        val all = ArrayList<JSONObject>()
+        var offset = 0
+        var pages = 0
+        while (pages < 1000) {
+            val r = authed("GET", "/rest/v1/sessions?select=*&user_id=eq.${Session.userId}&order=ts.desc&limit=1000&offset=$offset", null, null)
+            if (!r.ok) return null
+            val page = try {
+                JSONArray(r.body).objects()
+            } catch (e: Exception) {
+                return null
+            }
+            if (page.isEmpty()) break
+            all.addAll(page)
+            offset += page.size
+            pages++
         }
+        return all
     }
 
     /**

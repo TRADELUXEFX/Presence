@@ -71,6 +71,14 @@ object Engine {
     private var nextBellSec = Int.MAX_VALUE
     private var bellEvery = 0
 
+    /**
+     * True during the 5 second gap between two trainings of a session. The Engine itself starts the next
+     * training when the gap ends, so a session carries on with the app closed or the phone locked. The
+     * background service stays up through the gap, which is what lets the next training start.
+     */
+    private var sessionPending = false
+    private val nextRunnable = Runnable { runNext() }
+
     private val ticker = object : Runnable {
         override fun run() {
             if (!running) return
@@ -86,6 +94,8 @@ object Engine {
         if (running) return
         val app = ctx.applicationContext
         appCtx = app
+        handler.removeCallbacks(nextRunnable)
+        sessionPending = false
         config = cfg
         running = true
         stage = Stage.IDLE
@@ -96,7 +106,9 @@ object Engine {
         motion = 0f
         setMotion()
         ensureTts(app)
-        TrainingService.start(app)
+        // Between two trainings of a session the service is already running. Android does not allow a
+        // background app to start one, so it is only started when it is not up.
+        if (!TrainingService.up) TrainingService.start(app)
         Dnd.engage(app)
         // background sound sits quietly under the training; lower still when the voice is speaking cues
         Ambient.start(if (cfg.voice) 0.3f else 0.5f)
@@ -107,10 +119,13 @@ object Engine {
         notifyListeners()
     }
 
-    /** Ends the training without saving it. */
+    /** Ends the training without saving it, and ends the session it belongs to. */
     fun cancel() {
         running = false
         stage = Stage.IDLE
+        sessionPending = false
+        handler.removeCallbacks(nextRunnable)
+        TrainingSession.clear()
         handler.removeCallbacks(ticker)
         Ambient.stop()
         tts?.stop()
@@ -150,7 +165,37 @@ object Engine {
 
     fun isActive(): Boolean = running || stage == Stage.DONE
 
+    /** The background service stays up while a training runs, and through the gap before the next one of a session. */
+    fun keepService(): Boolean = isActive() || sessionPending
+
     fun isDone(): Boolean = stage == Stage.DONE
+
+    /** Starts the next training of the session now (the "Start now" button). False if there is none waiting. */
+    fun advanceSessionNow(): Boolean = runNext()
+
+    /** The person left the session: no next training will start. */
+    fun cancelSession() {
+        handler.removeCallbacks(nextRunnable)
+        if (!sessionPending) return
+        sessionPending = false
+        if (!running) appCtx?.let { TrainingService.stop(it) }
+        notifyListeners()
+    }
+
+    private fun runNext(): Boolean {
+        handler.removeCallbacks(nextRunnable)
+        if (!sessionPending) return false
+        sessionPending = false
+        val app = appCtx
+        val nxt = TrainingSession.next()
+        if (app == null || nxt == null) {
+            app?.let { TrainingService.stop(it) }
+            notifyListeners()
+            return false
+        }
+        start(app, nxt)
+        return running
+    }
 
     fun progressLabel(): String {
         val shown = Math.min(curRep + 1, totalReps)
@@ -162,9 +207,10 @@ object Engine {
     }
 
     /** Changes only when the training moves on, so the notification updates no more often than needed. */
-    fun statusKey(): String = "$stage|$curRep|$doneReps|$breathPhase"
+    fun statusKey(): String = "$stage|$curRep|$doneReps|$breathPhase|$sessionPending"
 
     fun statusText(): String {
+        if (sessionPending && !running) return "Next training starting"
         val shown = Math.min(curRep + 1, totalReps)
         return when (stage) {
             Stage.REP -> "Rep $shown of $totalReps"
@@ -320,11 +366,17 @@ object Engine {
             if (TrainingSession.items.size <= 1) Recent.remember(uid, c)
             Sync.flush()
         }
+        // More trainings in this session: keep the background service up and start the next one in 5 seconds,
+        // whether or not the app is on screen.
+        val continuing = uid.isNotEmpty() && TrainingSession.items.size > 1 && TrainingSession.hasNext()
+        sessionPending = continuing
         appCtx?.let {
-            TrainingService.stop(it)
+            if (!continuing) TrainingService.stop(it)
             Dnd.restore(it)
             StreakWidget.updateAll(it)
         }
+        handler.removeCallbacks(nextRunnable)
+        if (continuing) handler.postDelayed(nextRunnable, 5000L)
         notifyListeners()
     }
 

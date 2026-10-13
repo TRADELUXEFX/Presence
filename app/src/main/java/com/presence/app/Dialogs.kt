@@ -19,7 +19,8 @@ object Dialogs {
         primary: String,
         secondary: String? = null,
         onPrimary: () -> Unit = {},
-        onSecondary: () -> Unit = {}
+        onSecondary: () -> Unit = {},
+        accent: Int = Ui.BLUE
     ) {
         if (a.isFinishing) return
         val d = Dialog(a)
@@ -45,7 +46,8 @@ object Dialogs {
             lp2.rightMargin = Ui.dp(a, 6)
             row.addView(b2, lp2)
         }
-        val b1 = Ui.pill(a, primary)
+        // on a training's own screen the main button wears that training's colour
+        val b1 = if (accent == Ui.BLUE) Ui.pill(a, primary) else Ui.pill(a, primary, accent, Ui.onColor(accent))
         b1.setOnClickListener {
             d.dismiss()
             onPrimary()

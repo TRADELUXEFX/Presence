@@ -151,11 +151,12 @@ class ConfigActivity : BaseActivity() {
                 this,
                 onDefault = { saveAsDefault() },
                 onList = {
-                    SavedLists.askName(this) { name ->
+                    SavedLists.askName(this, accentColor) { name ->
                         SavedLists.add(Session.userId, name, cfg)
                         Toast.makeText(this, "Saved to Saved list", Toast.LENGTH_SHORT).show()
                     }
-                }
+                },
+                accent = accentColor
             )
         }
         return box
@@ -347,7 +348,7 @@ class ConfigActivity : BaseActivity() {
         return box
     }
 
-    /** The speech icon: tap to switch the spoken cues on or off, hold to choose a quiet background sound. */
+    /** The voice icon (a speaker): tap to switch the spoken cues on or off. */
     private fun speechButton(): android.widget.FrameLayout {
         val c = this
         val box = android.widget.FrameLayout(c)
@@ -358,7 +359,7 @@ class ConfigActivity : BaseActivity() {
             box.removeAllViews()
             box.background = Ui.rounded(c, if (on) Trainings.soft(key) else Ui.SOFT, 20)
             box.addView(
-                FsIconView(c, Icons.SPEECH, if (on) Trainings.ink(key) else Ui.TEXT),
+                FsIconView(c, Icons.VOICE, if (on) Trainings.ink(key) else Ui.TEXT),
                 android.widget.FrameLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20), Gravity.CENTER)
             )
         }
@@ -367,7 +368,44 @@ class ConfigActivity : BaseActivity() {
             cfg = cfg.copy(voice = !cfg.voice)
             paint()
         }
-        // hold: background sound. It is a separate audio track, so the spoken cues are not affected.
+        return box
+    }
+
+    /**
+     * The music icon: tap to switch the quiet background sound on or off, hold to choose which sound.
+     * It is a separate audio track, so the spoken cues and the bell are not affected.
+     */
+    private fun musicButton(): android.widget.FrameLayout {
+        val c = this
+        val box = android.widget.FrameLayout(c)
+        box.isClickable = true
+        box.contentDescription = "Background sound"
+        fun paint() {
+            val on = Ambient.selected() != "off"
+            box.removeAllViews()
+            box.background = Ui.rounded(c, if (on) Trainings.soft(key) else Ui.SOFT, 20)
+            box.addView(
+                FsIconView(c, Icons.MUSIC, if (on) Trainings.ink(key) else Ui.TEXT),
+                android.widget.FrameLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20), Gravity.CENTER)
+            )
+        }
+        paint()
+        box.setOnClickListener {
+            val now = Ambient.selected()
+            if (now != "off") {
+                // remember the choice so switching back on brings the same sound
+                Session.prefs.edit().putString("ambient_last", now).apply()
+                Ambient.setSelected("off")
+                Ambient.stopPreview()
+            } else {
+                val last = Session.prefs.getString("ambient_last", null)
+                val back = if (last != null && last != "off" && Ambient.SOUNDS.any { it.first == last }) last else "rain"
+                Ambient.setSelected(back)
+                Ambient.preview(back)
+            }
+            paint()
+        }
+        // hold: choose the sound
         box.setOnLongClickListener {
             box.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
             SoundPicker.show(
@@ -375,7 +413,10 @@ class ConfigActivity : BaseActivity() {
                 Ambient.SOUNDS, Ambient.selected(), accentColor,
                 onHear = { Ambient.preview(it) },
                 onChoose = { Ambient.setSelected(it) },
-                onClose = { Ambient.stopPreview() }
+                onClose = {
+                    Ambient.stopPreview()
+                    paint()
+                }
             )
             true
         }
@@ -393,7 +434,7 @@ class ConfigActivity : BaseActivity() {
         }
     }
 
-    /** One row: the label, then three icons: vibrate, bell, speech. Tap switches each on or off; hold the bell or speech icon for more sound choices. */
+    /** One row: the label, then four icons: vibrate, bell, voice, music. Tap switches each on or off; hold the bell or music icon for more sound choices. */
     private fun voiceRow(label: String, sub: String): LinearLayout {
         val c = this
         val row = LinearLayout(c)
@@ -404,13 +445,19 @@ class ConfigActivity : BaseActivity() {
         text.addView(Ui.text(c, label, 16f, Ui.TEXT, Ui.MED))
         text.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
         row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val vibLp = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
-        vibLp.rightMargin = Ui.dp(c, 8)
+        // four icons, a little smaller and closer than three, so the label still has room
+        val size = Ui.dp(c, 38)
+        val gap = Ui.dp(c, 6)
+        val vibLp = LinearLayout.LayoutParams(size, size)
+        vibLp.rightMargin = gap
         row.addView(vibrateButton(), vibLp)
-        val bellLp = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
-        bellLp.rightMargin = Ui.dp(c, 8)
+        val bellLp = LinearLayout.LayoutParams(size, size)
+        bellLp.rightMargin = gap
         row.addView(bellButton(), bellLp)
-        row.addView(speechButton(), LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40)))
+        val voiceLp = LinearLayout.LayoutParams(size, size)
+        voiceLp.rightMargin = gap
+        row.addView(speechButton(), voiceLp)
+        row.addView(musicButton(), LinearLayout.LayoutParams(size, size))
         return row
     }
 
@@ -422,7 +469,7 @@ class ConfigActivity : BaseActivity() {
     /** One quiet line so the hold gestures can be found. */
     private fun soundHint() {
         panel.addTo(
-            Ui.text(this, "Tap an icon to switch it on or off. Hold the bell or speech icon for more sounds.", 12f, Ui.MUTED, Ui.REG).apply {
+            Ui.text(this, "Tap an icon to switch it on or off. Hold the bell or music icon to choose the sound.", 12f, Ui.MUTED, Ui.REG).apply {
                 gravity = Gravity.CENTER
                 setLineSpacing(0f, 1.2f)
             },
@@ -519,6 +566,25 @@ class ConfigActivity : BaseActivity() {
         ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
 
     private fun onStartTapped() {
+        // Asked one time only: without it, some phones stop a training when the screen turns off or the app is closed.
+        if (!Battery.exempt(this) && !Session.prefs.getBoolean("battery_asked", false)) {
+            Session.prefs.edit().putBoolean("battery_asked", true).apply()
+            Dialogs.show(
+                this,
+                "Keep your training running",
+                "Many phones stop apps in the background to save battery. To keep a training going with the screen locked or the app closed, tap Allow and choose \"Allow\" or \"Unrestricted\" for Presence, then come back and press Start.",
+                "Allow",
+                "Not now",
+                onPrimary = { Battery.request(this) },
+                onSecondary = { askDndThenStart() },
+                accent = accentColor
+            )
+            return
+        }
+        askDndThenStart()
+    }
+
+    private fun askDndThenStart() {
         // Do not disturb is always on during a training. The phone needs your permission once, so it is asked about one time only.
         if (!Dnd.granted(this) && !Session.prefs.getBoolean("dnd_asked", false)) {
             Session.prefs.edit().putBoolean("dnd_asked", true).apply()
@@ -534,7 +600,8 @@ class ConfigActivity : BaseActivity() {
                     } catch (e: Exception) {
                     }
                 },
-                onSecondary = { startChecked() }
+                onSecondary = { startChecked() },
+                accent = accentColor
             )
             return
         }

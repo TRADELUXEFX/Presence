@@ -12,14 +12,20 @@ import android.os.Looper
  */
 object Ambient {
     private const val RATE = 22050
-    private const val LOOP_SEC = 8
+    private const val LOOP_SEC = 60
     private val handler = Handler(Looper.getMainLooper())
     private val cache = HashMap<String, ShortArray>()
+    private const val CHUNK = 2048
     private val lock = Any()
 
-    private var main: AudioTrack? = null
+    /** A track fed continuously by its own thread, so the loop never has a gap at the seam. */
+    private class Voice(val track: AudioTrack, val data: ShortArray) {
+        @Volatile var alive = true
+    }
+
+    private var main: Voice? = null
     private var mainGen = 0
-    private var preview: AudioTrack? = null
+    private var preview: Voice? = null
     private var previewGen = 0
 
     /** key to label, in the order the picker shows them. */
@@ -48,24 +54,21 @@ object Ambient {
         val gen: Int
         synchronized(lock) { gen = ++mainGen }
         Thread {
-            val track = build(kind, volume) ?: return@Thread
+            val voice = build(kind, volume) ?: return@Thread
             synchronized(lock) {
                 if (gen != mainGen) {
-                    release(track)
+                    release(voice)
                     return@Thread
                 }
-                main = track
+                main = voice
             }
-            try {
-                track.play()
-            } catch (e: Exception) {
-            }
+            playLoop(voice)
         }.start()
     }
 
     /** Stops the training's background sound. Safe to call at any time. */
     fun stop() {
-        val t: AudioTrack?
+        val t: Voice?
         synchronized(lock) {
             mainGen++
             t = main
@@ -81,24 +84,21 @@ object Ambient {
         val gen: Int
         synchronized(lock) { gen = ++previewGen }
         Thread {
-            val track = build(kind, 0.5f) ?: return@Thread
+            val voice = build(kind, 0.5f) ?: return@Thread
             synchronized(lock) {
                 if (gen != previewGen) {
-                    release(track)
+                    release(voice)
                     return@Thread
                 }
-                preview = track
-            }
-            try {
-                track.play()
-            } catch (e: Exception) {
+                preview = voice
             }
             handler.postDelayed({ if (gen == previewGen) stopPreview() }, ms)
+            playLoop(voice)
         }.start()
     }
 
     fun stopPreview() {
-        val t: AudioTrack?
+        val t: Voice?
         synchronized(lock) {
             previewGen++
             t = preview
@@ -107,20 +107,43 @@ object Ambient {
         t?.let { release(it) }
     }
 
-    private fun release(t: AudioTrack) {
+    /** Plays the loop over and over on this thread until the voice is stopped, then frees the track. */
+    private fun playLoop(v: Voice) {
         try {
-            t.stop()
+            v.track.play()
+            var i = 0
+            while (v.alive) {
+                val len = Math.min(CHUNK, v.data.size - i)
+                val w = v.track.write(v.data, i, len, AudioTrack.WRITE_NON_BLOCKING)
+                if (w < 0) break
+                if (w == 0) {
+                    // the buffer is full: wait a moment for it to drain
+                    try { Thread.sleep(15) } catch (e: InterruptedException) { break }
+                } else {
+                    i = (i + w) % v.data.size
+                }
+            }
         } catch (e: Exception) {
-        }
-        try {
-            t.release()
-        } catch (e: Exception) {
+        } finally {
+            try { v.track.stop() } catch (e: Exception) {}
+            try { v.track.release() } catch (e: Exception) {}
         }
     }
 
-    private fun build(kind: String, volume: Float): AudioTrack? {
+    /** Asks the voice to stop; its own thread frees the track. If it never started playing, free it here. */
+    private fun release(v: Voice) {
+        v.alive = false
+        if (v.track.playState == AudioTrack.PLAYSTATE_STOPPED && v.track.state == AudioTrack.STATE_INITIALIZED && !startedOrRunning(v)) {
+            try { v.track.release() } catch (e: Exception) {}
+        }
+    }
+
+    private fun startedOrRunning(v: Voice): Boolean = v.track.playState != AudioTrack.PLAYSTATE_STOPPED
+
+    private fun build(kind: String, volume: Float): Voice? {
         return try {
             val data = make(kind)
+            val min = AudioTrack.getMinBufferSize(RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
             val track = AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
@@ -135,19 +158,18 @@ object Ambient {
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                         .build()
                 )
-                .setBufferSizeInBytes(data.size * 2)
-                .setTransferMode(AudioTrack.MODE_STATIC)
+                // about a second of sound queued, so a busy phone never starves it
+                .setBufferSizeInBytes(Math.max(min, RATE * 2))
+                .setTransferMode(AudioTrack.MODE_STREAM)
                 .build()
-            track.write(data, 0, data.size)
-            track.setLoopPoints(0, data.size, -1)
             track.setVolume(volume.coerceIn(0f, 1f))
-            track
+            Voice(track, data)
         } catch (e: Exception) {
             null
         }
     }
 
-    /** One seamless 8 second loop. The start and end are cross-faded so the loop point cannot be heard. */
+    /** One seamless 60 second loop. The start and end are cross-faded so the loop point cannot be heard. */
     private fun make(kind: String): ShortArray {
         synchronized(lock) { cache[kind]?.let { return it } }
         val n = RATE * LOOP_SEC
@@ -177,17 +199,19 @@ object Ambient {
                 "ocean" -> {
                     // slow brown noise rising and falling like a wave, with a little foam on the crest
                     br = (br + 0.02 * w) / 1.02
-                    val swell = 0.55 + 0.45 * Math.sin(2.0 * Math.PI * t / LOOP_SEC * 2.0 - 1.2)
+                    // slow waves: a 10 second one with a 15 second one drifting through it, so the pattern takes the
+                    // whole minute to come round. Whole cycles fit in the loop, and the level never drops near silence.
+                    val swell = 0.75 + 0.15 * Math.sin(2.0 * Math.PI * t / 10.0 - 1.2) + 0.10 * Math.sin(2.0 * Math.PI * t / 15.0 + 0.7)
                     lp += 0.15 * (w - lp)
                     val foam = (w - lp) * 0.05 * swell * swell
                     br * 7.0 * swell + foam
                 }
                 "wind" -> {
                     // noise whose brightness drifts slowly, like gusts
-                    val gust = 0.5 + 0.5 * Math.sin(2.0 * Math.PI * t / LOOP_SEC * 3.0)
-                    val a = 0.012 + 0.035 * gust
+                    val gust = 0.5 + 0.3 * Math.sin(2.0 * Math.PI * t / 12.0) + 0.2 * Math.sin(2.0 * Math.PI * t / 20.0 + 1.0)
+                    val a = 0.02 + 0.02 * gust
                     lp += a * (w - lp)
-                    lp * (4.0 + 3.0 * gust)
+                    lp * (5.0 + 1.5 * gust)
                 }
                 else -> {
                     // brown noise: a steady, deep, calm rumble
