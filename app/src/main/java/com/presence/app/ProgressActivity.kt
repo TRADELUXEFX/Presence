@@ -17,6 +17,7 @@ import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.presence.app.Ui.addTo
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -40,6 +41,7 @@ class ProgressActivity : BaseActivity() {
     private var history: List<JSONObject>? = null
     private var historyLoading = false
     private var historyFailed = false
+    private var offline = false
     private var filterMod: String? = null   // null = all trainings
     private var rangeDays = 0               // 7, 30, or 0 for all time (default: all time)
     private var exportable: List<JSONObject> = emptyList()
@@ -136,6 +138,12 @@ class ProgressActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         render()
+        // back online: send anything waiting, then load the server's history if we were showing the offline copy
+        if (Session.loggedIn() && NetWatch.isOnline(this)) {
+            Sync.flush {
+                if (!isFinishing && offline && !historyLoading) loadHistory()
+            }
+        }
     }
 
     private fun setTab(hist: Boolean) {
@@ -150,14 +158,41 @@ class ProgressActivity : BaseActivity() {
         historyLoading = true
         historyFailed = false
         Thread {
-            val rows = Api.fetchSessions()
+            val uid = Session.userId
+            val fresh = Api.fetchSessions()
+            if (fresh != null) cacheHistory(uid, fresh)
+            // online: the server's history. Offline: the copy saved on this phone.
+            // Either way, trainings not yet uploaded are added, so nothing finished is missing.
+            val base = fresh ?: cachedHistory(uid)
+            val merged = (base + LocalStore.pendingFor(uid))
+                .distinctBy { it.optLong("ts") to it.optString("key") }
+                .sortedByDescending { it.optLong("ts") }
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 historyLoading = false
-                if (rows == null) historyFailed = true else history = rows
+                offline = fresh == null
+                historyFailed = fresh == null && merged.isEmpty()
+                history = merged
                 render()
             }
         }.start()
+    }
+
+    /** Keeps the last history from the server on this phone, for when there is no connection. */
+    private fun cacheHistory(uid: String, rows: List<JSONObject>) {
+        val arr = JSONArray()
+        for (r in rows) arr.put(r)
+        Session.prefs.edit().putString("history_cache_$uid", arr.toString()).apply()
+    }
+
+    private fun cachedHistory(uid: String): List<JSONObject> {
+        val text = Session.prefs.getString("history_cache_$uid", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(text)
+            List(arr.length()) { arr.getJSONObject(it) }
+        } catch (e: Exception) {
+            emptyList()
+        }
     }
 
     private fun render() {
@@ -185,6 +220,8 @@ class ProgressActivity : BaseActivity() {
         tabsWrap.visibility = View.VISIBLE
         renderTabs()
         column.removeAllViews()
+        // offline note: the same pill on both History tabs
+        if (offline) column.addView(Ui.offlineRow(this), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Ui.dp(this@ProgressActivity, 6) })
         exportBtn.visibility = if (showHistory) View.VISIBLE else View.INVISIBLE
         applyColumnPad()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
@@ -668,19 +705,11 @@ class ProgressActivity : BaseActivity() {
         return card
     }
 
-    private fun historyErrorCard(): LinearLayout {
-        val c = this
-        val card = Ui.card(c)
-        card.addView(Ui.text(c, "Couldn't load your trainings", 15f, Ui.TEXT, Ui.BOLD))
-        card.addTo(Ui.text(c, "Check your connection and try again.", 13f, Ui.MUTED, Ui.REG), 4)
-        val btn = Ui.pill(c, "Try again")
-        btn.setOnClickListener {
+    private fun historyErrorCard(): LinearLayout =
+        Ui.offlineCard(this, "Couldn't load your history", "Check your connection and try again. Your trainings are saved on this phone.") {
             loadHistory()
             render()
         }
-        card.addTo(btn, 14)
-        return card
-    }
 
     private fun metaText(key: String, r: JSONObject): String {
         val parts = ArrayList<String>()

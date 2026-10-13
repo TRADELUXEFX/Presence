@@ -207,6 +207,50 @@ object Ui {
         return t
     }
 
+    /** Offline or error notice, option 1: a wifi-off drawing in a soft circle, centred text, and Try again. */
+    fun offlineCard(c: Context, title: String, body: String, onRetry: () -> Unit): LinearLayout {
+        val card = card(c)
+        card.gravity = Gravity.CENTER_HORIZONTAL
+        card.setPadding(dp(c, 22), dp(c, 24), dp(c, 22), dp(c, 22))
+        val circle = android.widget.FrameLayout(c)
+        circle.background = rounded(c, BLUE_SOFT, 48)
+        circle.addView(
+            FsIconView(c, "M5 12.5a10 10 0 0 1 14 0 M8.5 16a5 5 0 0 1 7 0 M12 20h.01 M3 3l18 18", BLUE),
+            android.widget.FrameLayout.LayoutParams(dp(c, 44), dp(c, 44), Gravity.CENTER)
+        )
+        card.addView(circle, LinearLayout.LayoutParams(dp(c, 96), dp(c, 96)))
+        val head = text(c, title, 16f, TEXT, BOLD)
+        head.gravity = Gravity.CENTER
+        card.addView(head, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 16) })
+        val sub = text(c, body, 13f, MUTED, REG)
+        sub.gravity = Gravity.CENTER
+        sub.setLineSpacing(0f, 1.25f)
+        card.addView(sub, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 6) })
+        val btn = pill(c, "Try again")
+        btn.setOnClickListener { onRetry() }
+        card.addView(btn, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(c, 18) })
+        return card
+    }
+
+    /** The small centred offline note used on every screen that needs the connection: a wifi-off icon and You're offline. */
+    fun offlineRow(c: Context): LinearLayout {
+        val pill = LinearLayout(c)
+        pill.orientation = LinearLayout.HORIZONTAL
+        pill.gravity = Gravity.CENTER
+        pill.background = rounded(c, BLUE_SOFT, 14)
+        pill.setPadding(dp(c, 12), dp(c, 6), dp(c, 12), dp(c, 6))
+        pill.addView(FsIconView(c, "M5 12.5a10 10 0 0 1 14 0 M8.5 16a5 5 0 0 1 7 0 M12 20h.01 M3 3l18 18", BLUE),
+            LinearLayout.LayoutParams(dp(c, 12), dp(c, 12)))
+        val label = text(c, "You're offline", 12f, BLUE, BOLD)
+        label.setPadding(dp(c, 6), 0, 0, 0)
+        pill.addView(label, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        val row = LinearLayout(c)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_HORIZONTAL
+        row.addView(pill, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        return row
+    }
+
     /** Soft amber notice bar (hidden until needed). */
     fun banner(c: Context, s: String): TextView {
         val t = text(c, s, 12f, Ui.c("#92400E", "#FCD34D"), MED)

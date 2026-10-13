@@ -138,11 +138,7 @@ class HomeActivity : BaseActivity() {
         column.removeAllViews()
         if (::statHolder.isInitialized) statHolder.removeAllViews()
         StreakWidget.updateAll(c)
-        if (!online) {
-            val banner = Ui.banner(c, "You're offline. Trainings are saved on this phone and sync when you're back online.")
-            banner.visibility = View.VISIBLE
-            column.addTo(banner, 14)
-        }
+        if (!online) column.addView(Ui.offlineRow(c), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Ui.dp(c, 14) })
         if (Engine.isActive()) column.addTo(resumeCard(), 16)
         when {
             loading -> column.addTo(loadingCard(), 16)

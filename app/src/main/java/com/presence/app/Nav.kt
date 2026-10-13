@@ -61,8 +61,8 @@ object Nav {
         fade(a)
     }
 
-    /** A soft fade between tabs, instead of a hard cut. */
+    /** No animation between tabs: the switch is instant, like the Trainings and Sessions toggle. */
     fun fade(a: Activity) {
-        a.overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        a.overridePendingTransition(0, 0)
     }
 }

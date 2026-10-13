@@ -73,6 +73,8 @@ class TrainingsActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         if (::toggle.isInitialized) render()
+        // back online: send any trainings waiting on this phone
+        if (Session.loggedIn() && NetWatch.isOnline(this)) Sync.flush()
     }
 
     private fun render() {
@@ -105,6 +107,7 @@ class TrainingsActivity : BaseActivity() {
 
     private fun renderTrainings() {
         trainingsView.removeAllViews()
+        if (!NetWatch.isOnline(this)) trainingsView.addView(Ui.offlineRow(this), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Ui.dp(this@TrainingsActivity, 12) })
         for ((i, k) in Trainings.ALL.withIndex()) {
             trainingsView.addTo(trainingCard(k), if (i == 0) 0 else 12)
         }
@@ -141,14 +144,16 @@ class TrainingsActivity : BaseActivity() {
     private fun renderSessions() {
         val c = this
         sessionsView.removeAllViews()
+        if (!NetWatch.isOnline(this)) sessionsView.addView(Ui.offlineRow(this), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Ui.dp(this@TrainingsActivity, 12) })
         // All | Sessions | Trainings: groups the list, like the History filter
         val chips = LinearLayout(c)
         chips.orientation = LinearLayout.HORIZONTAL
         for ((i, label) in listOf("All", "Sessions", "Trainings").withIndex()) {
             val sel = i == group
-            val t = Ui.text(c, label, 13f, if (sel) Ui.WHITE else Ui.TEXT, Ui.BOLD)
+            // same colours in light and dark: white on blue when selected, blue on white when not
+            val t = Ui.text(c, label, 13f, if (sel) Ui.WHITE else Ui.BLUE, Ui.BOLD)
             t.gravity = Gravity.CENTER
-            t.background = Ui.rounded(c, if (sel) Ui.BLUE else Ui.SOFT, 20)
+            t.background = Ui.rounded(c, if (sel) Ui.BLUE else Ui.SURFACE, 20)
             t.setPadding(Ui.dp(c, 16), Ui.dp(c, 9), Ui.dp(c, 16), Ui.dp(c, 9))
             t.setOnClickListener {
                 group = i
