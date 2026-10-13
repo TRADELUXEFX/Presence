@@ -137,7 +137,9 @@ class ConfigActivity : BaseActivity() {
         box.background = circle
         box.contentDescription = if (editingId != null) "Save changes" else "Save"
         box.addView(FsIconView(c, Icons.SAVE, fg), FrameLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22), Gravity.CENTER))
-        box.layoutParams = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
+        // the header gives its action wrap-content size, so the 40dp circle is set as a minimum size
+        box.minimumWidth = Ui.dp(c, 40)
+        box.minimumHeight = Ui.dp(c, 40)
         box.setOnClickListener {
             val editId = editingId
             if (editId != null) {
