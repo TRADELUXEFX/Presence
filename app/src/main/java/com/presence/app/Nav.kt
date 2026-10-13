@@ -10,6 +10,8 @@ import android.widget.LinearLayout
 /** The bottom bar: Home, Trainings and History. Blue like the header, with curved top corners; the tab you are on is white. */
 object Nav {
     fun bar(a: Activity, active: Int): LinearLayout {
+        // the phone's navigation strip takes the same blue, so the bar runs down into it
+        Ui.setNavColor(a, Ui.BLUE_DARK)
         val bar = LinearLayout(a)
         bar.orientation = LinearLayout.HORIZONTAL
         val g = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))

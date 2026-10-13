@@ -165,9 +165,6 @@ class TrainingsActivity : BaseActivity() {
         sessionsView.addTo(build, 12)
 
         val all = SavedLists.all(Session.userId)
-        if (group != 1) {
-            for (k in Trainings.ALL) sessionsView.addTo(trainingCard(k), 12)
-        }
         val shown = all.filter { o ->
             val isSession = o.optString("kind") == "session"
             when (group) {

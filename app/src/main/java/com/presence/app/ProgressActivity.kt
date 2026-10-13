@@ -85,7 +85,7 @@ class ProgressActivity : BaseActivity() {
 
         column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
-        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 24))
+        column.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 40))
         scroll = ScrollView(c)
         scroll.isFillViewport = true
         scroll.setBackgroundColor(Ui.BG)
@@ -98,11 +98,9 @@ class ProgressActivity : BaseActivity() {
         Ui.bottomBarBg(c, exportBar)
         exportBtn.setOnClickListener { chooseExportRange() }
         exportBtn.visibility = View.GONE
-        val screen = LinearLayout(c)
-        screen.orientation = LinearLayout.VERTICAL
-        screen.addView(root, LinearLayout.LayoutParams(-1, -1))
-        screen.addView(Nav.bar(c, 2), LinearLayout.LayoutParams(-1, -2))
-        setContentView(screen)
+        // same structure as the Trainings tab: the bar is the last child of the screen's root
+        root.addView(Nav.bar(c, 2), LinearLayout.LayoutParams(-1, -2))
+        setContentView(root)
 
         // BaseActivity turns clipping off on every view, so the history list drew over the tabs
         // when scrolling up. Turn clipping back on for the scroll area only, with rounded top corners
