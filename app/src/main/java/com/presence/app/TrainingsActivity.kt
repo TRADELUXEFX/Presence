@@ -6,7 +6,9 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.ScrollView
 import com.presence.app.Ui.addTo
 
@@ -17,6 +19,12 @@ class TrainingsActivity : BaseActivity() {
     private lateinit var sessionsView: LinearLayout
     private var showSessions = false
     private var group = 0   // Sessions view: 0 = all, 1 = sessions, 2 = trainings
+    private lateinit var selectBar: LinearLayout
+    private lateinit var selectBtn: TextView
+    private lateinit var navBar: View
+    private lateinit var deleteBtn: Button
+    private var selecting = false
+    private val selected = LinkedHashSet<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +44,14 @@ class TrainingsActivity : BaseActivity() {
         val headBg = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Ui.BLUE, Ui.BLUE_DARK))
         headBg.cornerRadii = floatArrayOf(0f, 0f, 0f, 0f, r, r, r, r)
         headBox.background = headBg
-        val titleRow = Ui.header(c, "Trainings", showBack = false) { }
+        // Select sits in the header on the right (Sessions view only), like on the Saved list screen
+        selectBtn = Ui.text(c, "Select", 13f, Color.WHITE, Ui.BOLD)
+        selectBtn.gravity = Gravity.CENTER
+        selectBtn.background = Ui.rounded(c, Color.parseColor("#33FFFFFF"), 20)
+        selectBtn.setPadding(Ui.dp(c, 14), Ui.dp(c, 8), Ui.dp(c, 14), Ui.dp(c, 8))
+        selectBtn.visibility = View.GONE
+        selectBtn.setOnClickListener { onSelectTapped() }
+        val titleRow = Ui.header(c, "Trainings", action = selectBtn, showBack = false) { }
         titleRow.background = null
         headBox.addView(titleRow, LinearLayout.LayoutParams(-1, -2))
         toggle = LinearLayout(c)
@@ -61,7 +76,27 @@ class TrainingsActivity : BaseActivity() {
         scroll.setBackgroundColor(Ui.BG)
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        root.addView(Nav.bar(c, 1), LinearLayout.LayoutParams(-1, -2))
+        // bottom bar, only while selecting saved sessions to delete
+        selectBar = LinearLayout(c)
+        selectBar.orientation = LinearLayout.HORIZONTAL
+        selectBar.setPadding(Ui.dp(c, 18), Ui.dp(c, 14), Ui.dp(c, 18), Ui.dp(c, 14))
+        Ui.tintedBottomBar(c, selectBar, Ui.BLUE)
+        selectBar.elevation = Ui.dp(c, 8).toFloat()
+        val doneBtn = Ui.pill(c, "Done", Ui.SOFT, Ui.TEXT)
+        doneBtn.setOnClickListener {
+            selecting = false
+            selected.clear()
+            render()
+        }
+        selectBar.addView(doneBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = Ui.dp(c, 6) })
+        deleteBtn = Ui.pill(c, "Delete", Ui.RED, Color.WHITE)
+        deleteBtn.setOnClickListener { confirmDelete() }
+        selectBar.addView(deleteBtn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = Ui.dp(c, 6) })
+        selectBar.visibility = View.GONE
+        Ui.padInsets(selectBar, bottom = true)
+        root.addView(selectBar, LinearLayout.LayoutParams(-1, -2))
+        navBar = Nav.bar(c, 1)
+        root.addView(navBar, LinearLayout.LayoutParams(-1, -2))
         setContentView(root)
         render()
     }
@@ -81,6 +116,9 @@ class TrainingsActivity : BaseActivity() {
         renderToggle()
         trainingsView.visibility = if (showSessions) View.GONE else View.VISIBLE
         sessionsView.visibility = if (showSessions) View.VISIBLE else View.GONE
+        if (!showSessions) { selecting = false; selected.clear(); selectBtn.visibility = View.GONE }
+        selectBar.visibility = if (showSessions && selecting) View.VISIBLE else View.GONE
+        navBar.visibility = if (showSessions && selecting) View.GONE else View.VISIBLE
         if (showSessions) renderSessions() else renderTrainings()
     }
 
@@ -156,13 +194,29 @@ class TrainingsActivity : BaseActivity() {
             if (i > 0) lp.leftMargin = Ui.dp(c, 8)
             chips.addView(t, lp)
         }
+        val all = SavedLists.all(Session.userId)
+        selected.retainAll(all.map { it.optString("id") }.toSet())
+        if (all.isEmpty()) selecting = false
+        selectBar.visibility = if (selecting) View.VISIBLE else View.GONE
+        navBar.visibility = if (selecting) View.GONE else View.VISIBLE
+        deleteBtn.text = if (selected.isEmpty()) "Delete" else "Delete ${selected.size}"
+        deleteBtn.alpha = if (selected.isEmpty()) 0.45f else 1f
+        selectBtn.visibility = if (all.isEmpty()) View.GONE else View.VISIBLE
+        selectBtn.text = when {
+            !selecting -> "Select"
+            selected.size == all.size -> "None"
+            else -> "All"
+        }
         sessionsView.addTo(chips, 0)
 
-        val build = Ui.pill(c, "+ Build a session", Ui.SOFT, Ui.TEXT)
-        build.setOnClickListener { startActivity(Intent(c, SessionActivity::class.java)) }
-        sessionsView.addTo(build, 12)
+        if (!selecting) {
+            val build = Ui.pill(c, "+ Build a session", Ui.SOFT, Ui.TEXT)
+            build.setOnClickListener { startActivity(Intent(c, SessionActivity::class.java)) }
+            sessionsView.addTo(build, 12)
+        } else {
+            sessionsView.addTo(Ui.note(c, "Tap the ones you want to delete."), 12)
+        }
 
-        val all = SavedLists.all(Session.userId)
         val shown = all.filter { o ->
             val isSession = o.optString("kind") == "session"
             when (group) {
@@ -200,10 +254,11 @@ class TrainingsActivity : BaseActivity() {
         val startLp1 = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40)).apply { leftMargin = Ui.dp(c, 8) }
         // name + buttons share the top row; the details sit below at the full card width
         val head = Ui.nameRow(c, o.optString("name"),
-            listOf(Pair(edit as View, editLp), Pair(start as View, startLp1)),
+            if (selecting) emptyList() else listOf(Pair(edit as View, editLp), Pair(start as View, startLp1)),
             Ui.clockLine(c, Trainings.name(cfg.key), Trainings.estimate(cfg)))
+        if (selecting) card.setOnClickListener { toggleSelect(id) }
         // long press to rename
-        card.isLongClickable = true
+        card.isLongClickable = !selecting
         card.setOnLongClickListener {
             SavedLists.askName(this) { name ->
                 SavedLists.rename(Session.userId, o.optString("id"), name)
@@ -212,6 +267,7 @@ class TrainingsActivity : BaseActivity() {
             true
         }
         card.addView(head)
+        if (selecting && selected.contains(id)) markSelected(card)
         return card
     }
 
@@ -241,11 +297,13 @@ class TrainingsActivity : BaseActivity() {
         val startLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, Ui.dp(c, 40))
         startLp.leftMargin = Ui.dp(c, 8)
         // name + buttons share the top row; the details sit below at the full card width
+        val id = o.optString("id")
         val head = Ui.nameRow(c, o.optString("name"),
-            listOf(Pair(pencil as View, pencilLp), Pair(start as View, startLp)),
+            if (selecting) emptyList() else listOf(Pair(pencil as View, pencilLp), Pair(start as View, startLp)),
             Ui.clockLine(c, "Session \u00B7 ${items.size} trainings", Fmt.duration(secs)))
+        if (selecting) card.setOnClickListener { toggleSelect(id) }
         // long press to rename
-        card.isLongClickable = true
+        card.isLongClickable = !selecting
         card.setOnLongClickListener {
             SavedLists.askName(this) { name ->
                 SavedLists.rename(Session.userId, o.optString("id"), name)
@@ -254,6 +312,56 @@ class TrainingsActivity : BaseActivity() {
             true
         }
         card.addView(head)
+        if (selecting && selected.contains(id)) markSelected(card)
         return card
+    }
+
+    /** Select turns on picking; then All selects everything (None clears it). */
+    private fun onSelectTapped() {
+        val all = SavedLists.all(Session.userId)
+        if (!selecting) {
+            selecting = true
+            selected.clear()
+        } else if (all.isNotEmpty() && selected.size == all.size) {
+            selected.clear()
+        } else {
+            selected.clear()
+            for (o in all) selected.add(o.optString("id"))
+        }
+        render()
+    }
+
+    /** A ticked card turns blue, with white text. */
+    private fun markSelected(card: LinearLayout) {
+        card.background = Ui.rounded(this, Ui.BLUE, 22)
+        fun paint(v: View) {
+            if (v is TextView) v.setTextColor(Color.WHITE)
+            if (v is FsIconView) v.setColor(Color.WHITE)
+            if (v is android.view.ViewGroup) for (i in 0 until v.childCount) paint(v.getChildAt(i))
+        }
+        paint(card)
+    }
+
+    private fun toggleSelect(id: String) {
+        if (!selected.add(id)) selected.remove(id)
+        render()
+    }
+
+    private fun confirmDelete() {
+        val n = selected.size
+        if (n == 0) return
+        Dialogs.show(
+            this,
+            if (n == 1) "Delete this one?" else "Delete $n items?",
+            "They'll be removed from this phone and your account.",
+            "Delete",
+            "Keep",
+            onPrimary = {
+                SavedLists.remove(Session.userId, selected.toSet())
+                selected.clear()
+                selecting = false
+                render()
+            }
+        )
     }
 }

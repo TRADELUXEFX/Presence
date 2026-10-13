@@ -62,6 +62,8 @@ object Recent {
     /** A whole session finished: it goes to the top as one session. Doing the same session again moves it up, not a second copy. */
     fun rememberSession(uid: String, cfgs: List<Config>, name: String = "Session") {
         if (uid.isEmpty() || cfgs.size < 2) return
+        // an unnamed (never saved) session is not remembered
+        if (nameOf(name) == "Recent session") return
         val items = list(uid)
         val key = listKey(name, JSONArray(cfgs.map { cfgJson(it) }))
         items.removeAll { it.optString("kind") == "session" && listKey(it.optString("name"), it.optJSONArray("items")) == key }
@@ -90,8 +92,9 @@ object Recent {
             if (o.optString("kind") == "session") {
                 val k = listKey(o.optString("name"), o.optJSONArray("items"))
                 if (!seen.add(k)) continue
-                val s = savedByKey[k]
-                out.add(if (s != null) savedSession(s) else o)
+                // a session that was never saved is not shown: only saved sessions appear in Quick start
+                val s = savedByKey[k] ?: continue
+                out.add(savedSession(s))
             } else out.add(o)
         }
         for (o in saved) {

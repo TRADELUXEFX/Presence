@@ -12,6 +12,8 @@ object Icons {
     const val FLAME = "M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"
     const val CHEVRON = "M9 18l6-6-6-6"
     const val BOOKMARK = "M6 3h12v18l-6-4-6 4z"
+    /** A floppy disk: save. */
+    const val SAVE = "M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21v-8H7v8 M7 3v5h8"
     const val VIBRATE = "M7 4h10v16H7z M4 8.5v7 M20 8.5v7"
     const val HOME = "M3 11l9-8 9 8 M5 10v10h14V10"
     const val LIST = "M8 6h13 M8 12h13 M8 18h13 M3 6h.01 M3 12h.01 M3 18h.01"

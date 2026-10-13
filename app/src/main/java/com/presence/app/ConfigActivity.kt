@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
@@ -126,20 +127,17 @@ class ConfigActivity : BaseActivity() {
     }
 
     /** Save list button in the header, on the right: asks for a name, then adds this training to Saved list. */
-    private fun saveAction(): LinearLayout {
+    private fun saveAction(): FrameLayout {
         val c = this
         val fg = Ui.onColor(accentColor)
-        val box = LinearLayout(c)
-        box.orientation = LinearLayout.HORIZONTAL
-        box.gravity = Gravity.CENTER_VERTICAL
-        box.background = Ui.rounded(c, Color.parseColor("#33FFFFFF"), 20)
-        box.setPadding(Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 14), Ui.dp(c, 8))
-        box.contentDescription = "Save"
-        box.addView(FsIconView(c, Icons.BOOKMARK, fg), LinearLayout.LayoutParams(Ui.dp(c, 16), Ui.dp(c, 16)))
-        val label = Ui.text(c, if (editingId != null) "Save changes" else "Save", 13f, fg, Ui.BOLD)
-        val lp = LinearLayout.LayoutParams(-2, -2)
-        lp.leftMargin = Ui.dp(c, 6)
-        box.addView(label, lp)
+        val box = FrameLayout(c)
+        val circle = android.graphics.drawable.GradientDrawable()
+        circle.shape = android.graphics.drawable.GradientDrawable.OVAL
+        circle.setColor(Color.parseColor("#33FFFFFF"))
+        box.background = circle
+        box.contentDescription = if (editingId != null) "Save changes" else "Save"
+        box.addView(FsIconView(c, Icons.SAVE, fg), FrameLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22), Gravity.CENTER))
+        box.layoutParams = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
         box.setOnClickListener {
             val editId = editingId
             if (editId != null) {

@@ -191,7 +191,7 @@ class HomeActivity : BaseActivity() {
             if (kind == "saved-single") {
                 startActivity(Intent(c, ConfigActivity::class.java).putExtra("listId", e.optString("id")))
             } else {
-                TrainingSession.name = if (kind == "saved-session") e.optString("name") else "Session"
+                TrainingSession.name = if (isSession) e.optString("name").ifBlank { "Session" } else "Session"
                 TrainingSession.clear()
                 if (isSession) TrainingSession.items.addAll(SavedLists.sessionItems(e))
                 else TrainingSession.items.add(SavedLists.toConfig(e))

@@ -51,22 +51,47 @@ object SessionDraft {
     var editing = -1
 }
 
-/** Which finished trainings were part of a session, kept on this phone (keyed by the training's time). */
+/**
+ * Which finished trainings were part of a session (keyed by the training's time).
+ * Kept in the profile's defaults so it syncs to the account and survives a reinstall; only the newest [MAX] are kept.
+ * Older entries written by earlier versions on this phone are still read.
+ */
 object SessionLog {
-    private fun key(uid: String) = "session_log_$uid"
+    private const val FIELD = "session_log"
+    const val MAX = 1000
 
-    private fun load(uid: String): JSONObject = try {
-        JSONObject(Session.prefs.getString(key(uid), "{}") ?: "{}")
+    private fun legacy(uid: String): JSONObject = try {
+        JSONObject(Session.prefs.getString("session_log_$uid", "{}") ?: "{}")
     } catch (e: Exception) {
         JSONObject()
     }
 
-    fun put(uid: String, ts: Long, name: String, pos: Int, total: Int) {
-        if (uid.isEmpty() || ts <= 0L) return
-        val map = load(uid)
-        map.put(ts.toString(), JSONObject().put("name", name).put("pos", pos).put("total", total))
-        Session.prefs.edit().putString(key(uid), map.toString()).apply()
+    /** Keeps the newest [MAX] entries. */
+    fun prune(map: JSONObject): JSONObject {
+        if (map.length() <= MAX) return map
+        val keys = ArrayList<String>()
+        val it = map.keys()
+        while (it.hasNext()) keys.add(it.next())
+        keys.sortBy { it.toLongOrNull() ?: 0L }
+        val out = JSONObject()
+        for (k in keys.takeLast(MAX)) out.put(k, map.get(k))
+        return out
     }
 
-    fun get(uid: String, ts: Long): JSONObject? = load(uid).optJSONObject(ts.toString())
+    fun put(uid: String, ts: Long, name: String, pos: Int, total: Int) {
+        if (uid.isEmpty() || ts <= 0L) return
+        synchronized(LocalStore) {
+            val row = LocalStore.profile(uid)
+            val defaults = row.optJSONObject("defaults") ?: JSONObject()
+            val map = defaults.optJSONObject(FIELD) ?: JSONObject()
+            map.put(ts.toString(), JSONObject().put("name", name).put("pos", pos).put("total", total))
+            defaults.put(FIELD, prune(map))
+            row.put("defaults", defaults)
+            LocalStore.saveProfile(uid, row)
+        }
+    }
+
+    fun get(uid: String, ts: Long): JSONObject? =
+        LocalStore.profile(uid).optJSONObject("defaults")?.optJSONObject(FIELD)?.optJSONObject(ts.toString())
+            ?: legacy(uid).optJSONObject(ts.toString())
 }

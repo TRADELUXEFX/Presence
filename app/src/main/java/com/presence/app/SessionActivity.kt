@@ -217,6 +217,7 @@ class SessionActivity : BaseActivity() {
         }
         SavedLists.askName(this, Ui.BLUE, SavedLists.autoName(uid, "Session")) { name ->
             SavedLists.addSession(uid, name, items.toList())
+            editingName = name   // starting right after saving runs the session under this name
             Toast.makeText(this, "Saved to Saved list", Toast.LENGTH_SHORT).show()
         }
     }

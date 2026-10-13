@@ -199,6 +199,16 @@ object ProfileMerge {
             }
         }
         if (feel.length() > 0) out.put("feel", feel)
+        // which trainings were part of a session: join, this phone wins on the same training, newest 1000 kept
+        val log = JSONObject(server.optJSONObject("session_log")?.toString() ?: "{}")
+        local.optJSONObject("session_log")?.let { ll ->
+            val it = ll.keys()
+            while (it.hasNext()) {
+                val k = it.next()
+                log.put(k, ll.get(k))
+            }
+        }
+        if (log.length() > 0) out.put("session_log", SessionLog.prune(log))
         // saved lists: join by id, minus anything either phone deleted
         val removed = LinkedHashSet<String>()
         server.optJSONArray("saved_removed")?.let { for (i in 0 until it.length()) removed.add(it.optString(i)) }
