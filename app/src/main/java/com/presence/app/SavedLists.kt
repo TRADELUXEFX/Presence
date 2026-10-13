@@ -23,7 +23,7 @@ object SavedLists {
 
     fun all(uid: String): List<JSONObject> {
         val arr = LocalStore.profile(uid).optJSONObject("defaults")?.optJSONArray(FIELD) ?: JSONArray()
-        return List(arr.length()) { arr.getJSONObject(it) }
+        return arr.objects()
     }
 
     fun toConfig(o: JSONObject): Config = Config(
@@ -62,7 +62,7 @@ object SavedLists {
     /** The trainings inside a saved session, in order. */
     fun sessionItems(o: JSONObject): List<Config> {
         val arr = o.optJSONArray("items") ?: return emptyList()
-        return List(arr.length()) { toConfig(arr.getJSONObject(it)) }
+        return arr.objects().map { toConfig(it) }
     }
 
     /** Saves a named session: several trainings in order, kept in Saved list. */
@@ -109,14 +109,21 @@ object SavedLists {
     }
 
     fun remove(uid: String, ids: Set<String>) {
-        save(uid) { list -> list.removeAll { ids.contains(it.optString("id")) } }
+        save(uid, ids) { list -> list.removeAll { ids.contains(it.optString("id")) } }
     }
 
-    private fun save(uid: String, change: (MutableList<JSONObject>) -> Unit) {
+    /** [removed]: ids deleted by this change. They are remembered so another phone's copy cannot bring them back. */
+    private fun save(uid: String, removed: Set<String> = emptySet(), change: (MutableList<JSONObject>) -> Unit) {
         val row = LocalStore.profile(uid)
         val defaults = row.optJSONObject("defaults") ?: JSONObject()
+        if (removed.isNotEmpty()) {
+            val tomb = defaults.optJSONArray("saved_removed") ?: JSONArray()
+            for (id in removed) tomb.put(id)
+            while (tomb.length() > 200) tomb.remove(0)
+            defaults.put("saved_removed", tomb)
+        }
         val arr = defaults.optJSONArray(FIELD) ?: JSONArray()
-        val list = MutableList(arr.length()) { arr.getJSONObject(it) }
+        val list = arr.objects().toMutableList()
         change(list)
         defaults.put(FIELD, JSONArray(list))
         row.put("defaults", defaults)

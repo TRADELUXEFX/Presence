@@ -77,7 +77,7 @@ class ResultActivity : BaseActivity() {
             if (TrainingSession.hasNext()) {
                 val nxt = TrainingSession.items[TrainingSession.index + 1]
                 st.text = "Training ${TrainingSession.position()} done.\nUp next: ${Trainings.name(nxt.key)} in 5 seconds"
-                handler.postDelayed({ advanceNext() }, 5000L)
+                handler.postDelayed({ autoAdvance() }, 5000L)
             } else {
                 st.text = "Session complete: ${TrainingSession.items.size} trainings done."
                 Recent.rememberSession(uid, TrainingSession.items)
@@ -143,6 +143,22 @@ class ResultActivity : BaseActivity() {
         scroll.addView(body)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
+    }
+
+    private var pendingAdvance = false
+
+    /** The 5 second timer ended. A training only starts while the app is on screen. */
+    private fun autoAdvance() {
+        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) advanceNext() else pendingAdvance = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // back on screen after the timer ran out: give a short moment, then carry on
+        if (pendingAdvance) {
+            pendingAdvance = false
+            handler.postDelayed({ autoAdvance() }, 3000L)
+        }
     }
 
     override fun onDestroy() {

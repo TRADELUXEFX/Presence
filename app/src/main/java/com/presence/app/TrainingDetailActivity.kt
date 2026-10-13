@@ -63,11 +63,14 @@ class TrainingDetailActivity : BaseActivity() {
         while (i < cells.size) {
             val line = LinearLayout(c)
             line.orientation = LinearLayout.HORIZONTAL
-            line.addView(detailCell(cells[i]), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
             if (i + 1 < cells.size) {
+                line.addView(detailCell(cells[i]), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
                 line.addView(detailCell(cells[i + 1]), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = Ui.dp(c, 8) })
             } else {
-                line.addView(View(c), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { leftMargin = Ui.dp(c, 8) })
+                // a last card with no partner stays in the middle, the same width as the cards above it
+                line.addView(View(c), LinearLayout.LayoutParams(0, 1, 1f))
+                line.addView(detailCell(cells[i]), LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2f).apply { leftMargin = Ui.dp(c, 4); rightMargin = Ui.dp(c, 4) })
+                line.addView(View(c), LinearLayout.LayoutParams(0, 1, 1f))
             }
             body.addView(line, LinearLayout.LayoutParams(-1, -2).apply { topMargin = if (i == 0) Ui.dp(c, 14) else Ui.dp(c, 8) })
             i += 2

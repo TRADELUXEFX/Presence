@@ -53,6 +53,10 @@ class ConfigActivity : BaseActivity() {
             finish()
             return
         }
+        // Only a session start brings its own list of trainings. Anything left over from a session that was
+        // not finished must not turn the next single training into part of it (it would log it as a session
+        // and start the next training on its own after 5 seconds).
+        if (!intent.getBooleanExtra("session", false)) TrainingSession.clear()
         val requested = intent.getStringExtra("key") ?: Trainings.BLINK
         key = if (Trainings.ALL.contains(requested)) requested else Trainings.BLINK
         val defaults = LocalStore.profile(Session.userId).optJSONObject("defaults") ?: JSONObject()
@@ -225,19 +229,11 @@ class ConfigActivity : BaseActivity() {
                 )
                 // one label only: the card's own switch label, with the same gap above as the other sections
                 panel.addTo(cardOf(voiceRow("Guided breathing cues", "Gentle voice cues every 30 seconds")), 22)
+                soundHint()
                 panel.addTo(cardOf(bellChips()), 22)
             }
         }
 
-        panel.addTo(
-            cardOf(
-                switchRow("Bell sound", "A soft bell at the start and end", Session.prefs.getBoolean("bell", true)) { on ->
-                    Session.prefs.edit().putBoolean("bell", on).apply()
-                    if (on) Bell.play(true)
-                }
-            ),
-            22
-        )
         panel.addTo(estimateCard(), 22)
     }
 
@@ -315,6 +311,77 @@ class ConfigActivity : BaseActivity() {
         return box
     }
 
+    /** The bell icon: same look as the vibrate icon, switches the soft start and end bell on or off. */
+    private fun bellButton(): android.widget.FrameLayout {
+        val c = this
+        val box = android.widget.FrameLayout(c)
+        box.isClickable = true
+        box.contentDescription = "Bell sound"
+        fun paint() {
+            val on = Session.prefs.getBoolean("bell", true)
+            box.removeAllViews()
+            box.background = Ui.rounded(c, if (on) Trainings.soft(key) else Ui.SOFT, 20)
+            box.addView(
+                FsIconView(c, Icons.BELL, if (on) Trainings.ink(key) else Ui.TEXT),
+                android.widget.FrameLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20), Gravity.CENTER)
+            )
+        }
+        paint()
+        box.setOnClickListener {
+            val now = !Session.prefs.getBoolean("bell", true)
+            Session.prefs.edit().putBoolean("bell", now).apply()
+            paint()
+            if (now) Bell.play(true)
+        }
+        // hold: choose which bell sounds
+        box.setOnLongClickListener {
+            box.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            SoundPicker.show(
+                this, "Bell sound", "Tap a bell to hear it. It plays at the start and end of a training.",
+                Bell.STYLES, Bell.style(), accentColor,
+                onHear = { Bell.play(true, it) },
+                onChoose = { Bell.setStyle(it) }
+            )
+            true
+        }
+        return box
+    }
+
+    /** The speech icon: tap to switch the spoken cues on or off, hold to choose a quiet background sound. */
+    private fun speechButton(): android.widget.FrameLayout {
+        val c = this
+        val box = android.widget.FrameLayout(c)
+        box.isClickable = true
+        box.contentDescription = "Voice cues"
+        fun paint() {
+            val on = cfg.voice
+            box.removeAllViews()
+            box.background = Ui.rounded(c, if (on) Trainings.soft(key) else Ui.SOFT, 20)
+            box.addView(
+                FsIconView(c, Icons.SPEECH, if (on) Trainings.ink(key) else Ui.TEXT),
+                android.widget.FrameLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20), Gravity.CENTER)
+            )
+        }
+        paint()
+        box.setOnClickListener {
+            cfg = cfg.copy(voice = !cfg.voice)
+            paint()
+        }
+        // hold: background sound. It is a separate audio track, so the spoken cues are not affected.
+        box.setOnLongClickListener {
+            box.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            SoundPicker.show(
+                this, "Background sound", "A quiet sound under the training. Your voice cues and bell stay clear on top of it.",
+                Ambient.SOUNDS, Ambient.selected(), accentColor,
+                onHear = { Ambient.preview(it) },
+                onChoose = { Ambient.setSelected(it) },
+                onClose = { Ambient.stopPreview() }
+            )
+            true
+        }
+        return box
+    }
+
     /** A short test buzz, so you can feel that vibration works when you switch it on. */
     private fun testBuzz() {
         val vib = getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator ?: return
@@ -326,7 +393,7 @@ class ConfigActivity : BaseActivity() {
         }
     }
 
-    /** One row: the label, the vibrate icon, and the voice switch. Vibration and voice work separately. */
+    /** One row: the label, then three icons: vibrate, bell, speech. Tap switches each on or off; hold the bell or speech icon for more sound choices. */
     private fun voiceRow(label: String, sub: String): LinearLayout {
         val c = this
         val row = LinearLayout(c)
@@ -338,18 +405,29 @@ class ConfigActivity : BaseActivity() {
         text.addTo(Ui.text(c, sub, 13f, Ui.MUTED, Ui.REG), 2)
         row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val vibLp = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
-        vibLp.rightMargin = Ui.dp(c, 12)
+        vibLp.rightMargin = Ui.dp(c, 8)
         row.addView(vibrateButton(), vibLp)
-        val sw = androidx.appcompat.widget.SwitchCompat(c)
-        sw.isChecked = cfg.voice
-        Ui.styleSwitch(sw, accentColor)
-        sw.setOnCheckedChangeListener { _, on -> cfg = cfg.copy(voice = on) }
-        row.addView(sw)
+        val bellLp = LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40))
+        bellLp.rightMargin = Ui.dp(c, 8)
+        row.addView(bellButton(), bellLp)
+        row.addView(speechButton(), LinearLayout.LayoutParams(Ui.dp(c, 40), Ui.dp(c, 40)))
         return row
     }
 
     private fun voiceCard(sub: String) {
         panel.addTo(cardOf(voiceRow("Voice guidance", sub)), 22)
+        soundHint()
+    }
+
+    /** One quiet line so the hold gestures can be found. */
+    private fun soundHint() {
+        panel.addTo(
+            Ui.text(this, "Tap an icon to switch it on or off. Hold the bell or speech icon for more sounds.", 12f, Ui.MUTED, Ui.REG).apply {
+                gravity = Gravity.CENTER
+                setLineSpacing(0f, 1.2f)
+            },
+            8
+        )
     }
 
     /** A card holding one or more rows, spaced apart. */
@@ -426,6 +504,7 @@ class ConfigActivity : BaseActivity() {
                 .put("sets", cfg.sets)
                 .put("restSec", cfg.restSec)
                 .put("medMin", cfg.medMin)
+                .put("voice", cfg.voice)
         )
         row.put("defaults", defaults)
         LocalStore.saveProfile(uid, row)
@@ -475,6 +554,11 @@ class ConfigActivity : BaseActivity() {
     private fun saveDraftEdit() {
         SessionDraft.items[SessionDraft.editing] = cfg
         finish()
+    }
+
+    override fun onDestroy() {
+        Ambient.stopPreview()
+        super.onDestroy()
     }
 
     private fun begin() {

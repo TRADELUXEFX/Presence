@@ -165,10 +165,10 @@ object Trainings {
             BLINK, FIDGET -> {
                 val mode = d.str("mode") ?: (if (key == BLINK) "open" else "closed")
                 val md = MODE_DEF[mode] ?: Pair(30, 5)
-                Config(key, mode, d.posInt("repSec", md.first), d.posInt("sets", md.second), d.posInt("restSec", 5), 10, true)
+                Config(key, mode, d.posInt("repSec", md.first), d.posInt("sets", md.second), d.posInt("restSec", 5), 10, d.optBoolean("voice", true))
             }
-            BREATH -> Config(key, "open", 16, d.posInt("sets", 6), d.posInt("restSec", 10), 10, true)
-            else -> Config(key, "open", 0, 0, 0, d.posInt("medMin", 10), true)
+            BREATH -> Config(key, "open", 16, d.posInt("sets", 6), d.posInt("restSec", 10), 10, d.optBoolean("voice", true))
+            else -> Config(key, "open", 0, 0, 0, d.posInt("medMin", 10), d.optBoolean("voice", true))
         }
     }
 
@@ -277,7 +277,7 @@ object Profile {
     fun sessionRow(uid: String, mod: String, sec: Int, meta: Meta, ts: Long): JSONObject = JSONObject()
         .put("user_id", uid)
         .put("mod", mod)
-        .put("sec", sec)
+        .put("sec", sec.coerceIn(0, 86400)) // the database accepts 0 to 86400 seconds
         .put("sets", meta.sets ?: JSONObject.NULL)
         .put("rep_sec", meta.repSec ?: JSONObject.NULL)
         .put("rest_sec", meta.restSec ?: JSONObject.NULL)
@@ -308,3 +308,6 @@ fun JSONObject.posInt(k: String, def: Int): Int {
     val v = optInt(k, 0)
     return if (v > 0) v else def
 }
+
+/** The objects in this array. Anything else in it is skipped, so one damaged entry cannot crash the app. */
+fun JSONArray.objects(): List<JSONObject> = (0 until length()).mapNotNull { optJSONObject(it) }

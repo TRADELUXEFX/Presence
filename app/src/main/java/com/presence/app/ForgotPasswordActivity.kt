@@ -15,6 +15,8 @@ import com.presence.app.Ui.addTo
 
 /** Type your email, tap Send reset link. Supabase emails the link. */
 class ForgotPasswordActivity : BaseActivity() {
+    override val needsLogin: Boolean get() = false
+
     private lateinit var email: EditText
     private lateinit var msg: TextView
     private lateinit var send: Button

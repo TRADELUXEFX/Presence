@@ -37,10 +37,11 @@ class ProgressActivity : BaseActivity() {
     private lateinit var scroll: ScrollView
     private lateinit var exportBar: LinearLayout
     private lateinit var exportBtn: Button
-    private var showHistory = false
+    private var showHistory = true      // History opens on Training History; Training Stats is the second tab
     private var history: List<JSONObject>? = null
     private var historyLoading = false
     private var historyFailed = false
+    private var historyShown = 100          // history cards drawn so far; "Show more" adds 100
     private var offline = false
     private var filterMod: String? = null   // null = all trainings
     private var rangeDays = 0               // 7, 30, or 0 for all time (default: all time)
@@ -62,7 +63,7 @@ class ProgressActivity : BaseActivity() {
         val root = LinearLayout(c)
         root.orientation = LinearLayout.VERTICAL
         root.setBackgroundColor(Ui.BG)
-        // blue header: the Progress title, with the Training Stats | Training History switch inside it
+        // blue header: the Progress title, with the Training History | Training Stats switch inside it
         val headBox = LinearLayout(c)
         headBox.orientation = LinearLayout.VERTICAL
         val r = Ui.dp(c, 24).toFloat()
@@ -165,7 +166,7 @@ class ProgressActivity : BaseActivity() {
             // Either way, trainings not yet uploaded are added, so nothing finished is missing.
             val base = fresh ?: cachedHistory(uid)
             val merged = (base + LocalStore.pendingFor(uid))
-                .distinctBy { it.optLong("ts") to it.optString("key") }
+                .distinctBy { it.optLong("ts") to it.optString("mod") }
                 .sortedByDescending { it.optLong("ts") }
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
@@ -189,7 +190,7 @@ class ProgressActivity : BaseActivity() {
         val text = Session.prefs.getString("history_cache_$uid", null) ?: return emptyList()
         return try {
             val arr = JSONArray(text)
-            List(arr.length()) { arr.getJSONObject(it) }
+            arr.objects()
         } catch (e: Exception) {
             emptyList()
         }
@@ -247,7 +248,7 @@ class ProgressActivity : BaseActivity() {
         return box
     }
 
-    /** The Training Stats | Training History switch, drawn inside the blue header. */
+    /** The Training History | Training Stats switch, drawn inside the blue header. */
     private fun headerSegment(labels: List<String>, selected: Int, onPick: (Int) -> Unit): LinearLayout {
         val c = this
         val box = LinearLayout(c)
@@ -269,7 +270,7 @@ class ProgressActivity : BaseActivity() {
     private fun renderTabs() {
         tabs.removeAllViews()
         tabs.addView(
-            headerSegment(listOf("Training Stats", "Training History"), if (showHistory) 1 else 0) { setTab(it == 1) },
+            headerSegment(listOf("Training History", "Training Stats"), if (showHistory) 0 else 1) { setTab(it == 0) },
             LinearLayout.LayoutParams(-1, -2)
         )
     }
@@ -642,7 +643,15 @@ class ProgressActivity : BaseActivity() {
             column.addTo(Ui.note(c, msg), 12)
             return
         }
-        for (r in list) column.addTo(historyCard(r), 12)
+        for (r in list.take(historyShown)) column.addTo(historyCard(r), 12)
+        if (list.size > historyShown) {
+            val more = Ui.pill(c, "Show more  \u00B7  ${list.size - historyShown} left", Ui.SOFT, Ui.TEXT)
+            more.setOnClickListener {
+                historyShown += 100
+                render()
+            }
+            column.addTo(more, 14)
+        }
     }
 
     private fun filterRow(): LinearLayout {

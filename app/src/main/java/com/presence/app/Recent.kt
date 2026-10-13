@@ -13,7 +13,7 @@ object Recent {
 
     private fun list(uid: String): MutableList<JSONObject> {
         val arr = LocalStore.profile(uid).optJSONObject("defaults")?.optJSONArray(FIELD) ?: return mutableListOf()
-        return MutableList(arr.length()) { arr.getJSONObject(it) }
+        return arr.objects().toMutableList()
     }
 
     private fun save(uid: String, items: MutableList<JSONObject>) {

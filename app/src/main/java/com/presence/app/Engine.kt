@@ -98,6 +98,8 @@ object Engine {
         ensureTts(app)
         TrainingService.start(app)
         Dnd.engage(app)
+        // background sound sits quietly under the training; lower still when the voice is speaking cues
+        Ambient.start(if (cfg.voice) 0.3f else 0.5f)
         chime(false)
         beginCurrent()
         handler.removeCallbacks(ticker)
@@ -110,6 +112,7 @@ object Engine {
         running = false
         stage = Stage.IDLE
         handler.removeCallbacks(ticker)
+        Ambient.stop()
         tts?.stop()
         pendingSpeech = null
         appCtx?.let {
@@ -124,6 +127,7 @@ object Engine {
         running = false
         stage = Stage.IDLE
         handler.removeCallbacks(ticker)
+        Ambient.stop()
         appCtx?.let { Dnd.restore(it) }
         notifyListeners()
     }
@@ -306,6 +310,7 @@ object Engine {
         running = false
         resultSec = sec
         handler.removeCallbacks(ticker)
+        Ambient.stop()
         chime(false)
         if (c.key != Trainings.MEDITATE) speak("Training complete. Great job.")
         val uid = Session.userId

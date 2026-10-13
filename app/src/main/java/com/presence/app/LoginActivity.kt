@@ -16,6 +16,8 @@ import com.presence.app.Ui.addTo
 
 /** Login and sign up on one screen, like the website. */
 class LoginActivity : BaseActivity() {
+    override val needsLogin: Boolean get() = false
+
     private var signUp = false
     private lateinit var email: EditText
     private lateinit var password: EditText

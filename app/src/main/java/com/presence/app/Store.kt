@@ -60,6 +60,14 @@ object LocalStore {
         Session.prefs.edit().putLong(savedRevKey(uid), rev).apply()
     }
 
+    /** Marks revision [rev] as saved. If nothing changed on this phone meanwhile, keeps the merged copy too. */
+    @Synchronized
+    fun markSavedMerged(uid: String, rev: Long, merged: JSONObject) {
+        val e = Session.prefs.edit()
+        if (rev(uid) == rev) e.putString(profileKey(uid), merged.toString())
+        e.putLong(savedRevKey(uid), rev).apply()
+    }
+
     /** Takes the server's copy, unless this phone has changes the server has not seen yet. */
     @Synchronized
     fun adoptServer(uid: String, row: JSONObject) {
@@ -88,7 +96,7 @@ object LocalStore {
         val a = pendingArray()
         val out = ArrayList<JSONObject>()
         for (i in 0 until a.length()) {
-            val o = a.getJSONObject(i)
+            val o = a.optJSONObject(i) ?: continue
             if (o.optString("user_id") == uid) out.add(o)
         }
         return out
@@ -100,7 +108,7 @@ object LocalStore {
         val keep = JSONArray()
         var removed = false
         for (i in 0 until a.length()) {
-            val o = a.getJSONObject(i)
+            val o = a.optJSONObject(i) ?: continue
             val same = !removed &&
                 o.optLong("ts") == row.optLong("ts") &&
                 o.optString("user_id") == row.optString("user_id") &&
@@ -116,6 +124,99 @@ object LocalStore {
         } catch (e: Exception) {
             JSONArray()
         }
+    }
+}
+
+/**
+ * Combines this phone's profile with the server's copy, so two phones on one account do not erase each other.
+ * Counts take the higher number, the day state follows the later day, and the lists are joined.
+ */
+object ProfileMerge {
+    private fun dayMs(s: String?): Long = try {
+        if (s == null) 0L else (java.text.SimpleDateFormat("EEE MMM dd yyyy", java.util.Locale.US).parse(s)?.time ?: 0L)
+    } catch (e: Exception) {
+        0L
+    }
+
+    fun merge(server: JSONObject, local: JSONObject): JSONObject {
+        val out = JSONObject(local.toString())
+        for (k in listOf("sessions", "total_sec", "full_streak")) {
+            out.put(k, Math.max(server.optLong(k, 0L), local.optLong(k, 0L)))
+        }
+        // streak follows whichever side trained on the later day
+        val sd = dayMs(server.str("last_date"))
+        val ld = dayMs(local.str("last_date"))
+        when {
+            sd > ld -> {
+                out.put("last_date", server.opt("last_date"))
+                out.put("streak", server.optInt("streak", 0))
+            }
+            sd == ld -> out.put("streak", Math.max(server.optInt("streak", 0), local.optInt("streak", 0)))
+        }
+        // today's ticks: the later day wins; the same day joins both phones' ticks
+        val sDay = dayMs(server.str("today_done_date"))
+        val lDay = dayMs(local.str("today_done_date"))
+        if (sDay > lDay) {
+            out.put("today_done", server.optJSONObject("today_done") ?: JSONObject())
+            out.put("today_done_date", server.opt("today_done_date"))
+            out.put("today_full_counted", server.optBoolean("today_full_counted", false))
+        } else if (sDay == lDay) {
+            val a = local.optJSONObject("today_done") ?: JSONObject()
+            val b = server.optJSONObject("today_done") ?: JSONObject()
+            val joined = JSONObject(a.toString())
+            for (k in Trainings.ALL) if (b.optBoolean(k, false)) joined.put(k, true)
+            val order = a.optJSONArray("order") ?: JSONArray()
+            val seen = HashSet<String>()
+            for (i in 0 until order.length()) seen.add(order.optString(i))
+            b.optJSONArray("order")?.let { bo -> for (i in 0 until bo.length()) if (seen.add(bo.optString(i))) order.put(bo.optString(i)) }
+            joined.put("order", order)
+            out.put("today_done", joined)
+            out.put("today_full_counted", local.optBoolean("today_full_counted", false) || server.optBoolean("today_full_counted", false))
+        }
+        // per-training counts
+        val mods = local.optJSONObject("mods") ?: JSONObject()
+        val smods = server.optJSONObject("mods") ?: JSONObject()
+        for (k in Trainings.ALL) mods.put(k, Math.max(mods.optInt(k, 0), smods.optInt(k, 0)))
+        out.put("mods", mods)
+        out.put("defaults", mergeDefaults(server.optJSONObject("defaults") ?: JSONObject(), local.optJSONObject("defaults") ?: JSONObject()))
+        return out
+    }
+
+    private fun mergeDefaults(server: JSONObject, local: JSONObject): JSONObject {
+        val out = JSONObject(local.toString())
+        // settings the other phone has and this one does not
+        val keys = server.keys()
+        while (keys.hasNext()) {
+            val k = keys.next()
+            if (!out.has(k)) out.put(k, server.get(k))
+        }
+        // how it felt: join, this phone wins on the same training
+        val feel = JSONObject(server.optJSONObject("feel")?.toString() ?: "{}")
+        local.optJSONObject("feel")?.let { lf ->
+            val it = lf.keys()
+            while (it.hasNext()) {
+                val k = it.next()
+                feel.put(k, lf.get(k))
+            }
+        }
+        if (feel.length() > 0) out.put("feel", feel)
+        // saved lists: join by id, minus anything either phone deleted
+        val removed = LinkedHashSet<String>()
+        server.optJSONArray("saved_removed")?.let { for (i in 0 until it.length()) removed.add(it.optString(i)) }
+        local.optJSONArray("saved_removed")?.let { for (i in 0 until it.length()) removed.add(it.optString(i)) }
+        val saved = JSONArray()
+        val ids = HashSet<String>()
+        for (o in (local.optJSONArray("saved")?.objects() ?: emptyList())) {
+            val id = o.optString("id")
+            if (id !in removed && ids.add(id)) saved.put(o)
+        }
+        for (o in (server.optJSONArray("saved")?.objects() ?: emptyList())) {
+            val id = o.optString("id")
+            if (id !in removed && ids.add(id)) saved.put(o)
+        }
+        if (saved.length() > 0 || out.has("saved")) out.put("saved", saved)
+        if (removed.isNotEmpty()) out.put("saved_removed", JSONArray(removed.toList().takeLast(200)))
+        return out
     }
 }
 
@@ -154,8 +255,16 @@ object Sync {
             if (Api.insertSession(row)) LocalStore.removePending(row) else ok = false
         }
         if (LocalStore.isDirty(uid)) {
-            val (rev, profile) = LocalStore.snapshot(uid)
-            if (Api.upsertProfile(profile)) LocalStore.markSaved(uid, rev) else ok = false
+            val (rev, local) = LocalStore.snapshot(uid)
+            // Another phone may have saved since this one last looked, so read the server's copy first and
+            // combine the two. Without this, the last phone to save would wipe out the other's counts and lists.
+            val server = Api.fetchProfile(uid)
+            if (server == null) {
+                ok = false
+            } else {
+                val merged = if (server.has("id")) ProfileMerge.merge(server, local) else local
+                if (Api.upsertProfile(merged)) LocalStore.markSavedMerged(uid, rev, merged) else ok = false
+            }
         }
         return ok
     }

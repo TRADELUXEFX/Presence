@@ -51,7 +51,7 @@ class NotificationsActivity : BaseActivity() {
         column.addTo(Ui.sectionTitle(c, "Daily reminder"), 0)
         column.addTo(
             cardOf(
-                Ui.switchRow(c, "Remind me each day", "A notification at your chosen time", Settings.reminderOn) { on ->
+                Ui.switchRow(c, "Remind me each day", "At your chosen time, skipped if you already trained today", Settings.reminderOn) { on ->
                     setReminder(on)
                 },
                 timeRow()

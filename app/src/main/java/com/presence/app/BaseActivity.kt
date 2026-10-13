@@ -1,5 +1,6 @@
 package com.presence.app
 
+import android.content.Intent
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.View
@@ -13,6 +14,19 @@ abstract class BaseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Ui.edgeToEdge(this)
         window.setBackgroundDrawable(ColorDrawable(Ui.BG))
+    }
+
+    /** Every screen but Login and Forgot password needs a signed-in account. */
+    protected open val needsLogin: Boolean get() = true
+
+    override fun onResume() {
+        super.onResume()
+        // The server can reject the saved login while the app is open. Without this the app would keep working
+        // but silently stop saving; send the person to Login instead (never in the middle of a training).
+        if (needsLogin && !Session.loggedIn() && !Engine.isActive()) {
+            startActivity(Intent(this, LoginActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+            finish()
+        }
     }
 
     override fun setContentView(view: View?) {

@@ -59,7 +59,7 @@ class WeeklySummaryActivity : BaseActivity() {
         val text = Session.prefs.getString("history_cache_$uid", null) ?: return emptyList()
         return try {
             val arr = JSONArray(text)
-            List(arr.length()) { arr.getJSONObject(it) }
+            arr.objects()
         } catch (e: Exception) {
             emptyList()
         }

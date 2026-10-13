@@ -150,17 +150,26 @@ object Api {
 
     /** The user's training history, newest first, or null if the request failed. */
     fun fetchSessions(): List<JSONObject>? {
-        val r = authed("GET", "/rest/v1/sessions?select=*&user_id=eq.${Session.userId}&order=ts.desc&limit=200", null, null)
+        val r = authed("GET", "/rest/v1/sessions?select=*&user_id=eq.${Session.userId}&order=ts.desc&limit=1000", null, null)
         if (!r.ok) return null
         return try {
             val arr = JSONArray(r.body)
-            List(arr.length()) { arr.getJSONObject(it) }
+            arr.objects()
         } catch (e: Exception) {
             null
         }
     }
 
+    /**
+     * Saves one finished training. True means the row can leave the queue:
+     *  - saved (2xx);
+     *  - 409: the server already has this exact row (an earlier try got through but its answer was lost);
+     *  - 400, 403 or 422: the database permanently refused this row (a rule in supabase/migrations). Trying
+     *    again can never work, and keeping it would block that row in the queue forever.
+     * False (network error, 401, 5xx, 429) means try again later.
+     */
     fun insertSession(row: JSONObject): Boolean {
-        return authed("POST", "/rest/v1/sessions", row.toString(), "return=minimal").ok
+        val r = authed("POST", "/rest/v1/sessions", row.toString(), "return=minimal")
+        return r.ok || r.code == 409 || r.code == 400 || r.code == 403 || r.code == 422
     }
 }

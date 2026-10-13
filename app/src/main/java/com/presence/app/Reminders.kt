@@ -61,6 +61,17 @@ object Reminders {
         return c.timeInMillis
     }
 
+    /** True when at least one training was finished today: the reminder is not needed then. */
+    fun trainedToday(): Boolean {
+        return try {
+            val p = Profile.normalize(LocalStore.profile(Session.userId))
+            val done = p.optJSONObject("today_done") ?: return false
+            Trainings.ALL.any { done.optBoolean(it, false) }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun showNotification(ctx: Context) {
         val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -87,7 +98,7 @@ object Reminders {
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
-        if (Settings.reminderOn && Session.loggedIn()) Reminders.showNotification(ctx)
+        if (Settings.reminderOn && Session.loggedIn() && !Reminders.trainedToday()) Reminders.showNotification(ctx)
         Reminders.apply(ctx)
     }
 }

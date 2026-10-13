@@ -16,6 +16,7 @@ import android.widget.ScrollView
 import android.widget.Toast
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
+import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -658,7 +659,9 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             future.addListener({
                 try {
                     val provider = future.get()
-                    val p = Preview.Builder().build()
+                    // 16:9 shows more of the sides than the default 4:3 once it is stretched over a tall phone screen,
+                    // so you stay in the picture without moving the phone to one side
+                    val p = Preview.Builder().setTargetAspectRatio(AspectRatio.RATIO_16_9).build()
                     p.setSurfaceProvider(pv.surfaceProvider)
                     provider.unbindAll()
                     val sel = if (lensFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
