@@ -42,6 +42,22 @@ class ConfigActivity : BaseActivity() {
         }
     }
 
+    /** Android asks for screen capture every time a recording starts. It also lets the app hear the phone's own sound. */
+    private val recProjection = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        recordingAsked = false
+        val d = r.data
+        if (r.resultCode == RESULT_OK && d != null) {
+            SessionRecorder.startProjection(this, r.resultCode, d, RecPrefs.video)
+        } else if (RecPrefs.video) {
+            Toast.makeText(this, "Not allowed, so the screen won't be recorded.", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "Not allowed, so only your microphone will be recorded, not the phone's own sound.", Toast.LENGTH_LONG).show()
+            SessionRecorder.startAudioIfWanted(this)
+        }
+        startTraining()
+    }
+    private var recordingAsked = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (!Session.loggedIn()) {
@@ -192,6 +208,11 @@ class ConfigActivity : BaseActivity() {
                     8
                 )
                 voiceCard("A calm voice says when to begin and when to rest.")
+                // only Mirror mode can be recorded, as PauzFirst records its training
+                if (needsCamera()) {
+                    panel.addTo(Ui.sectionTitle(c, "Recording"), 22)
+                    panel.addTo(recordingCard(), 8)
+                }
             }
             Trainings.BREATH -> {
                 panel.addTo(Ui.sectionTitle(c, "Cycles (16s each)"), 0)
@@ -433,6 +454,53 @@ class ConfigActivity : BaseActivity() {
         return card
     }
 
+    /** Record training: a switch, then Record audio / Record video (video includes the sound), like PauzFirst's Recording card. */
+    private fun recordingCard(): LinearLayout {
+        val c = this
+        val card = Ui.card(c)
+        val chips = LinearLayout(c)
+        chips.orientation = LinearLayout.HORIZONTAL
+        val audioChip = Ui.text(c, "Record audio", 13f, Ui.TEXT, Ui.BOLD)
+        val videoChip = Ui.text(c, "Record video", 13f, Ui.TEXT, Ui.BOLD)
+        fun paint() {
+            val ink = Ui.onColor(accentColor)
+            val audioOn = RecPrefs.mode == RecPrefs.AUDIO
+            val videoOn = RecPrefs.mode == RecPrefs.VIDEO
+            audioChip.background = Ui.rounded(c, if (audioOn) accentColor else Ui.SOFT, 14)
+            audioChip.setTextColor(if (audioOn) ink else Ui.MUTED)
+            videoChip.background = Ui.rounded(c, if (videoOn) accentColor else Ui.SOFT, 14)
+            videoChip.setTextColor(if (videoOn) ink else Ui.MUTED)
+        }
+        for (chip in listOf(audioChip, videoChip)) {
+            chip.gravity = Gravity.CENTER
+            chip.setPadding(Ui.dp(c, 6), Ui.dp(c, 12), Ui.dp(c, 6), Ui.dp(c, 12))
+            Ui.fit(chip, 13)
+        }
+        audioChip.setOnClickListener {
+            RecPrefs.mode = RecPrefs.AUDIO
+            paint()
+        }
+        videoChip.setOnClickListener {
+            RecPrefs.mode = RecPrefs.VIDEO
+            paint()
+        }
+        chips.addView(audioChip, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        val videoLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        videoLp.leftMargin = Ui.dp(c, 8)
+        chips.addView(videoChip, videoLp)
+        paint()
+
+        val on = RecPrefs.on
+        chips.visibility = if (on) View.VISIBLE else View.GONE
+        card.addTo(Ui.switchRow(c, "Record training", "Save your session as audio or video", on, accentColor) { checked ->
+            RecPrefs.mode = if (checked) RecPrefs.AUDIO else RecPrefs.OFF
+            paint()
+            chips.visibility = if (checked) View.VISIBLE else View.GONE
+        }, 0)
+        card.addTo(chips, 14)
+        return card
+    }
+
     private fun modeTiles(): LinearLayout {
         val c = this
         val row = LinearLayout(c)
@@ -558,6 +626,7 @@ class ConfigActivity : BaseActivity() {
     private fun startChecked() {
         val want = ArrayList<String>()
         if (needsCamera() && !granted(Manifest.permission.CAMERA)) want.add(Manifest.permission.CAMERA)
+        if (needsCamera() && RecPrefs.on && !granted(Manifest.permission.RECORD_AUDIO)) want.add(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !granted(Manifest.permission.POST_NOTIFICATIONS)) {
             want.add(Manifest.permission.POST_NOTIFICATIONS)
         }
@@ -576,6 +645,23 @@ class ConfigActivity : BaseActivity() {
     }
 
     private fun begin() {
+        if (recordingAsked) return
+        if (!needsCamera() || !RecPrefs.on) {
+            startTraining()
+            return
+        }
+        if (!granted(Manifest.permission.RECORD_AUDIO)) {
+            Toast.makeText(this, "Microphone is off, so this training won't be recorded.", Toast.LENGTH_LONG).show()
+            startTraining()
+            return
+        }
+        // the recording starts first, so it covers the whole training; the training begins once Android says yes or no
+        recordingAsked = true
+        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+        recProjection.launch(mpm.createScreenCaptureIntent())
+    }
+
+    private fun startTraining() {
         Engine.start(this, cfg)
         startActivity(Intent(this, TrainingActivity::class.java))
         finish()

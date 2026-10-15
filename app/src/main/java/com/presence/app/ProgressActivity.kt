@@ -676,7 +676,8 @@ class ProgressActivity : BaseActivity() {
             column.addTo(Ui.note(c, msg), 12)
             return
         }
-        for (r in list.take(historyShown)) column.addTo(historyCard(r), 12)
+        val recs = Recordings.all(Session.userId)
+        for (r in list.take(historyShown)) column.addTo(historyCard(r, recs), 12)
         if (list.size > historyShown) {
             val more = Ui.pill(c, "Show more  \u00B7  ${list.size - historyShown} left", Ui.SOFT, Ui.TEXT)
             more.setOnClickListener {
@@ -719,7 +720,7 @@ class ProgressActivity : BaseActivity() {
     }
 
     /** One full-width card: time and details on the left, training name on a chip on the right. */
-    private fun historyCard(r: JSONObject): LinearLayout {
+    private fun historyCard(r: JSONObject, recs: List<Recordings.Rec>): LinearLayout {
         val c = this
         val key = r.optString("mod")
         val card = Ui.card(c, Trainings.soft(key))
@@ -779,6 +780,32 @@ class ProgressActivity : BaseActivity() {
                 LinearLayout.LayoutParams(Ui.dp(c, 14), Ui.dp(c, 14)).apply { leftMargin = Ui.dp(c, 6) })
         }
         row.addTo(detailRow, 4)
+
+        // a recording of this training, kept on this phone: a Play button under the details, as in PauzFirst's history
+        val rec = Recordings.forTraining(recs, r.optLong("ts", 0L), r.optInt("sec", 0))
+        if (rec != null && Recordings.exists(c, rec.uri)) {
+            val play = LinearLayout(c)
+            play.orientation = LinearLayout.HORIZONTAL
+            play.gravity = Gravity.CENTER_VERTICAL
+            play.background = Ui.rounded(c, Ui.BLUE, 14)
+            play.setPadding(Ui.dp(c, 9), Ui.dp(c, 6), Ui.dp(c, 12), Ui.dp(c, 6))
+            val label = if (rec.video) "Play video" else "Play audio"
+            play.contentDescription = label
+            play.addView(
+                FsIconView(c, if (rec.video) Icons.VIDEO else Icons.HEADPHONES, Color.WHITE),
+                LinearLayout.LayoutParams(Ui.dp(c, 16), Ui.dp(c, 16)).apply { rightMargin = Ui.dp(c, 6) }
+            )
+            play.addView(Ui.text(c, label, 12f, Color.WHITE, Ui.BOLD))
+            play.setOnClickListener {
+                startActivity(Intent(c, PlayerActivity::class.java)
+                    .putExtra("uri", rec.uri)
+                    .putExtra("video", rec.video))
+            }
+            val playLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            playLp.gravity = Gravity.END
+            playLp.topMargin = Ui.dp(c, 8)
+            row.addView(play, playLp)
+        }
 
         card.addView(row)
         card.isClickable = true

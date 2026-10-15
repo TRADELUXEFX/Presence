@@ -143,6 +143,7 @@ object Engine {
         appCtx?.let {
             TrainingService.stop(it)
             Dnd.restore(it)
+            SessionRecorder.stop(it)
         }
         notifyListeners()
     }
@@ -187,7 +188,10 @@ object Engine {
         TrainingSession.held.clear()
         if (!sessionPending) return
         sessionPending = false
-        if (!running) appCtx?.let { TrainingService.stop(it) }
+        if (!running) appCtx?.let {
+            TrainingService.stop(it)
+            SessionRecorder.stop(it)
+        }
         notifyListeners()
     }
 
@@ -387,7 +391,11 @@ object Engine {
         val continuing = uid.isNotEmpty() && TrainingSession.items.size > 1 && TrainingSession.hasNext()
         sessionPending = continuing
         appCtx?.let {
-            if (!continuing) TrainingService.stop(it)
+            if (!continuing) {
+                TrainingService.stop(it)
+                // the last training of the session (or a single one) ends the recording; it is saved in the background
+                SessionRecorder.stop(it)
+            }
             Dnd.restore(it)
             StreakWidget.updateAll(it)
         }
@@ -498,6 +506,9 @@ object Engine {
         if (!Session.prefs.getBoolean("bell", true)) return
         Bell.play(soft)
     }
+
+    /** True while the phone is speaking a cue. A recording leaves the microphone out then, so the voice is not doubled. */
+    fun isVoiceActive(): Boolean = tts?.isSpeaking == true
 
     private fun speak(text: String, shake: Boolean = true) {
         if (shake) buzz()
