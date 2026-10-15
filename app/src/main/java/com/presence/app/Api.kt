@@ -95,6 +95,9 @@ object Api {
         return call(builder("/auth/v1/recover", KEY).post(body.toRequestBody(JSON_TYPE)).build())
     }
 
+    /** Deletes the signed-in account and its data (see supabase/migrations/003_delete_account.sql). */
+    fun deleteAccount(): Result = authed("POST", "/rest/v1/rpc/delete_my_account", "{}", null)
+
     @Synchronized
     private fun refreshToken(): Boolean {
         val refresh = Session.refresh

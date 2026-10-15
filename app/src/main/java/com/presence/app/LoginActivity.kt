@@ -2,6 +2,7 @@ package com.presence.app
 
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -16,6 +17,11 @@ import com.presence.app.Ui.addTo
 
 /** Login and sign up on one screen, like the website. */
 class LoginActivity : BaseActivity() {
+    companion object {
+        // Set this to your live privacy policy page before release.
+        const val PRIVACY_URL = "https://example.com/presence-privacy"
+    }
+
     override val needsLogin: Boolean get() = false
 
     private var signUp = false
@@ -112,6 +118,11 @@ class LoginActivity : BaseActivity() {
         switchRow.addView(switchLabel)
         switchRow.addView(switchLink)
         card.addTo(switchRow, 10)
+
+        val privacy = Ui.text(c, "Privacy policy", 12f, Ui.MUTED, Ui.REG)
+        privacy.gravity = Gravity.CENTER
+        privacy.setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL))) }
+        card.addTo(privacy, 14)
 
         val cardLp = LinearLayout.LayoutParams(-1, -2)
         cardLp.setMargins(Ui.dp(c, 20), -Ui.dp(c, 36), Ui.dp(c, 20), 0)

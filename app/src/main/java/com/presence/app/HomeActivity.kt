@@ -47,7 +47,9 @@ class HomeActivity : BaseActivity() {
         titleRow.gravity = Gravity.CENTER_VERTICAL
         val logoLp = LinearLayout.LayoutParams(Ui.dp(c, 36), Ui.dp(c, 36))
         logoLp.rightMargin = Ui.dp(c, 10)
-        titleRow.addView(AuthUi.logo(c, 36), logoLp)
+        val appLogo = AuthUi.logo(c, 36)
+        appLogo.setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
+        titleRow.addView(appLogo, logoLp)
         val title = Ui.text(c, "PRESENCE", 20f, Ui.WHITE, Ui.BOLD)
         title.maxLines = 1
         titleRow.addView(title)
@@ -73,6 +75,7 @@ class HomeActivity : BaseActivity() {
         statLp.topMargin = Ui.dp(c, 16)
         hero.addView(statHolder, statLp)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))
+
 
         column = LinearLayout(c)
         column.orientation = LinearLayout.VERTICAL
