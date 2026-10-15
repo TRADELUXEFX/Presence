@@ -6,11 +6,14 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /** Talks to the same Supabase project as the Presence website. The anon key is public by design. */
 object Api {
     private const val URL = "https://chdnbthhmqituvrelrjg.supabase.co"
+    /** Where invite and reset links send the person back to the app. */
+    const val APP_LINK = "presence://auth-callback"
     private const val KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoZG5idGhobXFpdHV2cmVscmpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDc1MDUsImV4cCI6MjA4ODQ4MzUwNX0.tKp1_FbquRNiilyjajlGnUGhK8dnpZff9EsBTYS1c6o"
 
     private val http = OkHttpClient.Builder()
@@ -90,9 +93,27 @@ object Api {
         return r
     }
 
+    /** The reset email's link comes back into the app (presence://auth-callback). Must be on Supabase's allowlist. */
     fun sendReset(email: String): Result {
         val body = JSONObject().put("email", email).toString()
-        return call(builder("/auth/v1/recover", KEY).post(body.toRequestBody(JSON_TYPE)).build())
+        val redirect = URLEncoder.encode(APP_LINK, "UTF-8")
+        return call(builder("/auth/v1/recover?redirect_to=$redirect", KEY).post(body.toRequestBody(JSON_TYPE)).build())
+    }
+
+    /** Signs in with the tokens from an invite or reset link. False if the login is not valid. */
+    fun sessionFromLink(access: String, refresh: String, expiresIn: Long): Boolean {
+        val r = call(builder("/auth/v1/user", access).get().build())
+        if (!r.ok) return false
+        val uid = try { JSONObject(r.body).optString("id", "") } catch (e: Exception) { "" }
+        if (uid.isEmpty()) return false
+        Session.save(access, refresh, uid, System.currentTimeMillis() + expiresIn * 1000L)
+        return true
+    }
+
+    /** Sets the password of the signed-in user (an invited user has none yet). */
+    fun setPassword(password: String): Result {
+        val body = JSONObject().put("password", password).toString()
+        return call(builder("/auth/v1/user", Session.access).put(body.toRequestBody(JSON_TYPE)).build())
     }
 
     /** Deletes the signed-in account and its data (see supabase/migrations/003_delete_account.sql). */
