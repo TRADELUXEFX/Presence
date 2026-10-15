@@ -35,7 +35,10 @@ android {
             // Same release key as the installed Presence app, so this installs over it.
             // Falls back to the debug key only if the keystore secrets are missing.
             signingConfig signingConfigs.release
-            minifyEnabled false
+            // R8 minification: shrinks and renames the code, and drops resources nothing uses (smaller APK)
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 

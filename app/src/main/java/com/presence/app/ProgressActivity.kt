@@ -739,16 +739,13 @@ class ProgressActivity : BaseActivity() {
         if (rec != null && Recordings.exists(c, rec.uri)) {
             val play = FrameLayout(c)
             play.background = Ui.rounded(c, Ui.BLUE, 17)
-            val label = if (rec.video) "Play video" else "Play audio"
-            play.contentDescription = label
+            play.contentDescription = "Play video"
             play.addView(
-                FsIconView(c, if (rec.video) Icons.VIDEO else Icons.HEADPHONES, Color.WHITE),
+                FsIconView(c, Icons.VIDEO, Color.WHITE),
                 FrameLayout.LayoutParams(Ui.dp(c, 17), Ui.dp(c, 17), Gravity.CENTER)
             )
             play.setOnClickListener {
-                startActivity(Intent(c, PlayerActivity::class.java)
-                    .putExtra("uri", rec.uri)
-                    .putExtra("video", rec.video))
+                startActivity(Intent(c, PlayerActivity::class.java).putExtra("uri", rec.uri))
             }
             val playLp = LinearLayout.LayoutParams(Ui.dp(c, 34), Ui.dp(c, 34))
             playLp.rightMargin = Ui.dp(c, 8)

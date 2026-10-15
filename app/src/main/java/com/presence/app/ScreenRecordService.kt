@@ -19,8 +19,8 @@ import android.os.Looper
 import java.io.File
 
 /**
- * Records a whole session in the background: your microphone plus the phone's own sound, and, when
- * "Record screen" is on, the screen too. Sound-only sessions are saved as audio, screen sessions as video.
+ * Records a Mirror training in the background: the screen plus your microphone mixed with the phone's own
+ * sound, saved as one video file.
  */
 class ScreenRecordService : Service() {
     private var projection: MediaProjection? = null
@@ -29,7 +29,6 @@ class ScreenRecordService : Service() {
     private var sound: SessionAudio? = null
     private var videoFile: File? = null
     private var soundFile: File? = null
-    private var withVideo = false
     private var finished = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -37,7 +36,6 @@ class ScreenRecordService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        withVideo = intent.getBooleanExtra("video", false)
         startForegroundNow()
         val code = intent.getIntExtra("code", 0)
         val data: Intent? = if (Build.VERSION.SDK_INT >= 33) {
@@ -68,7 +66,7 @@ class ScreenRecordService : Service() {
         }
         val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(this, channel) else Notification.Builder(this)
         val n = b.setContentTitle("Recording your training")
-            .setContentText(if (withVideo) "The screen and all sound are being recorded" else "All sound is being recorded")
+            .setContentText("The screen and all sound are being recorded")
             .setSmallIcon(R.drawable.ic_stat_presence)
             .setColor(Ui.BLUE)
             .setOngoing(true)
@@ -102,28 +100,26 @@ class ScreenRecordService : Service() {
         sound = s
         s.start(sf)
 
-        if (withVideo) {
-            val dm = resources.displayMetrics
-            var w = dm.widthPixels
-            var h = dm.heightPixels
-            val scale = Math.min(1f, 720f / Math.min(w, h))
-            w = ((w * scale).toInt() / 2) * 2
-            h = ((h * scale).toInt() / 2) * 2
-            val vf = File(cacheDir, "presence_video_" + stamp + ".mp4")
-            videoFile = vf
-            val r = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(this) else @Suppress("DEPRECATION") MediaRecorder()
-            r.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            r.setOutputFile(vf.absolutePath)
-            r.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-            r.setVideoSize(w, h)
-            r.setVideoFrameRate(30)
-            r.setVideoEncodingBitRate(3000000)
-            r.prepare()
-            recorder = r
-            display = p.createVirtualDisplay("presence", w, h, dm.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, r.surface, null, null)
-            r.start()
-        }
+        val dm = resources.displayMetrics
+        var w = dm.widthPixels
+        var h = dm.heightPixels
+        val scale = Math.min(1f, 720f / Math.min(w, h))
+        w = ((w * scale).toInt() / 2) * 2
+        h = ((h * scale).toInt() / 2) * 2
+        val vf = File(cacheDir, "presence_video_" + stamp + ".mp4")
+        videoFile = vf
+        val r = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(this) else @Suppress("DEPRECATION") MediaRecorder()
+        r.setVideoSource(MediaRecorder.VideoSource.SURFACE)
+        r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+        r.setOutputFile(vf.absolutePath)
+        r.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
+        r.setVideoSize(w, h)
+        r.setVideoFrameRate(30)
+        r.setVideoEncodingBitRate(3000000)
+        r.prepare()
+        recorder = r
+        display = p.createVirtualDisplay("presence", w, h, dm.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, r.surface, null, null)
+        r.start()
     }
 
     private fun cleanup() {
@@ -140,30 +136,24 @@ class ScreenRecordService : Service() {
         if (finished) return
         finished = true
         sound?.stop()
-        var videoOk = withVideo
-        if (withVideo) {
-            try { recorder?.stop() } catch (e: Exception) { videoOk = false }
-        }
+        var videoOk = true
+        try { recorder?.stop() } catch (e: Exception) { videoOk = false }
         cleanup()
         SessionRecorder.serviceOn = false
         val sf = soundFile
         val vf = videoFile
         val soundOk = sound?.ok == true && sf != null && sf.exists()
         Thread {
-            if (withVideo && videoOk && vf != null && vf.exists()) {
+            if (videoOk && vf != null && vf.exists()) {
                 val out = File(cacheDir, "presence_session_" + SessionRecorder.stamp() + ".mp4")
                 if (soundOk && sf != null && SessionAudio.mux(vf, sf, out)) {
-                    SessionRecorder.save(this, out, "video/mp4", true)
-                    vf.delete()
-                    sf.delete()
+                    SessionRecorder.save(this, out)
                 } else {
-                    // joining failed: keep the video and the sound as two files rather than lose either
-                    SessionRecorder.save(this, vf, "video/mp4", true)
-                    if (soundOk && sf != null) SessionRecorder.save(this, sf, "audio/mp4", false)
+                    // joining the sound failed: keep the picture rather than lose the whole training
+                    SessionRecorder.save(this, vf)
                 }
-            } else if (soundOk && sf != null) {
-                SessionRecorder.save(this, sf, "audio/mp4", false)
             }
+            sf?.delete()
             Handler(Looper.getMainLooper()).post { stopSelf() }
         }.start()
     }

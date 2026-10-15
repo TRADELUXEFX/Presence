@@ -20,7 +20,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
-/** Plays one saved training recording (audio or video) inside the app. */
+/** Plays one saved training recording (the screen with its sound) inside the app. */
 class PlayerActivity : BaseActivity() {
     private var video: VideoView? = null
     private var chromeOn = true   // back button, control bar and system bars showing
@@ -43,7 +43,6 @@ class PlayerActivity : BaseActivity() {
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = false
         val c = this
         val uri = intent.getStringExtra("uri") ?: run { finish(); return }
-        val isVideo = intent.getBooleanExtra("video", false)
         val match = FrameLayout.LayoutParams.MATCH_PARENT
         val wrap = FrameLayout.LayoutParams.WRAP_CONTENT
         val glass = Color.parseColor("#99000000")
@@ -55,12 +54,6 @@ class PlayerActivity : BaseActivity() {
         val vv = VideoView(c)
         video = vv
         page.addView(vv, FrameLayout.LayoutParams(match, match, Gravity.CENTER))
-        if (!isVideo) {
-            // audio only: a calm note in place of the picture
-            val note = Ui.text(c, "Audio recording", 20f, Color.WHITE, Ui.BOLD)
-            note.gravity = Gravity.CENTER
-            page.addView(note, FrameLayout.LayoutParams(wrap, wrap, Gravity.CENTER))
-        }
 
         // back: just a round glass button, so it covers as little of the video as possible
         val back = FrameLayout(c)
@@ -172,24 +165,22 @@ class PlayerActivity : BaseActivity() {
             true
         }
 
-        if (isVideo) {
-            // like a gallery: tap the video to hide everything (back button, controls, system bars) and tap again to bring it back; the video itself never moves
-            vv.setOnTouchListener { _, e ->
-                if (e.action == MotionEvent.ACTION_UP) {
-                    chromeOn = !chromeOn
-                    val ic = WindowCompat.getInsetsController(window, window.decorView)
-                    val vis = if (chromeOn) View.VISIBLE else View.INVISIBLE
-                    back.visibility = vis
-                    bar.visibility = vis
-                    if (chromeOn) {
-                        ic.show(WindowInsetsCompat.Type.systemBars())
-                    } else {
-                        ic.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                        ic.hide(WindowInsetsCompat.Type.systemBars())
-                    }
+        // like a gallery: tap the video to hide everything (back button, controls, system bars) and tap again to bring it back; the video itself never moves
+        vv.setOnTouchListener { _, e ->
+            if (e.action == MotionEvent.ACTION_UP) {
+                chromeOn = !chromeOn
+                val ic = WindowCompat.getInsetsController(window, window.decorView)
+                val vis = if (chromeOn) View.VISIBLE else View.INVISIBLE
+                back.visibility = vis
+                bar.visibility = vis
+                if (chromeOn) {
+                    ic.show(WindowInsetsCompat.Type.systemBars())
+                } else {
+                    ic.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    ic.hide(WindowInsetsCompat.Type.systemBars())
                 }
-                true
             }
+            true
         }
         try {
             vv.setVideoURI(Uri.parse(uri))

@@ -47,12 +47,10 @@ class ConfigActivity : BaseActivity() {
         recordingAsked = false
         val d = r.data
         if (r.resultCode == RESULT_OK && d != null) {
-            SessionRecorder.startProjection(this, r.resultCode, d, RecPrefs.video)
-        } else if (RecPrefs.video) {
-            Toast.makeText(this, "Not allowed, so the screen won't be recorded.", Toast.LENGTH_LONG).show()
+            SessionRecorder.startProjection(this, r.resultCode, d)
         } else {
-            Toast.makeText(this, "Not allowed, so only your microphone will be recorded, not the phone's own sound.", Toast.LENGTH_LONG).show()
-            SessionRecorder.startAudioIfWanted(this)
+            // no screen capture, no recording: a Mirror training is never saved as audio alone
+            Toast.makeText(this, "Not allowed, so this training won't be recorded.", Toast.LENGTH_LONG).show()
         }
         startTraining()
     }
@@ -454,50 +452,14 @@ class ConfigActivity : BaseActivity() {
         return card
     }
 
-    /** Record training: a switch, then Record audio / Record video (video includes the sound), like PauzFirst's Recording card. */
+    /** Record training: one switch. A Mirror training is saved as the screen with its sound, never as audio alone. */
     private fun recordingCard(): LinearLayout {
         val c = this
         val card = Ui.card(c)
-        val chips = LinearLayout(c)
-        chips.orientation = LinearLayout.HORIZONTAL
-        val audioChip = Ui.text(c, "Record audio", 13f, Ui.TEXT, Ui.BOLD)
-        val videoChip = Ui.text(c, "Record video", 13f, Ui.TEXT, Ui.BOLD)
-        fun paint() {
-            val ink = Ui.onColor(accentColor)
-            val audioOn = RecPrefs.mode == RecPrefs.AUDIO
-            val videoOn = RecPrefs.mode == RecPrefs.VIDEO
-            audioChip.background = Ui.rounded(c, if (audioOn) accentColor else Ui.SOFT, 14)
-            audioChip.setTextColor(if (audioOn) ink else Ui.MUTED)
-            videoChip.background = Ui.rounded(c, if (videoOn) accentColor else Ui.SOFT, 14)
-            videoChip.setTextColor(if (videoOn) ink else Ui.MUTED)
-        }
-        for (chip in listOf(audioChip, videoChip)) {
-            chip.gravity = Gravity.CENTER
-            chip.setPadding(Ui.dp(c, 6), Ui.dp(c, 12), Ui.dp(c, 6), Ui.dp(c, 12))
-            Ui.fit(chip, 13)
-        }
-        audioChip.setOnClickListener {
-            RecPrefs.mode = RecPrefs.AUDIO
-            paint()
-        }
-        videoChip.setOnClickListener {
-            RecPrefs.mode = RecPrefs.VIDEO
-            paint()
-        }
-        chips.addView(audioChip, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
-        val videoLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        videoLp.leftMargin = Ui.dp(c, 8)
-        chips.addView(videoChip, videoLp)
-        paint()
-
-        val on = RecPrefs.on
-        chips.visibility = if (on) View.VISIBLE else View.GONE
-        card.addTo(Ui.switchRow(c, "Record training", "Save your session as audio or video", on, accentColor) { checked ->
-            RecPrefs.mode = if (checked) RecPrefs.AUDIO else RecPrefs.OFF
-            paint()
-            chips.visibility = if (checked) View.VISIBLE else View.GONE
+        // Mirror trainings are recorded as the screen with its sound (one video file). There is no audio-only option.
+        card.addTo(Ui.switchRow(c, "Record training", "Screen record and save training video", RecPrefs.on, accentColor) { checked ->
+            RecPrefs.on = checked
         }, 0)
-        card.addTo(chips, 14)
         return card
     }
 

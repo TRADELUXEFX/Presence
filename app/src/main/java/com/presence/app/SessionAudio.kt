@@ -28,9 +28,6 @@ class SessionAudio(private val projection: MediaProjection?, private val micMute
     private var thread: Thread? = null
     @Volatile var ok = false
         private set
-    /** True when the phone's own sound is part of the recording. */
-    @Volatile var hasPlayback = false
-        private set
 
     @SuppressLint("MissingPermission")
     fun start(out: File) {
@@ -63,7 +60,6 @@ class SessionAudio(private val projection: MediaProjection?, private val micMute
                 play = null
             }
         }
-        hasPlayback = play != null
 
         val aac = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, rate, 1)
         aac.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)

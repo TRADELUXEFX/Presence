@@ -6,20 +6,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-/** The Mirror recording choice on this phone: off, audio only, or video (the screen with its sound). */
+/**
+ * Whether Mirror trainings are recorded. A recording is always the screen with its sound (one video file).
+ * The stored value keeps its old key; any value other than "off" (including older "audio" choices) means on.
+ */
 object RecPrefs {
-    const val OFF = "off"
-    const val AUDIO = "audio"
-    const val VIDEO = "video"
-
-    var mode: String
-        get() = Session.prefs.getString("rec_mode", OFF) ?: OFF
+    var on: Boolean
+        get() = (Session.prefs.getString("rec_mode", "off") ?: "off") != "off"
         set(v) {
-            Session.prefs.edit().putString("rec_mode", v).apply()
+            Session.prefs.edit().putString("rec_mode", if (v) "video" else "off").apply()
         }
-
-    val on: Boolean get() = mode != OFF
-    val video: Boolean get() = mode == VIDEO
 }
 
 /**
@@ -27,7 +23,7 @@ object RecPrefs {
  * made; a history row shows its Play button when its training happened inside that time.
  */
 object Recordings {
-    class Rec(val uri: String, val video: Boolean, val startMs: Long, val endMs: Long)
+    class Rec(val uri: String, val startMs: Long, val endMs: Long)
 
     private fun key(uid: String) = "recs_$uid"
 
@@ -38,10 +34,10 @@ object Recordings {
     }
 
     @Synchronized
-    fun add(uid: String, uri: String, video: Boolean, startMs: Long, endMs: Long) {
+    fun add(uid: String, uri: String, startMs: Long, endMs: Long) {
         val old = arr(uid)
         val out = JSONArray()
-        out.put(JSONObject().put("uri", uri).put("video", video).put("start", startMs).put("end", endMs))
+        out.put(JSONObject().put("uri", uri).put("start", startMs).put("end", endMs))
         for (i in 0 until minOf(old.length(), 299)) out.put(old.get(i))
         Session.prefs.edit().putString(key(uid), out.toString()).apply()
     }
@@ -51,7 +47,7 @@ object Recordings {
         val out = ArrayList<Rec>()
         for (i in 0 until a.length()) {
             val o = a.optJSONObject(i) ?: continue
-            out.add(Rec(o.optString("uri"), o.optBoolean("video"), o.optLong("start"), o.optLong("end")))
+            out.add(Rec(o.optString("uri"), o.optLong("start"), o.optLong("end")))
         }
         return out
     }
