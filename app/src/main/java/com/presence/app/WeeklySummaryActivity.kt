@@ -41,6 +41,8 @@ class WeeklySummaryActivity : BaseActivity() {
     }
 
     private fun load() {
+        // opened from the Sunday reminder: show the week that just ended
+        val lastWeek = intent.getBooleanExtra(Weekly.EXTRA_LAST_WEEK, false)
         Thread {
             val uid = Session.userId
             val fresh = Api.fetchSessions()
@@ -48,7 +50,7 @@ class WeeklySummaryActivity : BaseActivity() {
             val base = fresh ?: cached(uid)
             val rows = (base + LocalStore.pendingFor(uid)).distinctBy { it.optLong("ts") to it.optString("mod") }
             val streak = Profile.normalize(LocalStore.profile(uid)).optInt("streak", 0)
-            val summary = Weekly.summarize(rows, streak)
+            val summary = Weekly.summarize(rows, streak, if (lastWeek) 1 else 0)
             runOnUiThread {
                 if (!isFinishing) show(summary)
             }

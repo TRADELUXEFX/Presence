@@ -40,20 +40,24 @@ object Weekly {
             Session.prefs.edit().putBoolean("w_on", v).apply()
         }
 
-    /** Counts the trainings of the last 7 days (today and the 6 days before). */
-    fun summarize(rows: List<JSONObject>, streak: Int): WeekSummary {
+    /** Flag on the reminder: the summary it opens shows the week that just ended. */
+    const val EXTRA_LAST_WEEK = "last_week"
+
+    /** Counts the trainings of one week, Sunday to Saturday. weeksBack 0 = this week, 1 = last week. */
+    fun summarize(rows: List<JSONObject>, streak: Int, weeksBack: Int = 0): WeekSummary {
         val starts = LongArray(8)
         val cal = Calendar.getInstance()
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)
         cal.set(Calendar.SECOND, 0)
         cal.set(Calendar.MILLISECOND, 0)
-        cal.add(Calendar.DAY_OF_MONTH, -6)
+        // back to the Sunday that starts this week, then to the one before it if asked
+        cal.add(Calendar.DAY_OF_MONTH, -(cal.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY) - 7 * weeksBack)
         val letters = ArrayList<String>()
         val names = arrayOf("S", "M", "T", "W", "T", "F", "S")
         for (i in 0..7) {
             starts[i] = cal.timeInMillis
-            if (i < 7) letters.add(names[cal.get(Calendar.DAY_OF_WEEK) - 1])
+            if (i < 7) letters.add(names[i])
             cal.add(Calendar.DAY_OF_MONTH, 1)
         }
         val trained = BooleanArray(7)
@@ -130,7 +134,7 @@ object Weekly {
             nm.createNotificationChannel(NotificationChannel(CHANNEL, "Weekly summary", NotificationManager.IMPORTANCE_DEFAULT))
         }
         val open = PendingIntent.getActivity(
-            ctx, 1, Intent(ctx, WeeklySummaryActivity::class.java),
+            ctx, 1, Intent(ctx, WeeklySummaryActivity::class.java).putExtra(EXTRA_LAST_WEEK, true),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val n = NotificationCompat.Builder(ctx, CHANNEL)

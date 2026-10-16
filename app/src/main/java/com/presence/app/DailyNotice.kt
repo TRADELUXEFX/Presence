@@ -68,7 +68,7 @@ object DailyNotice {
         val uid = Session.userId
         if (!LocalStore.hasProfile(uid)) return 0
         // normalize() clears yesterday's ticks, the same rule the Home screen uses
-        val map = Trainings.normalize(LocalStore.profile(uid)).optJSONObject("today_done") ?: return 0
+        val map = Profile.normalize(LocalStore.profile(uid)).optJSONObject("today_done") ?: return 0
         return Trainings.ALL.count { map.optBoolean(it, false) }
     }
 }

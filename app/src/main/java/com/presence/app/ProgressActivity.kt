@@ -494,8 +494,8 @@ class ProgressActivity : BaseActivity() {
         nav.addView(fwd)
         card.addTo(nav, 10)
 
-        // weekday letters, starting on the locale's first day of the week
-        val firstDow = Calendar.getInstance().firstDayOfWeek
+        // weekday letters: a week starts on Sunday
+        val firstDow = Calendar.SUNDAY
         val letters = SimpleDateFormat("EEEEE", Locale.getDefault())
         val labelRow = LinearLayout(c)
         labelRow.orientation = LinearLayout.HORIZONTAL
