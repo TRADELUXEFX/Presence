@@ -34,14 +34,15 @@ class TrainingDetailActivity : BaseActivity() {
         root.setBackgroundColor(Ui.BG)
 
         // header in the training's colour, dark text; the back arrow returns to History
-        // the eyes mode (open / closed / mirror) is shown as just an icon on the right of the title, not as a card
+        // the eyes mode (open / closed / animated / mirror) is shown as an icon on the right of the title, and by name in the details
         var mode = r.optString("mode", "")
-        // No Blinking only has Eyes Open or Mirror; an older entry with no mode saved was Eyes Open
+        // No Blinking: Eyes Open, Animated Eyes or Mirror; an older entry with no mode saved was Eyes Open
         if (key == Trainings.BLINK && (mode.isBlank() || mode == "null")) mode = "open"
         var modeIcon: View? = null
         if (key != Trainings.MEDITATE && key != Trainings.BREATH && mode.isNotBlank() && mode != "null") {
             val path = when (mode) {
                 "closed" -> Icons.EYE_OFF
+                "animated" -> Icons.FACE
                 "mirror" -> Icons.MIRROR
                 else -> Icons.EYE
             }
@@ -77,6 +78,9 @@ class TrainingDetailActivity : BaseActivity() {
             cells.add("Sets" to r.optInt("sets", 0).toString())
             cells.add("Per rep" to "${r.optInt("rep_sec", 0)}s")
             cells.add("Rest between" to "${r.optInt("rest_sec", 0)}s")
+            // the mode by name: an older No Fidgeting entry with no mode saved was Eyes Closed
+            val modeName = if (mode.isBlank() || mode == "null") (if (key == Trainings.BLINK) "open" else "closed") else mode
+            cells.add(1, "Mode" to Trainings.modeLabel(modeName))
         }
 
         var i = 0

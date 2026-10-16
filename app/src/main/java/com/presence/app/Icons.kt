@@ -29,6 +29,8 @@ object Icons {
     const val MUSIC = "M9 18V5l12-2v13 M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z M21 16a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
     /** An alarm clock: how long something takes. */
     const val ALARM = "M12 6a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M12 10v3l2 2 M7 4L4.25 6 M17 4l2.75 2"
+    /** A face: Animated Eyes. */
+    const val FACE = "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z M8.5 9.5h.01 M15.5 9.5h.01 M8 14.5s1.5 2 4 2 4-2 4-2"
     const val MOON = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
     const val SUN = "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 1v2 M12 21v2 M4.22 4.22l1.42 1.42 M18.36 18.36l1.42 1.42 M1 12h2 M21 12h2 M4.22 19.78l1.42-1.42 M18.36 5.64l1.42-1.42"
 }

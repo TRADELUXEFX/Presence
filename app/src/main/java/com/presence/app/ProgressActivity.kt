@@ -37,6 +37,7 @@ class ProgressActivity : BaseActivity() {
     private lateinit var scroll: ScrollView          // Training History's own scroll area
     private lateinit var statsScroll: ScrollView     // Training Stats' own scroll area
     private lateinit var historyColumn: LinearLayout
+    private lateinit var historyTop: LinearLayout     // fixed part of Training History: filters, range switch, tiles
     private lateinit var statsColumn: LinearLayout
     private lateinit var exportBar: LinearLayout
     private lateinit var exportBtn: Button
@@ -88,6 +89,13 @@ class ProgressActivity : BaseActivity() {
         tabsWrap.addView(tabs, LinearLayout.LayoutParams(-1, -2))
         headBox.addView(tabsWrap, LinearLayout.LayoutParams(-1, -2))
         root.addView(headBox, LinearLayout.LayoutParams(-1, -2))
+
+        // Training History: this part stays put; only the trainings list below it scrolls.
+        historyTop = LinearLayout(c)
+        historyTop.orientation = LinearLayout.VERTICAL
+        historyTop.setBackgroundColor(Ui.BG)
+        historyTop.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), 0)
+        root.addView(historyTop, LinearLayout.LayoutParams(-1, -2))
 
         // Each tab has its own scroll area, so one tab's scroll position can never carry over to the other.
         historyColumn = newColumn()
@@ -235,6 +243,8 @@ class ProgressActivity : BaseActivity() {
         if (history == null) {
             tabsWrap.visibility = View.INVISIBLE
             exportBtn.visibility = View.INVISIBLE
+            historyTop.removeAllViews()
+            historyTop.visibility = View.GONE
             column.removeAllViews()
             if (historyFailed) {
                 column.gravity = Gravity.TOP
@@ -254,8 +264,10 @@ class ProgressActivity : BaseActivity() {
         tabsWrap.visibility = View.VISIBLE
         renderTabs()
         column.removeAllViews()
-        // offline note: the same pill on both History tabs
-        if (offline) column.addView(Ui.offlineRow(this), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Ui.dp(this@ProgressActivity, 6) })
+        historyTop.removeAllViews()
+        historyTop.visibility = if (showHistory) View.VISIBLE else View.GONE
+        // offline note: the same pill on both History tabs (kept above the list)
+        if (offline) historyTop.addView(Ui.offlineRow(this), LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Ui.dp(this@ProgressActivity, 6) })
         exportBtn.visibility = if (showHistory) View.VISIBLE else View.INVISIBLE
         applyColumnPad()
         val p = Profile.normalize(LocalStore.profile(Session.userId))
@@ -641,10 +653,10 @@ class ProgressActivity : BaseActivity() {
         val chipsLp = Ui.lp(c, 0)
         chipsLp.leftMargin = -Ui.dp(c, 18)
         chipsLp.rightMargin = -Ui.dp(c, 18)
-        column.addView(chips, chipsLp)
+        historyTop.addView(chips, chipsLp)
 
         val rangeIndex = when (rangeDays) { 7 -> 0; 30 -> 1; else -> 2 }
-        column.addTo(
+        historyTop.addTo(
             segment(listOf("7 days", "30 days", "All time"), rangeIndex) { i ->
                 rangeDays = when (i) { 0 -> 7; 1 -> 30; else -> 0 }
                 render()
@@ -668,7 +680,7 @@ class ProgressActivity : BaseActivity() {
         val third = LinearLayout.LayoutParams(0, -2, 1f)
         third.leftMargin = Ui.dp(c, 10)
         tiles.addView(statCard("Avg. length", Fmt.duration(avg)), third)
-        column.addTo(tiles, 14)
+        historyTop.addTo(tiles, 14)
 
         if (list.isEmpty()) {
             val msg = if (all.isEmpty()) "No trainings yet. Finish a training to see it here."
@@ -764,6 +776,7 @@ class ProgressActivity : BaseActivity() {
         val modeKey = r.str("mode")
         val modePath = when (modeKey) {
             "closed" -> Icons.EYE_OFF
+            "animated" -> Icons.FACE
             "mirror" -> Icons.MIRROR
             else -> null
         }

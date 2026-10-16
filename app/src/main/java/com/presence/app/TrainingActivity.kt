@@ -54,6 +54,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     private var scrimView: View? = null
     private var camProvider: ProcessCameraProvider? = null
     private var cameraOn = false
+    private var eyesOn = false          // Animated Eyes: the face on screen instead of the camera
     private var lensFront = true
     private val mirrorSegs = ArrayList<View>()
     private lateinit var mirrorRep: TextView
@@ -73,6 +74,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         builtForRun = Engine.runId
         val key = Engine.config.key
         cameraOn = Engine.config.mode == "mirror" && (key == Trainings.BLINK || key == Trainings.FIDGET)
+        eyesOn = Engine.config.mode == "animated" && (key == Trainings.BLINK || key == Trainings.FIDGET)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         build()
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -128,14 +130,18 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
 
     // ---------- layout ----------
 
+    /** Mirror and Animated Eyes both run full screen: translucent top, buttons at the bottom. */
+    private fun fullScreen(): Boolean = cameraOn || eyesOn
+
+
     private fun build() {
         val c = this
-        if (!cameraOn) Ui.setNavColor(c, Ui.mix(Trainings.accent(Engine.config.key), Color.BLACK, 0.2f))
-        val fg = if (cameraOn) Color.WHITE else Ui.TEXT
-        val muted = if (cameraOn) Color.parseColor("#D9FFFFFF") else Ui.MUTED
+        if (!fullScreen()) Ui.setNavColor(c, Ui.mix(Trainings.accent(Engine.config.key), Color.BLACK, 0.2f))
+        val fg = if (fullScreen()) Color.WHITE else Ui.TEXT
+        val muted = if (fullScreen()) Color.parseColor("#D9FFFFFF") else Ui.MUTED
 
         val frame = FrameLayout(c)
-        frame.setBackgroundColor(if (cameraOn) Color.BLACK else Ui.BG)
+        frame.setBackgroundColor(if (fullScreen()) Color.BLACK else Ui.BG)
         if (cameraOn) {
             val pv = PreviewView(c)
             // compatible mode draws the picture in the normal view tree, so the ring and text sit on top of it (as on PauzFirst)
@@ -144,6 +150,17 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
             preview = pv
             frame.addView(pv, FrameLayout.LayoutParams(-1, -1))
         }
+        if (eyesOn) {
+            // the face sits full screen behind the translucent top and the buttons
+            frame.addView(EyesView(c), FrameLayout.LayoutParams(-1, -1))
+        }
+        // No Fidgeting full screen: a touch anywhere on the screen counts as movement (the same rule as the normal view)
+        if (fullScreen() && Engine.config.key == Trainings.FIDGET) {
+            frame.setOnTouchListener { _, e ->
+                if (e.actionMasked == MotionEvent.ACTION_DOWN) Engine.touch()
+                false
+            }
+        }
 
         val content = FrameLayout(c)
         trainingView = buildTraining(c, fg, muted)
@@ -151,7 +168,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         content.addView(trainingView, FrameLayout.LayoutParams(-1, -1))
         content.addView(doneView, FrameLayout.LayoutParams(-1, -1))
         frame.addView(content, FrameLayout.LayoutParams(-1, -1))
-        if (!cameraOn) {
+        if (!fullScreen()) {
             val header = Ui.header(c, Trainings.name(Engine.config.key), Trainings.accent(Engine.config.key), infoAction()) { confirmLeave() }
             frame.addView(header, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
             // the count and dashes start just under the header
@@ -160,7 +177,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
                 if (::doneView.isInitialized) doneView.setPadding(0, bottom + Ui.dp(c, 16), 0, 0)
             }
         }
-        if (cameraOn) frame.addView(buildMirrorTop(c), FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
+        if (fullScreen()) frame.addView(buildMirrorTop(c), FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
         setContentView(frame)
     }
 
@@ -258,18 +275,19 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
         row.orientation = LinearLayout.HORIZONTAL
         val flip = Ui.pill(c, "Flip camera", Color.parseColor("#99000000"), Color.WHITE)
         flip.setOnClickListener { flipCamera() }
+        flip.visibility = if (cameraOn) View.VISIBLE else View.GONE
         row.addView(flip, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         val end = Ui.pill(c, "End training", Color.parseColor("#99000000"), Color.WHITE)
         end.setOnClickListener { endNow() }
         val endLp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        endLp.leftMargin = Ui.dp(c, 10)
+        endLp.leftMargin = if (cameraOn) Ui.dp(c, 10) else 0
         row.addView(end, endLp)
         v.addTo(row, 0)
         return v
     }
 
     private fun buildTraining(c: Context, fg: Int, muted: Int): View {
-        if (cameraOn) return buildMirrorControls(c)
+        if (fullScreen()) return buildMirrorControls(c)
         val root = FrameLayout(c)
         if (Engine.config.key == Trainings.FIDGET) {
             root.setOnTouchListener { _, e ->
@@ -451,7 +469,7 @@ class TrainingActivity : BaseActivity(), Engine.Listener {
     /** Redraws the live values. Only changed text is set, so nothing flickers. */
     private fun render() {
         if (showingDone) return
-        if (cameraOn) {
+        if (fullScreen()) {
             renderMirror()
             return
         }

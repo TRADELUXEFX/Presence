@@ -37,7 +37,7 @@ object Trainings {
     val ALL = listOf(BLINK, FIDGET, BREATH, MEDITATE)
 
     /** Website MODE_DEF: default seconds per rep and sets for each mode. */
-    private val MODE_DEF = mapOf("open" to Pair(30, 5), "closed" to Pair(45, 4), "mirror" to Pair(60, 3))
+    private val MODE_DEF = mapOf("open" to Pair(30, 5), "animated" to Pair(30, 5), "closed" to Pair(45, 4), "mirror" to Pair(60, 3))
 
     class BreathPhase(val label: String, val instr: String, val color: Int)
 
@@ -103,25 +103,32 @@ object Trainings {
 
     fun modeLabel(mode: String): String = when (mode) {
         "closed" -> "Eyes Closed"
+        "animated" -> "Animated Eyes"
         "mirror" -> "Mirror"
         else -> "Eyes Open"
     }
 
-    fun modeDesc(mode: String): String = when (mode) {
+    fun modeDesc(mode: String, key: String = BLINK): String = when {
+        key == FIDGET && mode == "animated" -> "Watch the eyes on screen and keep your body still, as if they are watching you"
+        else -> when (mode) {
         "closed" -> "Close your eyes, focus on the darkness and train internal stillness"
+        "animated" -> "Hold your gaze on the blinking eyes on screen, without blinking yourself"
         "mirror" -> "Stand before a mirror and hold eye contact with your reflection, the hardest mode"
         else -> "Keep your eyes open and fix your gaze on a point ahead to train without blinking"
+        }
     }
 
     fun instruction(key: String, mode: String): String {
         if (key == BLINK) {
             return when (mode) {
                 "closed" -> "Close your eyes and focus on the darkness behind your lids"
+                "animated" -> "Hold your gaze on the eyes on screen and do not blink"
                 "mirror" -> "Hold eye contact with your own reflection and do not look away"
                 else -> "Keep your eyes fixed on a single point and do not blink"
             }
         }
         return when (mode) {
+            "animated" -> "Keep your body still while the eyes on screen watch you"
             "closed" -> "Keep your eyes closed, feel your body and release every tension"
             "mirror" -> "Keep your eyes on your reflection and observe without moving"
             else -> "Keep your eyes open and your body completely still, with zero movement"

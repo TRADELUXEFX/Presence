@@ -34,7 +34,7 @@ class ConfigActivity : BaseActivity() {
             Dialogs.show(
                 this,
                 "Camera needed",
-                "Mirror mode uses the front camera. Allow camera access, or choose Eyes Open or Eyes Closed.",
+                "Mirror mode uses the front camera. Allow camera access, or choose another mode.",
                 "OK"
             )
         } else {
@@ -190,7 +190,7 @@ class ConfigActivity : BaseActivity() {
                 panel.addTo(Ui.sectionTitle(c, "Training mode"), 0)
                 panel.addTo(modeTiles(), 8)
                 panel.addTo(
-                    Ui.text(c, Trainings.modeDesc(cfg.mode), 13f, Ui.MUTED, Ui.REG).apply {
+                    Ui.text(c, Trainings.modeDesc(cfg.mode, key), 13f, Ui.MUTED, Ui.REG).apply {
                         gravity = Gravity.CENTER
                         setLineSpacing(0f, 1.25f)
                     },
@@ -467,7 +467,7 @@ class ConfigActivity : BaseActivity() {
         val c = this
         val row = LinearLayout(c)
         row.orientation = LinearLayout.HORIZONTAL
-        val modes = if (key == Trainings.BLINK) listOf("open", "mirror") else listOf("closed", "open", "mirror")
+        val modes = if (key == Trainings.BLINK) listOf("open", "animated", "mirror") else listOf("closed", "animated", "mirror")
         for ((i, m) in modes.withIndex()) {
             val sel = cfg.mode == m
             val tile = LinearLayout(c)
@@ -477,6 +477,7 @@ class ConfigActivity : BaseActivity() {
             tile.background = Ui.rounded(c, Ui.SURFACE, 18, if (sel) accentColor else Ui.LINE, if (sel) 2 else 1)
             val iconPath = when (m) {
                 "closed" -> Icons.EYE_OFF
+                "animated" -> Icons.FACE
                 "mirror" -> Icons.MIRROR
                 else -> Icons.EYE
             }
@@ -497,6 +498,7 @@ class ConfigActivity : BaseActivity() {
     private fun diffLabel(m: String): String = when (m) {
         "closed" -> "Normal"
         "open" -> if (key == Trainings.BLINK) "Normal" else "Focused"
+        "animated" -> "Focused"
         else -> "Advanced"
     }
 
