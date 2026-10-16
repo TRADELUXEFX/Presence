@@ -134,7 +134,7 @@ class TrainingService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             return NotificationCompat.Builder(ctx, CHANNEL)
-                .setSmallIcon(R.drawable.ic_stat_presence)
+                .setSmallIcon(R.drawable.ic_stat_training)
                 .setColor(Ui.BLUE)
                 .setContentTitle(Trainings.name(Engine.config.key))
                 .setContentText(Engine.statusText())
@@ -142,7 +142,7 @@ class TrainingService : Service() {
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                .addAction(R.drawable.ic_stat_presence, "Stop", stop)
+                .addAction(R.drawable.ic_stat_training, "Stop", stop)
                 .build()
         }
     }

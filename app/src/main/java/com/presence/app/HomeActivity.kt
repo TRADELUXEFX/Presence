@@ -98,6 +98,7 @@ class HomeActivity : BaseActivity() {
         super.onResume()
         if (!Session.loggedIn()) return
         Reminders.apply(this)
+        DailyNotice.sync(this)
         online = NetWatch.isOnline(this)
         val watch = NetWatch(this) { up ->
             online = up

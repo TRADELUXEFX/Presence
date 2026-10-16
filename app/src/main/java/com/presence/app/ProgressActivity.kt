@@ -43,6 +43,7 @@ class ProgressActivity : BaseActivity() {
     private lateinit var exportBtn: Button
     private var showHistory = true      // History opens on Training History; Training Stats is the second tab
     private var history: List<JSONObject>? = null
+    private var loaderClosing = false        // the ring is finishing its lap before the content appears
     private var historyLoading = false
     private var historyFailed = false
     private var historyShown = 100          // history cards drawn so far; "Show more" adds 100
@@ -94,7 +95,7 @@ class ProgressActivity : BaseActivity() {
         historyTop = LinearLayout(c)
         historyTop.orientation = LinearLayout.VERTICAL
         historyTop.setBackgroundColor(Ui.BG)
-        historyTop.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), 0)
+        historyTop.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 16))
         root.addView(historyTop, LinearLayout.LayoutParams(-1, -2))
 
         // Each tab has its own scroll area, so one tab's scroll position can never carry over to the other.
@@ -156,6 +157,9 @@ class ProgressActivity : BaseActivity() {
         val sv = ScrollView(this)
         sv.isFillViewport = true
         sv.setBackgroundColor(Ui.BG)
+        // Cards fade out at the top and bottom edge of the scroll area instead of being cut off.
+        sv.isVerticalFadingEdgeEnabled = true
+        sv.setFadingEdgeLength(Ui.dp(this, 28))
         sv.addView(col)
         return sv
     }
@@ -243,6 +247,8 @@ class ProgressActivity : BaseActivity() {
         if (history == null) {
             tabsWrap.visibility = View.INVISIBLE
             exportBtn.visibility = View.INVISIBLE
+            // a ring is already turning: leave it alone, so a repeat render does not restart it
+            if (!historyFailed && Loading.has(column)) return
             historyTop.removeAllViews()
             historyTop.visibility = View.GONE
             column.removeAllViews()
@@ -256,6 +262,17 @@ class ProgressActivity : BaseActivity() {
                 column.gravity = Gravity.CENTER
                 column.layoutParams = FrameLayout.LayoutParams(-1, -1)
                 column.addTo(Loading.page(this), 0)
+            }
+            return
+        }
+        // the data has arrived: let the ring finish its lap and fade out, then draw the content
+        if (loaderClosing) return
+        if (Loading.has(column)) {
+            loaderClosing = true
+            Loading.finish(column) {
+                loaderClosing = false
+                column.removeAllViews()
+                render()
             }
             return
         }

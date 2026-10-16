@@ -5,7 +5,10 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.animation.AnimatorListenerAdapter
+import android.animation.Animator
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 
@@ -25,7 +28,7 @@ abstract class LoopView(ctx: Context, private val ms: Long) : View(ctx) {
         anim = a
     }
 
-    private fun stop() {
+    protected fun stop() {
         anim?.cancel()
         anim = null
     }
@@ -84,6 +87,25 @@ class SpinnerRingView(
         arc.strokeCap = Paint.Cap.ROUND
     }
 
+    /**
+     * Data has arrived: finish the lap the ring is on, then fade it out and call onDone.
+     * The ring is never cut off in the middle of a lap.
+     */
+    fun finish(onDone: () -> Unit) {
+        stop()
+        val remaining = (1f - t).coerceAtLeast(0f)
+        val lap = ValueAnimator.ofFloat(t, 1f)
+        lap.duration = (remaining * 1300f).toLong().coerceAtLeast(150L)
+        lap.interpolator = LinearInterpolator()
+        lap.addUpdateListener { t = it.animatedValue as Float; invalidate() }
+        lap.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                animate().alpha(0f).setDuration(220L).withEndAction { onDone() }.start()
+            }
+        })
+        lap.start()
+    }
+
     override fun onDraw(canvas: Canvas) {
         val stroke = Ui.dp(context, strokeDp).toFloat()
         track.strokeWidth = stroke
@@ -101,6 +123,27 @@ class SpinnerRingView(
 }
 
 object Loading {
+    /** True when a sweeping ring is on screen somewhere inside this view. */
+    fun has(root: View): Boolean {
+        if (root is SpinnerRingView) return true
+        if (root is ViewGroup) for (i in 0 until root.childCount) if (has(root.getChildAt(i))) return true
+        return false
+    }
+
+    /** Finishes every ring inside root, then calls onDone once they have all faded. */
+    fun finish(root: View, onDone: () -> Unit) {
+        val rings = ArrayList<SpinnerRingView>()
+        collect(root, rings)
+        if (rings.isEmpty()) { onDone(); return }
+        var left = rings.size
+        for (r in rings) r.finish { left--; if (left == 0) onDone() }
+    }
+
+    private fun collect(v: View, out: MutableList<SpinnerRingView>) {
+        if (v is SpinnerRingView) out.add(v)
+        if (v is ViewGroup) for (i in 0 until v.childCount) collect(v.getChildAt(i), out)
+    }
+
     /** The loading animation for list-style screens: just the sweeping ring, centered. */
     fun page(c: Context): LinearLayout {
         val col = LinearLayout(c)
