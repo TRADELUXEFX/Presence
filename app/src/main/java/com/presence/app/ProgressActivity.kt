@@ -776,7 +776,7 @@ class ProgressActivity : BaseActivity() {
         val modeKey = r.str("mode")
         val modePath = when (modeKey) {
             "closed" -> Icons.EYE_OFF
-            "animated" -> Icons.FACE
+            "animated" -> Icons.EYES
             "mirror" -> Icons.MIRROR
             else -> null
         }
@@ -794,7 +794,7 @@ class ProgressActivity : BaseActivity() {
         }
         if (showMode) {
             if (meta.isNotEmpty()) detailRow.addView(Ui.text(c, "$meta ·", 13f, Ui.MUTED_TINT, Ui.REG))
-            detailRow.addView(FsIconView(c, modePath!!, Ui.MUTED_TINT),
+            detailRow.addView(modeIcon(c, modePath!!, Ui.MUTED_TINT),
                 LinearLayout.LayoutParams(Ui.dp(c, 15), Ui.dp(c, 15)).apply { leftMargin = Ui.dp(c, 6); rightMargin = Ui.dp(c, 6) })
             detailRow.addView(Ui.text(c, "·", 13f, Ui.MUTED_TINT, Ui.REG),
                 LinearLayout.LayoutParams(-2, -2).apply { rightMargin = Ui.dp(c, 6) })

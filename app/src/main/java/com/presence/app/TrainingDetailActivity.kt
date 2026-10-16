@@ -42,7 +42,7 @@ class TrainingDetailActivity : BaseActivity() {
         if (key != Trainings.MEDITATE && key != Trainings.BREATH && mode.isNotBlank() && mode != "null") {
             val path = when (mode) {
                 "closed" -> Icons.EYE_OFF
-                "animated" -> Icons.FACE
+                "animated" -> Icons.EYES
                 "mirror" -> Icons.MIRROR
                 else -> Icons.EYE
             }
@@ -52,7 +52,7 @@ class TrainingDetailActivity : BaseActivity() {
             circle.setColor(Color.parseColor("#33FFFFFF"))
             box.background = circle
             box.contentDescription = Trainings.modeLabel(mode)
-            box.addView(FsIconView(c, path, Ui.onColor(accent)), FrameLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22), Gravity.CENTER).apply { setMargins(Ui.dp(c, 9), Ui.dp(c, 9), Ui.dp(c, 9), Ui.dp(c, 9)) })
+            box.addView(modeIcon(c, path, Ui.onColor(accent)), FrameLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22), Gravity.CENTER).apply { setMargins(Ui.dp(c, 9), Ui.dp(c, 9), Ui.dp(c, 9), Ui.dp(c, 9)) })
             modeIcon = box
         }
         root.addView(Ui.header(c, Trainings.name(key), accent, modeIcon) { finish() }, LinearLayout.LayoutParams(-1, -2))

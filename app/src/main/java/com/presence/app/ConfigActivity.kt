@@ -477,12 +477,12 @@ class ConfigActivity : BaseActivity() {
             tile.background = Ui.rounded(c, Ui.SURFACE, 18, if (sel) accentColor else Ui.LINE, if (sel) 2 else 1)
             val iconPath = when (m) {
                 "closed" -> Icons.EYE_OFF
-                "animated" -> Icons.FACE
+                "animated" -> Icons.EYES
                 "mirror" -> Icons.MIRROR
                 else -> Icons.EYE
             }
             tile.addView(
-                FsIconView(c, iconPath, if (sel) accentColor else Ui.MUTED),
+                modeIcon(c, iconPath, if (sel) accentColor else Ui.MUTED),
                 LinearLayout.LayoutParams(Ui.dp(c, 26), Ui.dp(c, 26))
             )
             tile.addTo(Ui.text(c, Trainings.modeLabel(m), 13f, Ui.TEXT, Ui.MED).apply { gravity = Gravity.CENTER }, 8)

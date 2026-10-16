@@ -36,3 +36,27 @@ class FsIconView(ctx: Context, d: String, color: Int = Color.WHITE) : View(ctx) 
     }
 }
 
+/** A filled icon from the website (SVG path data with its own view box), e.g. the Mirror icon. */
+class FsFillIconView(ctx: Context, d: String, private val vw: Float, private val vh: Float, color: Int = Color.WHITE) : View(ctx) {
+    private val path = PathParser.createPathFromPathData(d).also { it.fillType = android.graphics.Path.FillType.EVEN_ODD }
+    private val p = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    init {
+        p.style = Paint.Style.FILL
+        p.color = color
+    }
+
+    override fun onDraw(c: Canvas) {
+        val s = Math.min(width / vw, height / vh)
+        c.save()
+        c.translate((width - vw * s) / 2f, (height - vh * s) / 2f)
+        c.scale(s, s)
+        c.drawPath(path, p)
+        c.restore()
+    }
+}
+
+/** The icon for an eyes mode: Mirror is the filled website icon, the others are line icons. */
+fun modeIcon(ctx: Context, path: String, color: Int): View =
+    if (path == Icons.MIRROR) FsFillIconView(ctx, path, Icons.MIRROR_W, Icons.MIRROR_H, color)
+    else FsIconView(ctx, path, color)
