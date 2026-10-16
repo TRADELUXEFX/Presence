@@ -58,10 +58,10 @@ object DailyNotice {
         }
     }
 
-    /** "No training done", or "2 of 4 done today" once trainings are finished. */
+    /** "No training done", or "1/4 training done" once trainings are finished. */
     private fun message(ctx: Context): String {
         val done = doneToday()
-        return if (done == 0) "No training done" else "$done of ${Trainings.ALL.size} done today"
+        return if (done == 0) "No training done" else "$done/${Trainings.ALL.size} training done"
     }
 
     private fun doneToday(): Int {
