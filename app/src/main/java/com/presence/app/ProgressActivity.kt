@@ -95,7 +95,7 @@ class ProgressActivity : BaseActivity() {
         historyTop = LinearLayout(c)
         historyTop.orientation = LinearLayout.VERTICAL
         historyTop.setBackgroundColor(Ui.BG)
-        historyTop.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), Ui.dp(c, 16))
+        historyTop.setPadding(Ui.dp(c, 18), Ui.dp(c, 12), Ui.dp(c, 18), 0)
         root.addView(historyTop, LinearLayout.LayoutParams(-1, -2))
 
         // Each tab has its own scroll area, so one tab's scroll position can never carry over to the other.
