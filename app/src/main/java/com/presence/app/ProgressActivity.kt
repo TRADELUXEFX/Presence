@@ -702,7 +702,10 @@ class ProgressActivity : BaseActivity() {
         if (list.isEmpty()) {
             val msg = if (all.isEmpty()) "No trainings yet. Finish a training to see it here."
             else "No trainings in this range."
-            column.addTo(Ui.note(c, msg), 12)
+            // same width as the tiles above: no extra side padding, so the centred text lines up with them
+            val empty = Ui.note(c, msg)
+            empty.setPadding(0, Ui.dp(c, 24), 0, Ui.dp(c, 24))
+            column.addTo(empty, 12)
             return
         }
         val recs = Recordings.all(Session.userId)
