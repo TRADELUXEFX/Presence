@@ -120,19 +120,6 @@ class ProgressActivity : BaseActivity() {
         root.addView(Nav.bar(c, 2), LinearLayout.LayoutParams(-1, -2))
         setContentView(root)
 
-        // BaseActivity turns clipping off on every view, so the history list drew over the tabs
-        // when scrolling up. Turn clipping back on for the scroll area only, with rounded top corners
-        // so content scrolling under the tabs is cut softly (same as PauzFirst).
-        for (sv in listOf(scroll, statsScroll)) {
-        sv.clipChildren = true
-        val topR = Ui.dp(c, 20).toFloat()
-        sv.outlineProvider = object : ViewOutlineProvider() {
-            override fun getOutline(v: View, outline: Outline) {
-                outline.setRoundRect(0, 0, v.width, v.height + topR.toInt(), topR)
-            }
-        }
-        sv.clipToOutline = true
-        }
 
         // Stats content sits above the system navigation bar, so the last card and the
         // "Great job" line are not hidden behind it (as on PauzFirst).
@@ -153,11 +140,11 @@ class ProgressActivity : BaseActivity() {
         return col
     }
 
+    /** The list scrolls under the fixed filters and tiles. Cards fade out at its top and bottom edges. */
     private fun newScroll(col: LinearLayout): ScrollView {
         val sv = ScrollView(this)
         sv.isFillViewport = true
         sv.setBackgroundColor(Ui.BG)
-        // Cards fade out at the top and bottom edge of the scroll area instead of being cut off.
         sv.isVerticalFadingEdgeEnabled = true
         sv.setFadingEdgeLength(Ui.dp(this, 28))
         sv.addView(col)
