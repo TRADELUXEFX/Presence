@@ -14,6 +14,8 @@ class PresenceApp : Application() {
         Dnd.restore(this)
         // the Sunday summary notification (on unless switched off)
         Weekly.apply(this)
+        // keep the daily notice fresh and its midnight reset armed
+        DailyNotice.sync(this)
         watchConnection()
     }
 
