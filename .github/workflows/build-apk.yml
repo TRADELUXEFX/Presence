@@ -203,7 +203,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.2'
+          gradle-version: '8.11.1'
 
       - name: Decode release keystore
         run: |
@@ -211,7 +211,7 @@ jobs:
             echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/release.jks"
             echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set - APK will be signed with the debug key and will NOT update over your installed app."
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set - the release build will stop, because it must use the release key."
           fi
 
       - name: Build APK
