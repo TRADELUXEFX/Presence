@@ -85,13 +85,35 @@ object Api {
         return r
     }
 
-    /** Creates the account. The caller checks Session.loggedIn(): with email confirmation on, there is no session yet. */
-    fun signUp(email: String, password: String): Result {
-        val body = JSONObject().put("email", email).put("password", password).toString()
-        val r = call(builder("/auth/v1/signup", KEY).post(body.toRequestBody(JSON_TYPE)).build())
-        if (r.ok) saveSession(r.body)
+    /**
+     * Creates the account. The confirmation email's link returns into the app (APP_LINK, must be on Supabase's
+     * Redirect URLs allowlist). The caller checks Session.loggedIn(): with email confirmation on, there is no session yet.
+     */
+    fun signUp(email: String, password: String, name: String): Result {
+        val body = JSONObject().put("email", email).put("password", password)
+            .put("data", JSONObject().put("full_name", name)).toString()
+        val redirect = URLEncoder.encode(APP_LINK, "UTF-8")
+        val r = call(builder("/auth/v1/signup?redirect_to=$redirect", KEY).post(body.toRequestBody(JSON_TYPE)).build())
+        if (r.ok && saveSession(r.body)) return r
+        if (r.ok) {
+            // For an email that already has an account Supabase answers "ok" with no identities and sends nothing.
+            val exists = try {
+                val o = JSONObject(r.body)
+                val u = o.optJSONObject("user") ?: o
+                u.optJSONArray("identities")?.length() == 0
+            } catch (e: Exception) { false }
+            if (exists) return Result(false, 400, JSONObject().put("msg", "This email already has an account. Please log in.").toString())
+        }
         return r
     }
+
+    /** The signed-in user's account (email, user_metadata with name and Google photo), or null. */
+    fun fetchUser(): JSONObject? {
+        val r = authed("GET", "/auth/v1/user", null, null)
+        if (!r.ok) return null
+        return try { JSONObject(r.body) } catch (e: Exception) { null }
+    }
+
 
     /**
      * Web application OAuth client ID from Google Cloud Console (the one entered in Supabase > Auth > Google).

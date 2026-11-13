@@ -21,6 +21,7 @@ import android.widget.LinearLayout
 object AuthUi {
     const val MAIL = "M4 6h16v12H4z M4 7l8 6 8-6"
     const val LOCK = "M6 11h12v9H6z M8 11V8a4 4 0 0 1 8 0v3"
+    const val USER = "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"
     const val EYE = "M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
     const val CHECK = "M5 13l4 4L19 7"
 

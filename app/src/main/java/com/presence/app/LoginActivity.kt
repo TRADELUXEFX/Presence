@@ -36,9 +36,12 @@ class LoginActivity : BaseActivity() {
     private lateinit var forgotRow: LinearLayout
     private lateinit var tabLogin: TextView
     private lateinit var tabSignUp: TextView
-    private lateinit var welcomeView: LinearLayout
     private lateinit var formView: FrameLayout
-    private lateinit var wMsg: TextView
+    private lateinit var nameInput: EditText
+    private lateinit var nameBox: LinearLayout
+    private lateinit var emailBox: LinearLayout
+    private lateinit var confirmInput: EditText
+    private lateinit var confirmBox: LinearLayout
     private var googleBusy = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,13 +98,24 @@ class LoginActivity : BaseActivity() {
         tagline.gravity = Gravity.CENTER
         card.addTo(tagline, 4)
 
+        val nameRow = AuthUi.inputRow(c, AuthUi.USER, "Your name", false)
+        nameInput = nameRow.second
+        nameInput.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        nameBox = nameRow.first
+        card.addTo(nameBox, 22)
         val emailRow = AuthUi.inputRow(c, AuthUi.MAIL, "Email address", false)
         email = emailRow.second
-        card.addTo(emailRow.first, 22)
+        emailBox = emailRow.first
+        card.addTo(emailBox, 22)
         val passRow = AuthUi.inputRow(c, AuthUi.LOCK, "Password", true)
         password = passRow.second
         password.imeOptions = EditorInfo.IME_ACTION_DONE
         card.addTo(passRow.first, 12)
+        val confirmRow = AuthUi.inputRow(c, AuthUi.LOCK, "Confirm password", true)
+        confirmInput = confirmRow.second
+        confirmInput.imeOptions = EditorInfo.IME_ACTION_DONE
+        confirmBox = confirmRow.first
+        card.addTo(confirmBox, 12)
 
         submit = Ui.pill(c, "Login")
         submit.textSize = 17f
@@ -121,6 +135,23 @@ class LoginActivity : BaseActivity() {
         msg.gravity = Gravity.CENTER
         card.addTo(msg, 12)
 
+        val orText = Ui.text(c, "or continue with", 12f, Ui.MUTED, Ui.REG)
+        orText.gravity = Gravity.CENTER
+        card.addTo(orText, 14)
+        val g = LinearLayout(c)
+        g.orientation = LinearLayout.HORIZONTAL
+        g.gravity = Gravity.CENTER
+        g.background = Ui.rounded(c, Ui.SURFACE, 28, Ui.LINE, 1)
+        g.minimumHeight = Ui.dp(c, 56)
+        g.setPadding(Ui.dp(c, 20), 0, Ui.dp(c, 20), 0)
+        g.isClickable = true
+        g.setOnClickListener { doGoogle() }
+        val gLp = LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22))
+        gLp.rightMargin = Ui.dp(c, 12)
+        g.addView(GoogleGView(c), gLp)
+        g.addView(Ui.text(c, "Continue with Google", 16f, Ui.TEXT, Ui.BOLD))
+        card.addTo(g, 10)
+
         forgotRow = LinearLayout(c)
         forgotRow.orientation = LinearLayout.HORIZONTAL
         forgotRow.gravity = Gravity.CENTER
@@ -135,12 +166,6 @@ class LoginActivity : BaseActivity() {
         privacy.gravity = Gravity.CENTER
         privacy.setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL))) }
         card.addTo(privacy, 14)
-        val back = Ui.text(c, "Back", 14f, Ui.MUTED, Ui.MED)
-        back.gravity = Gravity.CENTER
-        back.setPadding(Ui.dp(c, 24), Ui.dp(c, 8), Ui.dp(c, 24), Ui.dp(c, 4))
-        back.setOnClickListener { showWelcome() }
-        card.addTo(back, 6)
-
         val cardLp = LinearLayout.LayoutParams(-1, -2)
         cardLp.setMargins(Ui.dp(c, 20), -Ui.dp(c, 30), Ui.dp(c, 20), Ui.dp(c, 24))
         root.addView(card, cardLp)
@@ -158,23 +183,28 @@ class LoginActivity : BaseActivity() {
         formView = FrameLayout(c)
         formView.addView(scroll, FrameLayout.LayoutParams(-1, -1))
         formView.addView(scrim)
-        formView.visibility = View.GONE
 
-        welcomeView = buildWelcome()
         val frame = FrameLayout(c)
         frame.setBackgroundColor(Ui.BG)
         frame.addView(formView, FrameLayout.LayoutParams(-1, -1))
-        frame.addView(welcomeView, FrameLayout.LayoutParams(-1, -1))
         setContentView(frame)
 
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (formView.visibility == View.VISIBLE) showWelcome() else finish()
+                finish()
             }
         })
 
         submit.setOnClickListener { doSubmit() }
         password.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                if (signUp) confirmInput.requestFocus() else doSubmit()
+                true
+            } else {
+                false
+            }
+        }
+        confirmInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 doSubmit()
                 true
@@ -196,7 +226,11 @@ class LoginActivity : BaseActivity() {
         msg.text = ""
         heading.text = if (up) "Create Account" else "Welcome Back"
         tagline.text = if (up) "Start your presence training journey" else "Login to get access to training"
-        submit.text = if (up) "Sign Up" else "Login"
+        submit.text = if (up) "Create account" else "Login"
+        nameBox.visibility = if (up) View.VISIBLE else View.GONE
+        confirmBox.visibility = if (up) View.VISIBLE else View.GONE
+        (emailBox.layoutParams as? LinearLayout.LayoutParams)?.topMargin = Ui.dp(this, if (up) 12 else 22)
+        emailBox.requestLayout()
         tabLogin.background = if (!up) Ui.rounded(this, Ui.BLUE, 18) else null
         tabLogin.setTextColor(if (!up) Ui.WHITE else Ui.MUTED)
         tabSignUp.background = if (up) Ui.rounded(this, Ui.BLUE, 18) else null
@@ -204,99 +238,16 @@ class LoginActivity : BaseActivity() {
         forgotRow.visibility = if (up) View.GONE else View.VISIBLE
     }
 
-    private fun showForm(up: Boolean) {
-        setMode(up)
-        welcomeView.visibility = View.GONE
-        formView.visibility = View.VISIBLE
-    }
-
-    private fun showWelcome() {
-        currentFocus?.let {
-            (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
-                .hideSoftInputFromWindow(it.windowToken, 0)
-        }
-        formView.visibility = View.GONE
-        welcomeView.visibility = View.VISIBLE
-    }
-
-    /** First screen: big logo, then Login / Create account / Continue with Google. */
-    private fun buildWelcome(): LinearLayout {
-        val c = this
-        val col = LinearLayout(c)
-        col.orientation = LinearLayout.VERTICAL
-        col.setBackgroundColor(Ui.BG)
-
-        val hero = AuthUi.HeroLayout(c)
-        hero.orientation = LinearLayout.VERTICAL
-        hero.gravity = Gravity.CENTER
-        hero.setPadding(Ui.dp(c, 24), Ui.dp(c, 28), Ui.dp(c, 24), Ui.dp(c, 28))
-        Ui.padInsets(hero, top = true)
-        val ls = Ui.dp(c, 112)
-        hero.addView(AuthUi.logo(c, 112), LinearLayout.LayoutParams(ls, ls))
-        val name = Ui.text(c, "PRESENCE", 32f, Ui.WHITE, Ui.BOLD)
-        name.letterSpacing = 0.12f
-        name.gravity = Gravity.CENTER
-        hero.addTo(name, 28)
-        val tag = Ui.text(c, "Train your presence, one drill at a time.", 15f, Color.parseColor("#CCE4FF"), Ui.REG)
-        tag.gravity = Gravity.CENTER
-        hero.addTo(tag, 10)
-        col.addView(hero, LinearLayout.LayoutParams(-1, 0, 1f))
-
-        val btns = LinearLayout(c)
-        btns.orientation = LinearLayout.VERTICAL
-        btns.setPadding(Ui.dp(c, 24), Ui.dp(c, 28), Ui.dp(c, 24), Ui.dp(c, 20))
-
-        val login = Ui.pill(c, "Login")
-        login.textSize = 17f
-        login.elevation = Ui.dp(c, 3).toFloat()
-        login.setOnClickListener { showForm(false) }
-        btns.addView(login, LinearLayout.LayoutParams(-1, -2))
-
-        val create = Ui.pill(c, "Create account", Ui.BG, Ui.BLUE)
-        create.textSize = 17f
-        create.background = Ui.rounded(c, Ui.BG, 28, Ui.BLUE, 2)
-        create.setOnClickListener { showForm(true) }
-        val cLp = LinearLayout.LayoutParams(-1, -2)
-        cLp.topMargin = Ui.dp(c, 14)
-        btns.addView(create, cLp)
-
-        val fast = Ui.text(c, "Login or sign up faster with", 13f, Ui.MUTED, Ui.REG)
-        fast.gravity = Gravity.CENTER
-        btns.addTo(fast, 18)
-
-        val g = LinearLayout(c)
-        g.orientation = LinearLayout.HORIZONTAL
-        g.gravity = Gravity.CENTER
-        g.background = Ui.rounded(c, Ui.SURFACE, 28, Ui.LINE, 1)
-        g.minimumHeight = Ui.dp(c, 56)
-        g.setPadding(Ui.dp(c, 20), 0, Ui.dp(c, 20), 0)
-        g.isClickable = true
-        g.setOnClickListener { doGoogle() }
-        val gLp = LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22))
-        gLp.rightMargin = Ui.dp(c, 12)
-        g.addView(GoogleGView(c), gLp)
-        g.addView(Ui.text(c, "Continue with Google", 16f, Ui.TEXT, Ui.BOLD))
-        btns.addTo(g, 12)
-
-        wMsg = Ui.text(c, "", 12f, Ui.RED, Ui.MED)
-        wMsg.gravity = Gravity.CENTER
-        btns.addTo(wMsg, 10)
-
-        col.addView(btns, LinearLayout.LayoutParams(-1, -2))
-        Ui.padInsets(btns, bottom = true)
-        return col
-    }
-
     private var browserNext = false
 
     /** Google sign-in through the phone's browser (Supabase). Returns via AuthCallbackActivity. */
     private fun openGoogleInBrowser() {
-        wMsg.text = ""
+        msg.text = ""
         try {
             startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Api.googleSignInUrl())))
         } catch (e: Exception) {
-            wMsg.setTextColor(Ui.RED)
-            wMsg.text = "Could not open the browser for Google sign-in."
+            msg.setTextColor(Ui.RED)
+            msg.text = "Could not open the browser for Google sign-in."
         }
     }
 
@@ -305,7 +256,7 @@ class LoginActivity : BaseActivity() {
         if (googleBusy) return
         if (browserNext || Api.GOOGLE_WEB_CLIENT_ID.isEmpty()) { browserNext = false; openGoogleInBrowser(); return }
         googleBusy = true
-        wMsg.text = ""
+        msg.text = ""
         val option = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
             .Builder(Api.GOOGLE_WEB_CLIENT_ID).build()
         val request = androidx.credentials.GetCredentialRequest.Builder().addCredentialOption(option).build()
@@ -329,13 +280,13 @@ class LoginActivity : BaseActivity() {
                                     }
                                 } else {
                                     googleBusy = false
-                                    wMsg.text = "Could not finish Google sign-in. Please try again."
+                                    showMsg("Could not finish Google sign-in. Please try again.", false)
                                 }
                             }
                         }.start()
                     } else {
                         googleBusy = false
-                        wMsg.text = "Google sign-in did not work. Please try again."
+                        showMsg("Google sign-in did not work. Please try again.", false)
                     }
                 }
                 override fun onError(e: androidx.credentials.exceptions.GetCredentialException) {
@@ -362,9 +313,9 @@ class LoginActivity : BaseActivity() {
     /** Shows what is missing, with the fingerprint. Tapping the text copies the fingerprint. */
     private fun showSetupHelp(reason: String) {
         val sha = signingSha1()
-        wMsg.setTextColor(Ui.RED)
-        wMsg.text = reason + "\n\nPackage: " + packageName + "\nSHA-1: " + sha + "\n\nTap here to copy the SHA-1"
-        wMsg.setOnClickListener {
+        msg.setTextColor(Ui.RED)
+        msg.text = reason + "\n\nPackage: " + packageName + "\nSHA-1: " + sha + "\n\nTap here to copy the SHA-1"
+        msg.setOnClickListener {
             val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
             cm.setPrimaryClip(android.content.ClipData.newPlainText("SHA-1", sha))
             android.widget.Toast.makeText(this, "SHA-1 copied", android.widget.Toast.LENGTH_SHORT).show()
@@ -372,6 +323,8 @@ class LoginActivity : BaseActivity() {
     }
 
     private fun showMsg(text: String, ok: Boolean) {
+        msg.setOnClickListener(null)
+        msg.isClickable = false
         msg.setTextColor(if (ok) Ui.GREEN else Ui.RED)
         msg.text = text
     }
@@ -390,11 +343,23 @@ class LoginActivity : BaseActivity() {
             showMsg("Please fill in all fields.", false)
             return
         }
+        val up = signUp
+        var who = ""
+        if (up) {
+            if (p.length < 6) {
+                showMsg("Password must be at least 6 characters.", false)
+                return
+            }
+            if (p != confirmInput.text.toString()) {
+                showMsg("Passwords do not match.", false)
+                return
+            }
+            who = nameInput.text.toString().trim().ifEmpty { e.substringBefore("@") }
+        }
         showMsg("", true)
         busy(true)
-        val up = signUp
         Thread {
-            val r = if (up) Api.signUp(e, p) else Api.signIn(e, p)
+            val r = if (up) Api.signUp(e, p, who) else Api.signIn(e, p)
             val loggedIn = r.ok && Session.loggedIn()
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
@@ -409,7 +374,7 @@ class LoginActivity : BaseActivity() {
                     }
                 } else if (r.ok) {
                     busy(false)
-                    showMsg("Check your email to confirm your account.", true)
+                    showMsg("Check your email and tap the link on this phone. It opens Presence and logs you in.", true)
                 } else {
                     busy(false)
                     showMsg(r.message(), false)

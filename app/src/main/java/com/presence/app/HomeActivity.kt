@@ -58,15 +58,6 @@ class HomeActivity : BaseActivity() {
         bellLp.rightMargin = Ui.dp(c, 8)
         top.addView(bellButton(), bellLp)
         top.addView(themeButton(), LinearLayout.LayoutParams(Ui.dp(c, 38), Ui.dp(c, 38)))
-        // Sign out: small red pill at the top right of the blue header, like PauzFirst's Logout
-        val signOut = Ui.text(c, "Sign out", 12f, Ui.WHITE, Ui.BOLD)
-        signOut.gravity = Gravity.CENTER
-        signOut.background = Ui.rounded(c, Ui.RED, 20)
-        signOut.setPadding(Ui.dp(c, 12), Ui.dp(c, 8), Ui.dp(c, 12), Ui.dp(c, 8))
-        signOut.setOnClickListener { confirmSignOut() }
-        val signOutLp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        signOutLp.leftMargin = Ui.dp(c, 8)
-        top.addView(signOut, signOutLp)
         hero.addView(top, LinearLayout.LayoutParams(-1, -2))
         // the day and full streak cards sit in the blue header
         statHolder = LinearLayout(c)
@@ -462,26 +453,6 @@ class HomeActivity : BaseActivity() {
         Trainings.FIDGET -> "No Fidgeting"
         Trainings.BREATH -> "Breathing"
         else -> "Meditation"
-    }
-
-    private fun confirmSignOut() {
-        Dialogs.show(
-            this,
-            "Sign out?",
-            "Trainings not yet saved stay on this phone and sync the next time you log in to this account.",
-            "Sign out",
-            "Cancel",
-            onPrimary = { signOut() }
-        )
-    }
-
-    private fun signOut() {
-        Reminders.cancel(this)
-        Session.clear()
-        startActivity(
-            Intent(this, LoginActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-        )
     }
 
     private fun circle(color: Int): GradientDrawable {
