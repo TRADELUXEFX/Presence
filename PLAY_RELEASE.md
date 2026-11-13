@@ -3,7 +3,7 @@
 Code changes made for Play review are in the repo. The steps below must be done by hand.
 
 ## Before the first upload
-1. **Supabase:** run `supabase/migrations/20261113_delete_my_account.sql` in Supabase > SQL Editor, then confirm in `supabase/DATABASE.md` that its status is APPLIED. The in-app Delete account button fails until this runs.
+1. **Supabase:** DONE. `supabase/migrations/003_delete_account.sql` has been run in Supabase > SQL Editor. The in-app Delete account button depends on it.
 2. **GitHub secrets:** `ANDROID_KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD` must be set. Without them the build now stops (it no longer signs with the debug key).
 3. **Google Sign-In:** in Google Cloud Console, add the SHA-1 of the key Google Play signs with (Play Console > Setup > App integrity > App signing certificate) to the Android OAuth client. Without it, Google sign-in fails for Play installs.
 4. **Privacy policy:** host `www/privacy.html` at a public URL and enter that URL in Play Console.
