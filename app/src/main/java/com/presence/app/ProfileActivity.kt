@@ -90,9 +90,24 @@ class ProfileActivity : BaseActivity() {
         val delete = Ui.pill(c, "Delete account", Ui.RED)
         delete.setOnClickListener { confirmDelete() }
         column.addTo(delete, 14)
-        val contactUs = Ui.text(c, "Contact us", 13f, Ui.MUTED, Ui.REG)
+        // Contact us: a full-width button with the email icon, styled like the Log out button.
+        val contactUs = LinearLayout(c)
+        contactUs.orientation = LinearLayout.HORIZONTAL
         contactUs.gravity = Gravity.CENTER
+        contactUs.background = Ui.rounded(c, Ui.BLUE_SOFT, 28)
+        contactUs.minimumHeight = Ui.dp(c, 56)
+        contactUs.setPadding(Ui.dp(c, 20), Ui.dp(c, 8), Ui.dp(c, 20), Ui.dp(c, 8))
+        contactUs.isClickable = true
+        contactUs.isFocusable = true
+        contactUs.contentDescription = "Contact us"
         contactUs.setOnClickListener { startActivity(Intent(this, ContactActivity::class.java)) }
+        contactUs.addView(
+            FsIconView(c, AuthUi.MAIL, Ui.BLUE),
+            LinearLayout.LayoutParams(Ui.dp(c, 20), Ui.dp(c, 20))
+        )
+        val contactLabel = Ui.text(c, "Contact us", 16f, Ui.BLUE, Ui.BOLD)
+        contactLabel.setPadding(Ui.dp(c, 10), 0, 0, 0)
+        contactUs.addView(contactLabel)
         column.addTo(contactUs, 22)
 
         val scroll = ScrollView(c)
