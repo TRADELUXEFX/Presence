@@ -287,10 +287,23 @@ class LoginActivity : BaseActivity() {
         return col
     }
 
-    /** Shows Google's account picker on top of the app (no browser). Falls back to the browser only if the app isn't set up for it. */
+    private var browserNext = false
+
+    /** Google sign-in through the phone's browser (Supabase). Returns via AuthCallbackActivity. */
+    private fun openGoogleInBrowser() {
+        wMsg.text = ""
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(Api.googleSignInUrl())))
+        } catch (e: Exception) {
+            wMsg.setTextColor(Ui.RED)
+            wMsg.text = "Could not open the browser for Google sign-in."
+        }
+    }
+
+    /** Shows Google's account picker on top of the app first. Falls back to the browser sign-in (no SHA-1 needed) if Google rejects the app. */
     private fun doGoogle() {
         if (googleBusy) return
-        if (Api.GOOGLE_WEB_CLIENT_ID.isEmpty()) { showSetupHelp("The Google Web Client ID is not set in the app yet."); return }
+        if (browserNext || Api.GOOGLE_WEB_CLIENT_ID.isEmpty()) { browserNext = false; openGoogleInBrowser(); return }
         googleBusy = true
         wMsg.text = ""
         val option = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
@@ -327,8 +340,11 @@ class LoginActivity : BaseActivity() {
                 }
                 override fun onError(e: androidx.credentials.exceptions.GetCredentialException) {
                     googleBusy = false
-                    if (e is androidx.credentials.exceptions.GetCredentialCancellationException) return
-                    showSetupHelp("Google popup could not open (" + e.javaClass.simpleName + "). Add this app in Google Cloud as an Android client with the values below.")
+                    if (e is androidx.credentials.exceptions.GetCredentialCancellationException) {
+                        // Google also reports a rejected app setup as "cancelled", so offer the browser on the next tap.
+                        browserNext = true
+                        showSetupHelp("Google closed without signing you in. Add the SHA-1 below to your Android client in Google Cloud, or tap Continue with Google again to sign in with your browser.")
+                    } else openGoogleInBrowser()
                 }
             })
     }
