@@ -20,6 +20,7 @@ class ProfileActivity : BaseActivity() {
     private lateinit var methodView: TextView
     private lateinit var passRow: TextView
     private var currentName = ""
+    private lateinit var avatarView: android.widget.ImageView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,7 +57,8 @@ class ProfileActivity : BaseActivity() {
         avBg.shape = GradientDrawable.OVAL
         avBg.setColor(Ui.WHITE)
         av.background = avBg
-        av.addView(FsIconView(c, AuthUi.USER, Ui.BLUE), FrameLayout.LayoutParams(Ui.dp(c, 46), Ui.dp(c, 46), Gravity.CENTER))
+        avatarView = Avatar.view(c)
+        av.addView(avatarView, FrameLayout.LayoutParams(-1, -1))
         val al = LinearLayout.LayoutParams(Ui.dp(c, 88), Ui.dp(c, 88))
         al.gravity = Gravity.CENTER_HORIZONTAL
         al.topMargin = Ui.dp(c, 4)
@@ -137,8 +139,11 @@ class ProfileActivity : BaseActivity() {
             val name = (meta?.optString("full_name", "") ?: "").ifEmpty { meta?.optString("name", "") ?: "" }
                 .ifEmpty { email.substringBefore("@") }
             val provider = u.optJSONObject("app_metadata")?.optString("provider", "email") ?: "email"
+            // Only Google sign-ins carry a Google photo; email accounts get an empty value and keep the default icon.
+            val pic = (meta?.optString("avatar_url", "") ?: "").ifEmpty { meta?.optString("picture", "") ?: "" }
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
+                Avatar.show(this, avatarView, pic)
                 currentName = name
                 nameView.text = name
                 emailView.text = email
