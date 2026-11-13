@@ -294,32 +294,10 @@ class LoginActivity : BaseActivity() {
                     if (e is androidx.credentials.exceptions.GetCredentialCancellationException) {
                         // Google also reports a rejected app setup as "cancelled", so offer the browser on the next tap.
                         browserNext = true
-                        showSetupHelp("Google closed without signing you in. Add the SHA-1 below to your Android client in Google Cloud, or tap Continue with Google again to sign in with your browser.")
+                        showMsg("Google sign-in was cancelled.", false)
                     } else openGoogleInBrowser()
                 }
             })
-    }
-
-    /** The signing fingerprint of this installed app. Google needs it once to allow the in-app account popup. */
-    private fun signingSha1(): String = try {
-        val pm = packageManager
-        val sigs = if (android.os.Build.VERSION.SDK_INT >= 28)
-            pm.getPackageInfo(packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.apkContentsSigners
-        else @Suppress("DEPRECATION") pm.getPackageInfo(packageName, android.content.pm.PackageManager.GET_SIGNATURES).signatures
-        java.security.MessageDigest.getInstance("SHA-1").digest(sigs!![0].toByteArray())
-            .joinToString(":") { "%02X".format(it) }
-    } catch (e: Exception) { "unknown" }
-
-    /** Shows what is missing, with the fingerprint. Tapping the text copies the fingerprint. */
-    private fun showSetupHelp(reason: String) {
-        val sha = signingSha1()
-        msg.setTextColor(Ui.RED)
-        msg.text = reason + "\n\nPackage: " + packageName + "\nSHA-1: " + sha + "\n\nTap here to copy the SHA-1"
-        msg.setOnClickListener {
-            val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("SHA-1", sha))
-            android.widget.Toast.makeText(this, "SHA-1 copied", android.widget.Toast.LENGTH_SHORT).show()
-        }
     }
 
     private fun showMsg(text: String, ok: Boolean) {

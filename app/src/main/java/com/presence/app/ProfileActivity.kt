@@ -71,7 +71,7 @@ class ProfileActivity : BaseActivity() {
 
         // Log out and Delete account: both centered, full-width pills
         val logout = Ui.pill(c, "Log out")
-        logout.setOnClickListener { confirmSignOut() }
+        logout.setOnClickListener { signOut() }
         column.addTo(logout, 28)
         val delete = Ui.pill(c, "Delete account", Ui.RED)
         delete.setOnClickListener { confirmDelete() }
@@ -113,17 +113,6 @@ class ProfileActivity : BaseActivity() {
                 }
             }
         }.start()
-    }
-
-    private fun confirmSignOut() {
-        Dialogs.show(
-            this,
-            "Log out?",
-            "Trainings not yet saved stay on this phone and sync the next time you log in to this account.",
-            "Log out",
-            "Cancel",
-            onPrimary = { signOut() }
-        )
     }
 
     private fun signOut() {
