@@ -9,12 +9,12 @@ def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
 
 android {
     namespace 'com.presence.app'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.presence.app"
         minSdk 24
-        targetSdk 34
+        targetSdk 36
         versionCode 1000 + runNumber
         versionName "1.0.${runNumber}"
     }
@@ -75,7 +75,7 @@ dependencies {
 // A release build without the keystore secrets would be signed with the debug key, which will not
 // install over the app already on the phone. Stop with a clear message instead.
 gradle.taskGraph.whenReady { graph ->
-    if (graph.hasTask(':app:assembleRelease') && !hasReleaseKs) {
+    if ((graph.hasTask(':app:assembleRelease') || graph.hasTask(':app:bundleRelease')) && !hasReleaseKs) {
         throw new GradleException(
             "Release keystore is missing. Add the GitHub secrets ANDROID_KEYSTORE_BASE64, " +
             "KEYSTORE_PASSWORD and KEY_PASSWORD (same key as the installed app), then rebuild.")

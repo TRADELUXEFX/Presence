@@ -17,5 +17,5 @@ Native Android app (Kotlin, package `com.presence.app`). No WebView.
 - Home screen streak widget.
 
 ## Build
-GitHub Actions builds the APK (JDK 17, Gradle 8.2, Android Gradle Plugin 8.1.0). The APK is attached to the Releases page.
+GitHub Actions builds the APK and AAB (JDK 17, Gradle 8.11.1, Android Gradle Plugin 8.10.1, target SDK 36). The APK is attached to the Releases page.
 Release signing uses the secrets ANDROID_KEYSTORE_BASE64, KEYSTORE_PASSWORD and KEY_PASSWORD. Keep the same key so updates install over the old app.

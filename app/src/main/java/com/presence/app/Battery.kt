@@ -3,7 +3,6 @@ package com.presence.app
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 
@@ -19,17 +18,14 @@ object Battery {
         true
     }
 
-    /** Opens the phone's own "allow in background" prompt for this app, or the general list if that is missing. */
+    /**
+     * Opens the phone's battery list, where you can allow this app to run in the background.
+     * This uses the settings list instead of the one-tap permission dialog, which Google Play restricts.
+     */
     fun request(a: Activity) {
         try {
-            a.startActivity(
-                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + a.packageName))
-            )
+            a.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         } catch (e: Exception) {
-            try {
-                a.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-            } catch (e2: Exception) {
-            }
         }
     }
 }
