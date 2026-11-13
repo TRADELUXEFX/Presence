@@ -17,10 +17,6 @@ import com.presence.app.Ui.addTo
 
 /** Login and sign up on one screen, like the website. */
 class LoginActivity : BaseActivity() {
-    companion object {
-        // Set this to your live privacy policy page before release.
-        const val PRIVACY_URL = "https://YOUR-SITE/privacy.html"
-    }
 
     override val needsLogin: Boolean get() = false
 
@@ -168,7 +164,7 @@ class LoginActivity : BaseActivity() {
 
         val privacy = Ui.text(c, "Privacy policy", 12f, Ui.MUTED, Ui.REG)
         privacy.gravity = Gravity.CENTER
-        privacy.setOnClickListener { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_URL))) }
+        privacy.setOnClickListener { startActivity(Intent(this, PrivacyActivity::class.java)) }
         card.addTo(privacy, 14)
         val cardLp = LinearLayout.LayoutParams(-1, -2)
         cardLp.setMargins(Ui.dp(c, 20), -Ui.dp(c, 30), Ui.dp(c, 20), Ui.dp(c, 24))
