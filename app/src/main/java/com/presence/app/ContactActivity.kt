@@ -14,7 +14,7 @@ import androidx.browser.customtabs.CustomTabsIntent
  */
 class ContactActivity : Activity() {
     companion object {
-        const val CONTACT_URL = "https://presence-training.netlify.app/contact"
+        const val CONTACT_URL = "https://presense-training.netlify.app/contact"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

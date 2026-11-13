@@ -30,7 +30,7 @@ class WeekSummary(
 object Weekly {
     private const val REQUEST = 7002
     private const val NOTIFICATION = 2002
-    private const val CHANNEL = "presence_weekly"
+    private const val CHANNEL = "presense_weekly"
     private const val HOUR = 18
 
     /** On unless switched off on the Notifications screen. */
@@ -138,7 +138,7 @@ object Weekly {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val n = NotificationCompat.Builder(ctx, CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_presence)
+            .setSmallIcon(R.drawable.ic_stat_presense)
             .setColor(Ui.BLUE)
             .setContentTitle("Your week in Presense")
             .setContentText("Your weekly summary is ready. Tap to see it.")

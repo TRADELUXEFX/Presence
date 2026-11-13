@@ -79,7 +79,7 @@ class TrainingService : Service() {
     private fun acquireWakeLock() {
         try {
             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "presence:training")
+            val wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "presense:training")
             wl.acquire(3 * 60 * 60 * 1000L)
             wakeLock = wl
         } catch (e: Exception) {
@@ -96,9 +96,9 @@ class TrainingService : Service() {
     }
 
     companion object {
-        const val ACTION_STOP = "com.presence.app.STOP_TRAINING"
+        const val ACTION_STOP = "com.presense.app.STOP_TRAINING"
         const val NOTIFICATION_ID = 1001
-        private const val CHANNEL = "presence_training"
+        private const val CHANNEL = "presense_training"
 
         /** True while the service is running, so a session's next training does not try to start it from the background. */
         @Volatile var up = false

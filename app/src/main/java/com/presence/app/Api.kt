@@ -9,11 +9,11 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-/** Talks to the same Supabase project as the Presence website. The anon key is public by design. */
+/** Talks to the same Supabase project as the Presense website. The anon key is public by design. */
 object Api {
     private const val URL = "https://chdnbthhmqituvrelrjg.supabase.co"
     /** Where invite and reset links send the person back to the app. */
-    const val APP_LINK = "presence://auth-callback"
+    const val APP_LINK = "presense://auth-callback"
     private const val KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoZG5idGhobXFpdHV2cmVscmpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5MDc1MDUsImV4cCI6MjA4ODQ4MzUwNX0.tKp1_FbquRNiilyjajlGnUGhK8dnpZff9EsBTYS1c6o"
 
     private val http = OkHttpClient.Builder()
@@ -129,11 +129,11 @@ object Api {
         return r
     }
 
-    /** Address that opens Google sign-in in the phone's browser. Supabase sends the user back to presence://auth-callback. */
+    /** Address that opens Google sign-in in the phone's browser. Supabase sends the user back to presense://auth-callback. */
     fun googleSignInUrl(): String =
         URL + "/auth/v1/authorize?provider=google&redirect_to=" + URLEncoder.encode(APP_LINK, "UTF-8")
 
-    /** The reset email's link comes back into the app (presence://auth-callback). Must be on Supabase's allowlist. */
+    /** The reset email's link comes back into the app (presense://auth-callback). Must be on Supabase's allowlist. */
     fun sendReset(email: String): Result {
         val body = JSONObject().put("email", email).toString()
         val redirect = URLEncoder.encode(APP_LINK, "UTF-8")

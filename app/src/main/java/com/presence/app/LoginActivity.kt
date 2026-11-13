@@ -56,11 +56,11 @@ class LoginActivity : BaseActivity() {
         Ui.padInsets(hero, top = true)
         val ls = Ui.dp(c, 60)
         hero.addView(AuthUi.logo(c, 60), LinearLayout.LayoutParams(ls, ls))
-        val name = Ui.text(c, "PRESENCE", 22f, Ui.WHITE, Ui.BOLD)
+        val name = Ui.text(c, "PRESENSE", 22f, Ui.WHITE, Ui.BOLD)
         name.letterSpacing = 0.1f
         name.gravity = Gravity.CENTER
         hero.addTo(name, 18)
-        val tag = Ui.text(c, "Train your presence, one drill at a time.", 12f, Color.parseColor("#CCE4FF"), Ui.REG)
+        val tag = Ui.text(c, "Train your presense, one drill at a time.", 12f, Color.parseColor("#CCE4FF"), Ui.REG)
         tag.gravity = Gravity.CENTER
         hero.addTo(tag, 6)
         root.addView(hero, LinearLayout.LayoutParams(-1, -2))

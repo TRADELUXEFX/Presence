@@ -59,7 +59,7 @@ class ScreenRecordService : Service() {
     }
 
     private fun startForegroundNow() {
-        val channel = "presence_record"
+        val channel = "presense_record"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(NotificationChannel(channel, "Training recording", NotificationManager.IMPORTANCE_LOW))
@@ -67,7 +67,7 @@ class ScreenRecordService : Service() {
         val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(this, channel) else Notification.Builder(this)
         val n = b.setContentTitle("Recording your training")
             .setContentText("The screen and all sound are being recorded")
-            .setSmallIcon(R.drawable.ic_stat_presence)
+            .setSmallIcon(R.drawable.ic_stat_presense)
             .setColor(Ui.BLUE)
             .setOngoing(true)
             .build()
@@ -94,7 +94,7 @@ class ScreenRecordService : Service() {
 
         val stamp = SessionRecorder.stamp()
         // sound first: your mic mixed with the phone's own sound
-        val sf = File(cacheDir, "presence_sound_" + stamp + ".m4a")
+        val sf = File(cacheDir, "presense_sound_" + stamp + ".m4a")
         soundFile = sf
         val s = SessionAudio(p) { Engine.isVoiceActive() }
         sound = s
@@ -106,7 +106,7 @@ class ScreenRecordService : Service() {
         val scale = Math.min(1f, 720f / Math.min(w, h))
         w = ((w * scale).toInt() / 2) * 2
         h = ((h * scale).toInt() / 2) * 2
-        val vf = File(cacheDir, "presence_video_" + stamp + ".mp4")
+        val vf = File(cacheDir, "presense_video_" + stamp + ".mp4")
         videoFile = vf
         val r = if (Build.VERSION.SDK_INT >= 31) MediaRecorder(this) else @Suppress("DEPRECATION") MediaRecorder()
         r.setVideoSource(MediaRecorder.VideoSource.SURFACE)
@@ -118,16 +118,16 @@ class ScreenRecordService : Service() {
         r.setVideoEncodingBitRate(3000000)
         r.prepare()
         recorder = r
-        display = p.createVirtualDisplay("presence", w, h, dm.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, r.surface, null, null)
+        display = p.createVirtualDisplay("presense", w, h, dm.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, r.surface, null, null)
         r.start()
     }
 
     private fun cleanup() {
-        try { display?.release() } catch (e: Exception) { android.util.Log.w("Presence", "ScreenRecordService step failed", e) }
+        try { display?.release() } catch (e: Exception) { android.util.Log.w("Presense", "ScreenRecordService step failed", e) }
         display = null
-        try { recorder?.release() } catch (e: Exception) { android.util.Log.w("Presence", "ScreenRecordService step failed", e) }
+        try { recorder?.release() } catch (e: Exception) { android.util.Log.w("Presense", "ScreenRecordService step failed", e) }
         recorder = null
-        try { projection?.stop() } catch (e: Exception) { android.util.Log.w("Presence", "ScreenRecordService step failed", e) }
+        try { projection?.stop() } catch (e: Exception) { android.util.Log.w("Presense", "ScreenRecordService step failed", e) }
         projection = null
     }
 
@@ -145,7 +145,7 @@ class ScreenRecordService : Service() {
         val soundOk = sound?.ok == true && sf != null && sf.exists()
         Thread {
             if (videoOk && vf != null && vf.exists()) {
-                val out = File(cacheDir, "presence_session_" + SessionRecorder.stamp() + ".mp4")
+                val out = File(cacheDir, "presense_session_" + SessionRecorder.stamp() + ".mp4")
                 if (soundOk && sf != null && SessionAudio.mux(vf, sf, out)) {
                     SessionRecorder.save(this, out)
                 } else {

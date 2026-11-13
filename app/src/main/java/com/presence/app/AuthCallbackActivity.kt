@@ -7,7 +7,7 @@ import android.view.Gravity
 import android.widget.Toast
 
 /**
- * Opens when a Supabase link (invite or password reset) returns to the app as presence://auth-callback.
+ * Opens when a Supabase link (invite or password reset) returns to the app as presense://auth-callback.
  * Supabase puts the login tokens after a # (or ?). Invites and resets go on to choose a password.
  */
 class AuthCallbackActivity : BaseActivity() {

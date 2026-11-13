@@ -11,7 +11,7 @@ import java.util.concurrent.CopyOnWriteArraySet
 /**
  * The running training: a small state machine on the main thread. It works from timestamps, so it
  * stays on time while the screen is off (TrainingService keeps the CPU awake). The training screen only
- * draws what Engine reports. Timings and the saved values match the Presence website.
+ * draws what Engine reports. Timings and the saved values match the Presense website.
  */
 object Engine {
     interface Listener {
@@ -518,7 +518,7 @@ object Engine {
             pendingSpeech = text
             return
         }
-        t.speak(text, TextToSpeech.QUEUE_FLUSH, null, "presence-" + System.nanoTime())
+        t.speak(text, TextToSpeech.QUEUE_FLUSH, null, "presense-" + System.nanoTime())
     }
 
     private fun notifyListeners() {

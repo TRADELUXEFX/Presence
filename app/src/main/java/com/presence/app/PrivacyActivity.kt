@@ -14,7 +14,7 @@ import androidx.browser.customtabs.CustomTabsIntent
  */
 class PrivacyActivity : Activity() {
     companion object {
-        const val PRIVACY_URL = "https://presence-training.netlify.app/privacy"
+        const val PRIVACY_URL = "https://presense-training.netlify.app/privacy"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

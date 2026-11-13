@@ -16,7 +16,7 @@ import java.util.Calendar
 object Reminders {
     private const val REQUEST = 7001
     private const val NOTIFICATION = 2001
-    private const val CHANNEL = "presence_reminder"
+    private const val CHANNEL = "presense_reminder"
 
     /** Schedules the next reminder when it is on and someone is logged in; otherwise cancels it. */
     fun apply(ctx: Context) {
@@ -82,7 +82,7 @@ object Reminders {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val n = NotificationCompat.Builder(ctx, CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_presence)
+            .setSmallIcon(R.drawable.ic_stat_presense)
             .setColor(Ui.BLUE)
             .setContentTitle("Presense")
             .setContentText("Time for your training.")

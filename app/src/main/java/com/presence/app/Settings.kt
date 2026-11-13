@@ -14,7 +14,7 @@ object Settings {
 
     /** The user's own choice if they made one, otherwise the phone's setting. */
     fun isDark(ctx: Context): Boolean =
-        if (darkChosen()) darkMode() else PresenceApp.isNight(ctx.resources.configuration)
+        if (darkChosen()) darkMode() else PresenseApp.isNight(ctx.resources.configuration)
 
     var reminderOn: Boolean
         get() = Session.prefs.getBoolean("r_on", false)

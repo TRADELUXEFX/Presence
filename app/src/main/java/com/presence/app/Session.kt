@@ -8,7 +8,7 @@ object Session {
     lateinit var prefs: SharedPreferences
 
     fun init(ctx: Context) {
-        prefs = ctx.getSharedPreferences("presence", Context.MODE_PRIVATE)
+        prefs = ctx.getSharedPreferences("presense", Context.MODE_PRIVATE)
     }
 
     val access: String get() = prefs.getString("access", "") ?: ""

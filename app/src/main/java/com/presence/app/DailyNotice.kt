@@ -14,12 +14,12 @@ import android.widget.RemoteViews
 import java.util.Calendar
 
 /**
- * The daily notice: app icon, "Presence", the count of trainings done today, and a Start button.
+ * The daily notice: app icon, "Presense", the count of trainings done today, and a Start button.
  * It stays in the shade. Start opens the Trainings list, so the person picks the training.
  * It shows "No training done" until a training is finished today.
  */
 object DailyNotice {
-    private const val CHANNEL = "presence_daily"
+    private const val CHANNEL = "presense_daily"
     private const val ID = 2101
 
     /** Shows the notice when logged in, and removes it when not. */
@@ -58,7 +58,7 @@ object DailyNotice {
                 am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, c.timeInMillis, pi)
             }
         } catch (e: Exception) {
-            Log.w("Presence", "DailyNotice midnight alarm failed", e)
+            Log.w("Presense", "DailyNotice midnight alarm failed", e)
         }
     }
 
@@ -96,7 +96,7 @@ object DailyNotice {
                 .build()
             nm.notify(ID, note)
         } catch (e: Exception) {
-            Log.w("Presence", "DailyNotice step failed", e)
+            Log.w("Presense", "DailyNotice step failed", e)
         }
     }
 

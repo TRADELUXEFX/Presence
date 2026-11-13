@@ -50,7 +50,7 @@ class HomeActivity : BaseActivity() {
         val appLogo = AuthUi.logo(c, 36)
         appLogo.setOnClickListener { startActivity(Intent(this, ProfileActivity::class.java)) }
         titleRow.addView(appLogo, logoLp)
-        val title = Ui.text(c, "PRESENCE", 20f, Ui.WHITE, Ui.BOLD)
+        val title = Ui.text(c, "PRESENSE", 20f, Ui.WHITE, Ui.BOLD)
         title.maxLines = 1
         titleRow.addView(title)
         top.addView(titleRow, LinearLayout.LayoutParams(0, -2, 1f))

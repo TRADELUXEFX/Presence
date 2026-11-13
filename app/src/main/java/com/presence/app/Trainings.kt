@@ -153,7 +153,7 @@ object Trainings {
         )
         else -> listOf(
             "The mind that is still can hear everything.",
-            "Presence is not found in the future. Only here.",
+            "Presense is not found in the future. Only here.",
             "You cannot pour from an empty cup. Fill yours."
         )
     }

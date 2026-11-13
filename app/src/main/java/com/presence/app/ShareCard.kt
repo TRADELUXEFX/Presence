@@ -15,7 +15,7 @@ import java.io.FileOutputStream
 
 /**
  * The share cards: a picture drawn in code, then handed to the phone's share sheet. They show only
- * numbers and the word Presence. No name, email, dates or training names.
+ * numbers and the word Presense. No name, email, dates or training names.
  */
 object ShareCard {
     private const val W = 1080
@@ -88,7 +88,7 @@ object ShareCard {
         try {
             val dir = File(ctx.cacheDir, "reports")
             dir.mkdirs()
-            val file = File(dir, "presence-share.png")
+            val file = File(dir, "presense-share.png")
             FileOutputStream(file).use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
             val uri = FileProvider.getUriForFile(ctx, ctx.packageName + ".fileprovider", file)
             val send = Intent(Intent.ACTION_SEND).apply {

@@ -192,12 +192,12 @@ class PlayerActivity : BaseActivity() {
 
     override fun onPause() {
         super.onPause()
-        try { video?.pause() } catch (e: Exception) { android.util.Log.w("Presence", "PlayerActivity step failed", e) }
+        try { video?.pause() } catch (e: Exception) { android.util.Log.w("Presense", "PlayerActivity step failed", e) }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
-        try { video?.stopPlayback() } catch (e: Exception) { android.util.Log.w("Presence", "PlayerActivity step failed", e) }
+        try { video?.stopPlayback() } catch (e: Exception) { android.util.Log.w("Presense", "PlayerActivity step failed", e) }
     }
 }

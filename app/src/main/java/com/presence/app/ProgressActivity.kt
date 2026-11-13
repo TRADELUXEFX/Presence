@@ -998,7 +998,7 @@ class ProgressActivity : BaseActivity() {
         val period = dayFmt.format(Date(oldest)) + " - " + dayFmt.format(Date(newest))
         val generated = "Generated " + df.format(Date())
         val dir = File(cacheDir, "reports").apply { mkdirs() }
-        val file = File(dir, "presence-history.pdf")
+        val file = File(dir, "presense-history.pdf")
         PdfReport.write(this, file, rangeLabel, period, generated, totals, byTraining, rows)
         return file
     }

@@ -52,11 +52,11 @@ object SessionRecorder {
     fun stop(ctx: Context) {
         if (serviceOn) {
             serviceOn = false
-            try { ctx.stopService(Intent(ctx, ScreenRecordService::class.java)) } catch (e: Exception) { android.util.Log.w("Presence", "SessionRecorder step failed", e) }
+            try { ctx.stopService(Intent(ctx, ScreenRecordService::class.java)) } catch (e: Exception) { android.util.Log.w("Presense", "SessionRecorder step failed", e) }
         }
     }
 
-    /** Copies a finished recording into Movies/Presence (or the app's files folder on older phones) so it shows up in the gallery. */
+    /** Copies a finished recording into Movies/Presense (or the app's files folder on older phones) so it shows up in the gallery. */
     fun save(ctx: Context, src: File) {
         val app = ctx.applicationContext
         var where = ""
@@ -87,12 +87,12 @@ object SessionRecorder {
         } catch (e: Exception) {
             where = ""
         }
-        try { src.delete() } catch (e: Exception) { android.util.Log.w("Presence", "SessionRecorder step failed", e) }
+        try { src.delete() } catch (e: Exception) { android.util.Log.w("Presense", "SessionRecorder step failed", e) }
         if (savedUri.isNotEmpty()) {
             try {
                 val uid = Session.userId
                 if (uid.isNotEmpty()) Recordings.add(uid, savedUri, startedMs, System.currentTimeMillis())
-            } catch (e: Exception) { android.util.Log.w("Presence", "SessionRecorder step failed", e) }
+            } catch (e: Exception) { android.util.Log.w("Presense", "SessionRecorder step failed", e) }
         }
         val msg = if (where.isNotEmpty()) "Training recording saved in " + where else "Couldn't save the training recording."
         Handler(Looper.getMainLooper()).post { Toast.makeText(app, msg, Toast.LENGTH_LONG).show() }
