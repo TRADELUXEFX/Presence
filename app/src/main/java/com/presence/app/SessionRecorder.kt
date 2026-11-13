@@ -67,11 +67,11 @@ object SessionRecorder {
                 val v = ContentValues()
                 v.put(MediaStore.MediaColumns.DISPLAY_NAME, name)
                 v.put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
-                v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/Presence")
+                v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/Presense")
                 val uri = app.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, v)
                 if (uri != null) {
                     app.contentResolver.openOutputStream(uri)?.use { out -> FileInputStream(src).use { it.copyTo(out) } }
-                    where = Environment.DIRECTORY_MOVIES + "/Presence"
+                    where = Environment.DIRECTORY_MOVIES + "/Presense"
                     savedUri = uri.toString()
                 }
             } else {

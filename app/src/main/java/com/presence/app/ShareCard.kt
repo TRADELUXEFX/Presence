@@ -48,7 +48,7 @@ object ShareCard {
         cv.drawText(digits, cx, 720f, paint(PINK, size, Fonts.bold(ctx)))
         val line = if (days == 1) "day I showed up" else "days I showed up"
         cv.drawText(line, cx, 850f, paint(TEXT, 56f, Fonts.medium(ctx)))
-        cv.drawText("Presence", cx, 1230f, paint(TEXT, 56f, Fonts.bold(ctx)))
+        cv.drawText("Presense", cx, 1230f, paint(TEXT, 56f, Fonts.bold(ctx)))
         send(ctx, bmp, "Share my streak")
     }
 
@@ -80,7 +80,7 @@ object ShareCard {
             cv.drawText(s.dayLetters[i], x, 777f, paint(if (on) INK else MUTED, 48f, Fonts.bold(ctx)))
         }
         cv.drawText("${s.activeDays} of 7 days", cx, 920f, paint(TEXT, 56f, Fonts.medium(ctx)))
-        cv.drawText("Presence", cx, 1230f, paint(TEXT, 56f, Fonts.bold(ctx)))
+        cv.drawText("Presense", cx, 1230f, paint(TEXT, 56f, Fonts.bold(ctx)))
         send(ctx, bmp, "Share my week")
     }
 

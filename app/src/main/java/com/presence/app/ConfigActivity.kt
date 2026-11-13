@@ -551,7 +551,7 @@ class ConfigActivity : BaseActivity() {
             Dialogs.show(
                 this,
                 "Keep your training running",
-                "Many phones stop apps in the background to save battery. To keep a training going with the screen locked or the app closed, tap Allow and choose \"Allow\" or \"Unrestricted\" for Presence, then come back and press Start.",
+                "Many phones stop apps in the background to save battery. To keep a training going with the screen locked or the app closed, tap Allow and choose \"Allow\" or \"Unrestricted\" for Presense, then come back and press Start.",
                 "Allow",
                 "Not now",
                 onPrimary = { Battery.request(this) },
@@ -570,7 +570,7 @@ class ConfigActivity : BaseActivity() {
             Dialogs.show(
                 this,
                 "Silence notifications while you train",
-                "Presence turns on Do not disturb during each training and switches it back afterwards. The phone needs your permission once. Tap Open settings, switch on Presence, then come back and press Start.",
+                "Presense turns on Do not disturb during each training and switches it back afterwards. The phone needs your permission once. Tap Open settings, switch on Presense, then come back and press Start.",
                 "Open settings",
                 "Not now",
                 onPrimary = {

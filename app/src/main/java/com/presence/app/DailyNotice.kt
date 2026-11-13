@@ -87,7 +87,7 @@ object DailyNotice {
             row.setTextViewText(R.id.notice_daily_sub, message(ctx))
             row.setOnClickPendingIntent(R.id.notice_daily_btn, open)
             val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) Notification.Builder(ctx, CHANNEL) else Notification.Builder(ctx)
-            val note = b.setContentTitle("Presence")
+            val note = b.setContentTitle("Presense")
                 .setCustomContentView(row)
                 .setSmallIcon(R.drawable.ic_stat_training)
                 .setContentIntent(open)

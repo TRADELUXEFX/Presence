@@ -163,7 +163,7 @@ object PdfReport {
         }
         val doc = PdfDocument()
         try {
-            val ctx = Ctx(doc, "Presence  \u2022  " + rangeLabel, face)
+            val ctx = Ctx(doc, "Presense  \u2022  " + rangeLabel, face)
             ctx.next()
             val c = ctx.canvas
 
@@ -180,7 +180,7 @@ object PdfReport {
             if (logo != null) {
                 drawLogo(c, logo, RectF(chip.left + 10f, chip.top + 10f, chip.right - 10f, chip.bottom - 10f))
             }
-            c.drawText("Presence", M + 82f, 62f, paint(face.bold, 26f, Color.WHITE))
+            c.drawText("Presense", M + 82f, 62f, paint(face.bold, 26f, Color.WHITE))
             c.drawText("Training summary", M + 82f, 82f, paint(face.med, 12f, Color.argb(225, 255, 255, 255)))
 
             // range as a pill on the right, period under it

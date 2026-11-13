@@ -140,7 +140,7 @@ object Weekly {
         val n = NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_presence)
             .setColor(Ui.BLUE)
-            .setContentTitle("Your week in Presence")
+            .setContentTitle("Your week in Presense")
             .setContentText("Your weekly summary is ready. Tap to see it.")
             .setContentIntent(open)
             .setAutoCancel(true)

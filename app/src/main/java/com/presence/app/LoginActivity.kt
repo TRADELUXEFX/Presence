@@ -359,7 +359,7 @@ class LoginActivity : BaseActivity() {
                     }
                 } else if (r.ok) {
                     busy(false)
-                    showMsg("Check your email and tap the link on this phone. It opens Presence and logs you in.", true)
+                    showMsg("Check your email and tap the link on this phone. It opens Presense and logs you in.", true)
                 } else {
                     busy(false)
                     showMsg(r.message(), false)
