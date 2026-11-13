@@ -19,6 +19,7 @@ class ProfileActivity : BaseActivity() {
     private lateinit var emailView: TextView
     private lateinit var methodView: TextView
     private lateinit var passRow: TextView
+    private lateinit var avatarView: android.widget.ImageView
     private var currentName = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +58,8 @@ class ProfileActivity : BaseActivity() {
         avBg.setColor(Ui.WHITE)
         av.background = avBg
         av.addView(FsIconView(c, AuthUi.USER, Ui.BLUE), FrameLayout.LayoutParams(Ui.dp(c, 46), Ui.dp(c, 46), Gravity.CENTER))
+        avatarView = Avatar.view(c)
+        av.addView(avatarView, FrameLayout.LayoutParams(-1, -1))
         val al = LinearLayout.LayoutParams(Ui.dp(c, 88), Ui.dp(c, 88))
         al.gravity = Gravity.CENTER_HORIZONTAL
         al.topMargin = Ui.dp(c, 4)
@@ -98,6 +101,7 @@ class ProfileActivity : BaseActivity() {
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         Ui.padInsets(root, bottom = true)
         setContentView(root)
+        Avatar.show(c, avatarView, Session.prefs.getString("u_avatar", "") ?: "")
         loadUser()
     }
 
@@ -117,10 +121,13 @@ class ProfileActivity : BaseActivity() {
             val meta = u.optJSONObject("user_metadata")
             val name = (meta?.optString("full_name", "") ?: "").ifEmpty { meta?.optString("name", "") ?: "" }
                 .ifEmpty { email.substringBefore("@") }
+            val pic = (meta?.optString("avatar_url", "") ?: "").ifEmpty { meta?.optString("picture", "") ?: "" }
+            if (pic.isNotEmpty()) Session.prefs.edit().putString("u_avatar", pic).apply()
             val provider = u.optJSONObject("app_metadata")?.optString("provider", "email") ?: "email"
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 currentName = name
+                Avatar.show(this, avatarView, pic)
                 nameView.text = name
                 emailView.text = email
                 methodView.text = if (provider == "email") "Signed in with email" else "Signed in with Google"

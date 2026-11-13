@@ -6,8 +6,10 @@ import android.content.SharedPreferences
 /** Login tokens, kept in private SharedPreferences. */
 object Session {
     lateinit var prefs: SharedPreferences
+    private var filesDir: java.io.File? = null
 
     fun init(ctx: Context) {
+        filesDir = ctx.filesDir
         prefs = ctx.getSharedPreferences("presence", Context.MODE_PRIVATE)
     }
 
@@ -28,6 +30,7 @@ object Session {
     }
 
     fun clear() {
-        prefs.edit().remove("access").remove("refresh").remove("uid").remove("expires_at").apply()
+        prefs.edit().remove("access").remove("refresh").remove("uid").remove("expires_at").remove("u_avatar").remove("u_avatar_src").apply()
+        try { java.io.File(filesDir, "avatar.png").delete() } catch (e: Exception) { }
     }
 }
