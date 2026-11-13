@@ -78,12 +78,9 @@ class ProfileActivity : BaseActivity() {
         column.orientation = LinearLayout.VERTICAL
         column.setPadding(Ui.dp(c, 20), Ui.dp(c, 22), Ui.dp(c, 20), Ui.dp(c, 24))
 
-        val editName = row("Edit name")
-        editName.setOnClickListener { editNameDialog() }
-        column.addTo(editName, 0)
         passRow = row("Change password")
         passRow.setOnClickListener { changePasswordDialog() }
-        column.addTo(passRow, 12)
+        column.addTo(passRow, 0)
 
         // Log out and Delete account: both centered, full-width pills
         val logout = Ui.pill(c, "Log out", Ui.BLUE_SOFT, Ui.BLUE)
@@ -119,6 +116,10 @@ class ProfileActivity : BaseActivity() {
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         Ui.padInsets(root, bottom = true)
         setContentView(root)
+        // Show the saved photo straight away (no waiting for the network), then refresh it from the server
+        Avatar.show(c, avatarView, Session.prefs.getString("u_avatar", "") ?: "")
+        // Change password only for email sign-ins; hidden until we know how this account signed in
+        passRow.visibility = if ((Session.prefs.getString("u_provider", "") ?: "") == "email") View.VISIBLE else View.GONE
         loadUser()
     }
 
@@ -141,6 +142,8 @@ class ProfileActivity : BaseActivity() {
             val provider = u.optJSONObject("app_metadata")?.optString("provider", "email") ?: "email"
             // Only Google sign-ins carry a Google photo; email accounts get an empty value and keep the default icon.
             val pic = (meta?.optString("avatar_url", "") ?: "").ifEmpty { meta?.optString("picture", "") ?: "" }
+            if (pic.isNotEmpty()) Session.prefs.edit().putString("u_avatar", pic).apply()
+            Session.prefs.edit().putString("u_provider", provider).apply()
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 Avatar.show(this, avatarView, pic)
@@ -152,24 +155,6 @@ class ProfileActivity : BaseActivity() {
                 passRow.visibility = if (provider == "email") View.VISIBLE else View.GONE
             }
         }.start()
-    }
-
-    private fun editNameDialog() {
-        val input = Ui.input(this, "Your name", false)
-        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        input.setText(currentName)
-        input.setSelection(input.text.length)
-        Dialogs.show(this, "Edit name", "", "Save", "Cancel", onPrimary = {
-            val n = input.text.toString().trim()
-            if (n.isNotEmpty()) Thread {
-                val r = Api.updateName(n)
-                runOnUiThread {
-                    if (isFinishing) return@runOnUiThread
-                    if (r.ok) { currentName = n; nameView.text = n }
-                    else Dialogs.show(this, "Could not save the name", r.message(), "OK")
-                }
-            }.start()
-        }, content = input)
     }
 
     private fun changePasswordDialog() {

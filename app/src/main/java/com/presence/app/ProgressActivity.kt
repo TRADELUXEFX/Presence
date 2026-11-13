@@ -185,6 +185,12 @@ class ProgressActivity : BaseActivity() {
     private fun loadHistory() {
         historyLoading = true
         historyFailed = false
+        // show the copy saved on this phone straight away; the server copy replaces it when it arrives
+        val quickUid = Session.userId
+        val quick = (cachedHistory(quickUid) + LocalStore.pendingFor(quickUid))
+            .distinctBy { it.optLong("ts") to it.optString("mod") }
+            .sortedByDescending { it.optLong("ts") }
+        if (quick.isNotEmpty()) { history = quick; render() }
         Thread {
             val uid = Session.userId
             val fresh = Api.fetchSessions()
@@ -637,7 +643,7 @@ class ProgressActivity : BaseActivity() {
 
     private fun renderHistory() {
         val c = this
-        if (historyLoading) {
+        if (historyLoading && history == null) {
             exportBtn.alpha = 0.4f
             column.addTo(Loading.page(c), 0)
             return

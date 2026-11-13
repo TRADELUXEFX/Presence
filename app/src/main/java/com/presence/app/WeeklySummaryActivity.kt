@@ -43,6 +43,13 @@ class WeeklySummaryActivity : BaseActivity() {
     private fun load() {
         // opened from the Sunday reminder: show the week that just ended
         val lastWeek = intent.getBooleanExtra(Weekly.EXTRA_LAST_WEEK, false)
+        // show the copy saved on this phone straight away, then refresh from the server
+        val quickUid = Session.userId
+        val quickRows = (cached(quickUid) + LocalStore.pendingFor(quickUid)).distinctBy { it.optLong("ts") to it.optString("mod") }
+        if (quickRows.isNotEmpty()) {
+            val quickStreak = Profile.normalize(LocalStore.profile(quickUid)).optInt("streak", 0)
+            show(Weekly.summarize(quickRows, quickStreak, if (lastWeek) 1 else 0))
+        }
         Thread {
             val uid = Session.userId
             val fresh = Api.fetchSessions()

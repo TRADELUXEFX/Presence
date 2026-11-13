@@ -28,6 +28,6 @@ object Session {
     }
 
     fun clear() {
-        prefs.edit().remove("access").remove("refresh").remove("uid").remove("expires_at").remove("u_avatar_src").apply()
+        prefs.edit().remove("access").remove("refresh").remove("uid").remove("expires_at").remove("u_avatar").remove("u_avatar_src").remove("u_provider").apply()
     }
 }
