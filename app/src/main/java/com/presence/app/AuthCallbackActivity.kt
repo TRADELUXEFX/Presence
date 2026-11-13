@@ -44,9 +44,18 @@ class AuthCallbackActivity : BaseActivity() {
                     fail("This link has expired. Ask for a new one.")
                     return@runOnUiThread
                 }
-                val next = if (type == "invite" || type == "recovery") SetPasswordActivity::class.java else HomeActivity::class.java
-                startActivity(Intent(this, next).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
-                finish()
+                if (type == "invite" || type == "recovery") {
+                    startActivity(Intent(this, SetPasswordActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+                    finish()
+                } else {
+                    // Google sign-in: load the user's data first, the same as the email login does
+                    Sync.refresh { _ ->
+                        if (!isFinishing) {
+                            startActivity(Intent(this, HomeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK))
+                            finish()
+                        }
+                    }
+                }
             }
         }.start()
     }
