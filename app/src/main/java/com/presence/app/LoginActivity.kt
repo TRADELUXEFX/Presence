@@ -19,7 +19,7 @@ import com.presence.app.Ui.addTo
 class LoginActivity : BaseActivity() {
     companion object {
         // Set this to your live privacy policy page before release.
-        const val PRIVACY_URL = "https://example.com/presence-privacy"
+        const val PRIVACY_URL = "https://YOUR-SITE/privacy.html"
     }
 
     override val needsLogin: Boolean get() = false
@@ -27,9 +27,9 @@ class LoginActivity : BaseActivity() {
     private var signUp = false
     private lateinit var email: EditText
     private lateinit var password: EditText
-    private lateinit var heading: TextView
-    private lateinit var tagline: TextView
     private lateinit var msg: TextView
+    private lateinit var orText: TextView
+    private lateinit var googleText: TextView
     private lateinit var submit: Button
     private lateinit var spin: SpinnerRingView
     private lateinit var busyPill: FrameLayout
@@ -91,12 +91,6 @@ class LoginActivity : BaseActivity() {
         tabSignUp.setOnClickListener { setMode(true) }
         card.addTo(tabs)
 
-        heading = Ui.text(c, "Welcome Back", 24f, Ui.TEXT, Ui.BOLD)
-        heading.gravity = Gravity.CENTER
-        card.addTo(heading, 20)
-        tagline = Ui.text(c, "Login to get access to training", 14f, Ui.MUTED, Ui.REG)
-        tagline.gravity = Gravity.CENTER
-        card.addTo(tagline, 4)
 
         val nameRow = AuthUi.inputRow(c, AuthUi.USER, "Your name", false)
         nameInput = nameRow.second
@@ -135,9 +129,18 @@ class LoginActivity : BaseActivity() {
         msg.gravity = Gravity.CENTER
         card.addTo(msg, 12)
 
-        val orText = Ui.text(c, "or continue with", 12f, Ui.MUTED, Ui.REG)
+        orText = Ui.text(c, "or", 12f, Ui.MUTED, Ui.REG)
         orText.gravity = Gravity.CENTER
-        card.addTo(orText, 14)
+        orText.setPadding(Ui.dp(c, 14), 0, Ui.dp(c, 14), 0)
+        val orRow = LinearLayout(c)
+        orRow.orientation = LinearLayout.HORIZONTAL
+        orRow.gravity = Gravity.CENTER_VERTICAL
+        val lineL = View(c); lineL.setBackgroundColor(Ui.LINE)
+        val lineR = View(c); lineR.setBackgroundColor(Ui.LINE)
+        orRow.addView(lineL, LinearLayout.LayoutParams(0, Ui.dp(c, 1), 1f))
+        orRow.addView(orText)
+        orRow.addView(lineR, LinearLayout.LayoutParams(0, Ui.dp(c, 1), 1f))
+        card.addTo(orRow, 16)
         val g = LinearLayout(c)
         g.orientation = LinearLayout.HORIZONTAL
         g.gravity = Gravity.CENTER
@@ -149,8 +152,9 @@ class LoginActivity : BaseActivity() {
         val gLp = LinearLayout.LayoutParams(Ui.dp(c, 22), Ui.dp(c, 22))
         gLp.rightMargin = Ui.dp(c, 12)
         g.addView(GoogleGView(c), gLp)
-        g.addView(Ui.text(c, "Continue with Google", 16f, Ui.TEXT, Ui.BOLD))
-        card.addTo(g, 10)
+        googleText = Ui.text(c, "Login with Google", 16f, Ui.TEXT, Ui.BOLD)
+        g.addView(googleText)
+        card.addTo(g, 16)
 
         forgotRow = LinearLayout(c)
         forgotRow.orientation = LinearLayout.HORIZONTAL
@@ -224,8 +228,6 @@ class LoginActivity : BaseActivity() {
     private fun setMode(up: Boolean) {
         signUp = up
         msg.text = ""
-        heading.text = if (up) "Create Account" else "Welcome Back"
-        tagline.text = if (up) "Start your presence training journey" else "Login to get access to training"
         submit.text = if (up) "Create account" else "Login"
         nameBox.visibility = if (up) View.VISIBLE else View.GONE
         confirmBox.visibility = if (up) View.VISIBLE else View.GONE
@@ -235,10 +237,9 @@ class LoginActivity : BaseActivity() {
         tabLogin.setTextColor(if (!up) Ui.WHITE else Ui.MUTED)
         tabSignUp.background = if (up) Ui.rounded(this, Ui.BLUE, 18) else null
         tabSignUp.setTextColor(if (up) Ui.WHITE else Ui.MUTED)
+        googleText.text = if (up) "Sign up with Google" else "Login with Google"
         forgotRow.visibility = if (up) View.GONE else View.VISIBLE
     }
-
-    private var browserNext = false
 
     /** Google sign-in through the phone's browser (Supabase). Returns via AuthCallbackActivity. */
     private fun openGoogleInBrowser() {
@@ -254,8 +255,7 @@ class LoginActivity : BaseActivity() {
     /** Shows Google's account picker on top of the app first. Falls back to the browser sign-in (no SHA-1 needed) if Google rejects the app. */
     private fun doGoogle() {
         if (googleBusy) return
-        if (browserNext || Api.GOOGLE_WEB_CLIENT_ID.isEmpty()) { browserNext = false; openGoogleInBrowser(); return }
-        googleBusy = true
+                googleBusy = true
         msg.text = ""
         val option = com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
             .Builder(Api.GOOGLE_WEB_CLIENT_ID).build()
@@ -291,11 +291,14 @@ class LoginActivity : BaseActivity() {
                 }
                 override fun onError(e: androidx.credentials.exceptions.GetCredentialException) {
                     googleBusy = false
+                    // always stay in the app: the account picker shows again on the next tap
                     if (e is androidx.credentials.exceptions.GetCredentialCancellationException) {
-                        // Google also reports a rejected app setup as "cancelled", so offer the browser on the next tap.
-                        browserNext = true
                         showMsg("Google sign-in was cancelled.", false)
-                    } else openGoogleInBrowser()
+                    } else if (e is androidx.credentials.exceptions.NoCredentialException) {
+                        showMsg("No Google account found on this phone. Add one in Settings and try again.", false)
+                    } else {
+                        showMsg("Google sign-in did not work. Please try again.", false)
+                    }
                 }
             })
     }

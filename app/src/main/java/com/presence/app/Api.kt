@@ -156,6 +156,10 @@ object Api {
         return call(builder("/auth/v1/user", Session.access).put(body.toRequestBody(JSON_TYPE)).build())
     }
 
+    /** Changes the display name of the signed-in user. */
+    fun updateName(name: String): Result =
+        authed("PUT", "/auth/v1/user", JSONObject().put("data", JSONObject().put("name", name)).toString(), null)
+
     /** Deletes the signed-in account and its data (see supabase/migrations/003_delete_account.sql). */
     fun deleteAccount(): Result = authed("POST", "/rest/v1/rpc/delete_my_account", "{}", null)
 
@@ -178,6 +182,7 @@ object Api {
         when (method) {
             "POST" -> b.post(payload)
             "PATCH" -> b.patch(payload)
+            "PUT" -> b.put(payload)
             else -> b.get()
         }
         return call(b.build())

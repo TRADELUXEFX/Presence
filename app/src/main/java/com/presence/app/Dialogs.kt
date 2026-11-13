@@ -26,7 +26,8 @@ object Dialogs {
         secondary: String? = null,
         onPrimary: () -> Unit = {},
         onSecondary: () -> Unit = {},
-        accent: Int = Ui.BLUE
+        accent: Int = Ui.BLUE,
+        content: View? = null
     ) {
         if (a.isFinishing) return
         val d = Dialog(a)
@@ -35,9 +36,12 @@ object Dialogs {
         val card = Ui.card(a)
         card.setPadding(Ui.dp(a, 22), Ui.dp(a, 22), Ui.dp(a, 22), Ui.dp(a, 18))
         card.addView(Ui.text(a, title, 18f, Ui.TEXT, Ui.BOLD))
-        val msg = Ui.text(a, message, 14f, Ui.MUTED, Ui.REG)
-        msg.setLineSpacing(0f, 1.25f)
-        card.addTo(msg, 8)
+        if (message.isNotEmpty()) {
+            val msg = Ui.text(a, message, 14f, Ui.MUTED, Ui.REG)
+            msg.setLineSpacing(0f, 1.25f)
+            card.addTo(msg, 8)
+        }
+        if (content != null) card.addTo(content, 14)
 
         val row = LinearLayout(a)
         row.orientation = LinearLayout.HORIZONTAL
