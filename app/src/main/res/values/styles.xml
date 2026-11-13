@@ -11,7 +11,7 @@
     </style>
 
     <!-- Launch theme: shown while the app starts, then switches to AppTheme. -->
-    <style name="Theme.Presence.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.Presense.Splash" parent="Theme.SplashScreen">
         <!-- light look always, even in dark mode, with the sharp icon (same approach as PauzFirst) -->
         <item name="windowSplashScreenBackground">#F4F7FB</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>

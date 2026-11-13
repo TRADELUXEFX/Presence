@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>PRESENCE TRAINING</title>
+<title>PRESENSE TRAINING</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Presence">
+<meta name="apple-mobile-web-app-title" content="Presense">
 <link rel="apple-touch-icon" href="icon-192x192.jpg">
 <link rel="icon" type="image/jpeg" sizes="192x192" href="icon-192x192.jpg">
 <link rel="shortcut icon" href="icon-192x192.jpg">
@@ -448,9 +448,9 @@ h1{font-weight:800;letter-spacing:.3px}
 <div id="scAuth" class="welcome">
   <div class="auth-welcome">
     <div class="aw-hero">
-      <div class="aw-logo"><img src="icon-192x192.jpg" alt="Presence"></div>
-      <div class="aw-name">PRESENCE</div>
-      <div class="aw-tag">Train your presence, one session at a time</div>
+      <div class="aw-logo"><img src="icon-192x192.jpg" alt="Presense"></div>
+      <div class="aw-name">PRESENSE</div>
+      <div class="aw-tag">Train your presense, one session at a time</div>
     </div>
     <div class="aw-btns">
       <button class="auth-btn" onclick="showAuthForm('login')">Login</button>
@@ -466,10 +466,10 @@ h1{font-weight:800;letter-spacing:.3px}
   <div class="auth-header">
     <div class="header-brand">
       <div class="header-logo">
-        <img src="icon-192x192.jpg" alt="Presence">
+        <img src="icon-192x192.jpg" alt="Presense">
       </div>
       <div class="header-titles">
-        <h1>PRESENCE</h1>
+        <h1>PRESENSE</h1>
         <div class="subtitle">TRAINING</div>
       </div>
     </div>
@@ -503,10 +503,10 @@ h1{font-weight:800;letter-spacing:.3px}
   <div class="auth-header">
     <div class="header-brand">
       <div class="header-logo">
-        <img src="icon-192x192.jpg" alt="Presence">
+        <img src="icon-192x192.jpg" alt="Presense">
       </div>
       <div class="header-titles">
-        <h1>PRESENCE</h1>
+        <h1>PRESENSE</h1>
         <div class="subtitle">TRAINING</div>
       </div>
     </div>
@@ -535,10 +535,10 @@ h1{font-weight:800;letter-spacing:.3px}
     <div class="header-top">
       <div class="header-brand">
         <div class="header-logo">
-          <img src="icon-192x192.jpg" alt="Presence">
+          <img src="icon-192x192.jpg" alt="Presense">
         </div>
         <div class="header-titles">
-          <h1>PRESENCE</h1>
+          <h1>PRESENSE</h1>
           <div class="subtitle">TRAINING</div>
         </div>
       </div>
@@ -717,10 +717,10 @@ h1{font-weight:800;letter-spacing:.3px}
     <div class="header-top">
       <div class="header-brand">
         <div class="header-logo">
-          <img src="icon-192x192.jpg" alt="Presence">
+          <img src="icon-192x192.jpg" alt="Presense">
         </div>
         <div class="header-titles">
-          <h1>PRESENCE</h1>
+          <h1>PRESENSE</h1>
           <div class="subtitle">TRAINING</div>
         </div>
       </div>
@@ -815,7 +815,7 @@ h1{font-weight:800;letter-spacing:.3px}
 <div class="install-banner" id="installBanner">
   <div class="install-logo"><img src="icon-192x192.jpg" alt="logo"></div>
   <div class="install-text">
-    <div class="install-title">Install Presence Training</div>
+    <div class="install-title">Install Presense Training</div>
     <div class="install-sub">Add to home screen for the full app experience</div>
   </div>
   <button class="install-btn" id="installBtn">Install</button>
@@ -914,12 +914,12 @@ function speak(text) {
 function stopSpeech() { try { if (synth) synth.cancel(); } catch(e) {} }
 
 /* ---- DATA ---- */
-var SK = 'PRESENCE_v6';
+var SK = 'PRESENSE_v6';
 var D = { sessions:0, totalSec:0, streak:0, fullStreak:0, lastDate:null, todayDone:{}, todayDoneDate:null, todayFullCounted:false, mods:{ blink:0, fidget:0, breath:0, meditate:0 }, history:[], defaults:{} };
 
 function loadD() {
   try {
-    var s = localStorage.getItem(SK) || localStorage.getItem('PRESENCE_v5');
+    var s = localStorage.getItem(SK) || localStorage.getItem('PRESENSE_v5');
     if (s) {
       var p = JSON.parse(s);
       D.sessions = p.sessions||0; D.totalSec = p.totalSec||0;
@@ -931,7 +931,7 @@ function loadD() {
     }
   } catch(e) {}
   // Always merge dedicated defaults key (more reliable than main sync)
-  try { var dd=localStorage.getItem('PRESENCE_defaults'); if(dd){ var pd=JSON.parse(dd); D.defaults=Object.assign({},pd,D.defaults); } } catch(e) {}
+  try { var dd=localStorage.getItem('PRESENSE_defaults'); if(dd){ var pd=JSON.parse(dd); D.defaults=Object.assign({},pd,D.defaults); } } catch(e) {}
   try { if (D.lastDate && Math.floor((Date.now()-new Date(D.lastDate).getTime())/86400000)>1) { D.streak=0; } } catch(e) {}
   try { var _today=new Date().toDateString(); if (D.todayDoneDate !== _today) { D.todayDone={}; D.todayFullCounted=false; } } catch(e) {}
 }
@@ -993,7 +993,7 @@ async function dbLoadProfile() {
       if (p.mods) { D.mods.blink=p.mods.blink||0; D.mods.fidget=p.mods.fidget||0; D.mods.breath=p.mods.breath||0; D.mods.meditate=p.mods.meditate||0; }
       if (p.defaults) D.defaults = p.defaults;
       // Merge dedicated defaults key — takes priority over Supabase if both exist
-      try { var dd=localStorage.getItem('PRESENCE_defaults'); if(dd){ var pd=JSON.parse(dd); D.defaults=Object.assign({},D.defaults,pd); } } catch(e) {}
+      try { var dd=localStorage.getItem('PRESENSE_defaults'); if(dd){ var pd=JSON.parse(dd); D.defaults=Object.assign({},D.defaults,pd); } } catch(e) {}
       try { localStorage.setItem(SK, JSON.stringify(D)); } catch(e) {}
     }
     var hres = await supabase.from('sessions').select('*').eq('user_id', sess.user.id).order('ts', {ascending:false}).limit(200);
@@ -1016,7 +1016,7 @@ function saveAsDefault() {
   var mm=document.getElementById('inpMed');    if(mm){var v=parseInt(mm.value);if(!isNaN(v)&&v>0)cfgMedMin=v;}
   D.defaults[cfgKey] = { mode:cfgMode, repSec:cfgRepSec, sets:cfgSets, restSec:cfgRestSec, medMin:cfgMedMin };
   // Save defaults to a dedicated key so they survive regardless of Supabase column support
-  try { localStorage.setItem('PRESENCE_defaults', JSON.stringify(D.defaults)); } catch(e) {}
+  try { localStorage.setItem('PRESENSE_defaults', JSON.stringify(D.defaults)); } catch(e) {}
   saveD();
   var btn = document.getElementById('setDefaultBtn');
   if (btn) { btn.textContent='✓ Saved as Default'; setTimeout(function(){ btn.textContent='Set as Default'; },1500); }
@@ -1051,7 +1051,7 @@ function recordSession(mod, sec, meta) {
 
 /* ---- CONFIG STATE ---- */
 var cfgKey=null, cfgMode='open', cfgRepSec=30, cfgSets=5, cfgMedMin=10, cfgRestSec=5;
-var animEyesOn = (function(){ try { return localStorage.getItem('PRESENCE_animEyes')==='1'; } catch(e){ return false; } })();
+var animEyesOn = (function(){ try { return localStorage.getItem('PRESENSE_animEyes')==='1'; } catch(e){ return false; } })();
 var MODE_DEF = { open:{repSec:30,sets:5}, closed:{repSec:45,sets:4}, mirror:{repSec:60,sets:3} };
 var MODE_DESC = {
   open:  'Eyes open. Fix your gaze on a point ahead. Train without blinking.',
@@ -1071,7 +1071,7 @@ var QUOTES = {
   blink:   ['The eyes reveal what the mouth conceals. Control them.','No blink. No flinch. No surrender.','Unbroken gaze is unbroken will.'],
   fidget:  ['The mountain does not tremble for the storm.','Stillness is the loudest signal of calm.','Control your body, then you can control the room.'],
   breath:  ['Control the breath. Control the state.','Four in. Four still. Four out. Four still.','This is the off switch for anxiety.'],
-  meditate:['The mind that is still can hear everything.','Presence is not found in the future. Only here.','You cannot pour from an empty cup. Fill yours.']
+  meditate:['The mind that is still can hear everything.','Presense is not found in the future. Only here.','You cannot pour from an empty cup. Fill yours.']
 };
 
 
@@ -1230,7 +1230,7 @@ function wirePanel(key) {
   var animRow = document.getElementById('animEyesRow');
   if (animRow) animRow.addEventListener('click', function() {
     animEyesOn = !animEyesOn;
-    try { localStorage.setItem('PRESENCE_animEyes', animEyesOn ? '1' : '0'); } catch(e) {}
+    try { localStorage.setItem('PRESENSE_animEyes', animEyesOn ? '1' : '0'); } catch(e) {}
     var t = document.getElementById('animEyesT');
     if (t) t.className = 'toggle'+(animEyesOn?' on':'');
   });
@@ -1699,7 +1699,7 @@ function switchAuthTab(mode) {
     document.getElementById('authPassword').autocomplete = 'current-password';
   } else {
     document.getElementById('authHeading').textContent = 'Create Account';
-    document.getElementById('authTagline').textContent = 'Start your presence training journey';
+    document.getElementById('authTagline').textContent = 'Start your presense training journey';
     document.getElementById('authSubmitBtn').textContent = 'Sign Up';
     document.getElementById('authForgotWrap').innerHTML = "Already have an account? <a onclick=\"switchAuthTab('login')\">Sign in</a>";
     document.getElementById('authSwitchWrap').innerHTML = '\u00a0';

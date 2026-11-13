@@ -1,4 +1,4 @@
-# Presence Training
+# Presense Training
 
 Native Android app (Kotlin, package `com.presense.app`). No WebView.
 
