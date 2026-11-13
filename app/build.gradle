@@ -8,7 +8,7 @@ def hasReleaseKs = releaseKsPath && new File(releaseKsPath).exists()
 def runNumber = (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
 
 android {
-    namespace 'com.presence.app'
+    namespace 'com.presense.app'
     compileSdk 36
 
     defaultConfig {

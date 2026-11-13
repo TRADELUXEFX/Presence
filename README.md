@@ -1,6 +1,6 @@
 # Presense Training
 
-Native Android app (Kotlin, namespace `com.presence.app` (applicationId `com.presense.app`)). No WebView.
+Native Android app (Kotlin, package `com.presense.app`). No WebView.
 
 ## Folders
 - `app/` the Android app. Screens are built in code with the design kit in `Ui.kt`.
